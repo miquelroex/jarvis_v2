@@ -1,5 +1,5 @@
 from langchain.tools import tool
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 @tool("duckduckgo_search", return_direct=True)
 def duckduckgo_search_tool(query: str) -> str:

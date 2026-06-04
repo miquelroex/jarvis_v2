@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>JARVIS</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=5">
+</head>
+<body>
+    <!-- Canvas donde se dibujan las animaciones -->
+    <canvas id="jarvis-canvas"></canvas>
+
+    <div id="overlay">
+        <!-- Panel Principal (Centro) -->
+        <div id="main-panel">
+            <div id="title">J  A  R  V  I  S</div>
+            <div id="status">SISTEMA INICIADO</div>
+            <div id="transcript"></div>
+            <div id="response"></div>
+        </div>
+        
+        <!-- Panel Lateral (Historial) -->
+        <div id="chat-history">
+            <!-- Los mensajes se llenarán aquí -->
+        </div>
+    </div>
+
+    <!-- Socket.IO (comunicación en tiempo real) -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <!-- Nuestro JavaScript con las animaciones -->
+    <script src="/static/js/jarvis.js?v=2"></script>
+</body>
+</html>

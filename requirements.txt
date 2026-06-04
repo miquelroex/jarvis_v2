@@ -11,7 +11,17 @@ pytz==2025.2
 SpeechRecognition==3.14.3
 PyAudio==0.2.14
 
-# Additional tool dependencies
+# GUI
+flask
+flask-socketio
+
+# TTS principal (sistema multicapa)
+edge-tts
+pygame
+elevenlabs
+
+# Tools adicionales
 mss==10.0.0
 duckduckgo-search==8.1.1
 pytesseract==0.3.13
+Pillow

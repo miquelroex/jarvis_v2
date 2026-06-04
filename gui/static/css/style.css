@@ -1,0 +1,138 @@
+/* Reset y fondo oscuro */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #000;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    color: #00d4ff;
+}
+
+/* El canvas ocupa toda la pantalla */
+#jarvis-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Textos superpuestos */
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: row;
+    pointer-events: none;
+    z-index: 10;
+}
+
+#main-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 5rem;
+}
+
+/* Título J.A.R.V.I.S. */
+#title {
+    font-size: 2rem;
+    letter-spacing: 1rem;
+    color: #00d4ff;
+    text-shadow: 0 0 20px #00d4ff, 0 0 40px #0088aa;
+    margin-bottom: 1.5rem;
+    opacity: 0.9;
+}
+
+/* Estado actual */
+#status {
+    font-size: 1rem;
+    color: #00d4ff;
+    text-transform: uppercase;
+    letter-spacing: 0.5rem;
+    opacity: 0.7;
+    margin-bottom: 3rem;
+}
+
+/* Lo que el usuario dice */
+#transcript {
+    font-size: 1.2rem;
+    color: #ffffff;
+    max-width: 600px;
+    text-align: center;
+    min-height: 2rem;
+    opacity: 0.8;
+}
+
+/* Lo que Jarvis responde */
+#response {
+    font-size: 1.1rem;
+    color: #00ff88;
+    max-width: 600px;
+    text-align: center;
+    margin-top: 1rem;
+    min-height: 2rem;
+    opacity: 0.9;
+    text-shadow: 0 0 10px #00ff88;
+}
+
+/* Panel Lateral (Historial) */
+#chat-history {
+    width: 350px;
+    height: 100vh;
+    padding: 20px;
+    overflow-y: auto;
+    background: rgba(0, 40, 60, 0.2);
+    border-left: 1px solid rgba(0, 212, 255, 0.2);
+    box-shadow: inset 10px 0 20px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Scrollbar invisible pero funcional */
+#chat-history::-webkit-scrollbar {
+    width: 5px;
+}
+#chat-history::-webkit-scrollbar-thumb {
+    background: rgba(0, 212, 255, 0.3);
+    border-radius: 5px;
+}
+
+/* Mensajes dentro del chat */
+.chat-msg {
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.chat-msg.user {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    align-self: flex-end;
+    border-right: 3px solid #fff;
+}
+
+.chat-msg.jarvis {
+    background: rgba(0, 255, 136, 0.1);
+    color: #00ff88;
+    align-self: flex-start;
+    border-left: 3px solid #00ff88;
+    text-shadow: 0 0 5px rgba(0, 255, 136, 0.5);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
