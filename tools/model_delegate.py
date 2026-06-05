@@ -1,6 +1,8 @@
 import os
 from langchain.tools import tool
 from langchain_openai import ChatOpenAI
+from datetime import datetime
+from pathlib import Path
 
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
@@ -13,6 +15,7 @@ def ask_openrouter_model(model_env: str, fallback_model: str, prompt: str) -> st
     return "No OPENROUTER_API_KEY found in .env"
 
   model = os.getenv(model_env, fallback_model)
+  log_model_use(model_env, model, prompt)
 
   llm = ChatOpenAI(
     model=model,
@@ -23,6 +26,18 @@ def ask_openrouter_model(model_env: str, fallback_model: str, prompt: str) -> st
 
   response = llm.invoke(prompt)
   return response.content
+  
+def log_model_use(tool_name: str, model_name: str, prompt: str) -> None:
+  logs_dir = Path("logs")
+  logs_dir.mkdir(exist_ok=True)
+
+  short_prompt = prompt.replace("\n", " ")[:120]
+
+  with open(logs_dir / "model_usage.log", "a", encoding="utf-8") as file:
+    file.write(
+      f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | "
+      f"{tool_name} | {model_name} | {short_prompt}\n"
+    )
 
 
 @tool
