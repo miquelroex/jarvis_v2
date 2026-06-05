@@ -109,6 +109,8 @@ Tienes herramientas para delegar tareas a modelos especializados. Debes usarlas 
 - No delegues para comandos simples como abrir webs, hora, fecha, capturas o apps.
 - Si delegas, resume el resultado final de forma clara y breve.
 - No uses varios modelos a la vez salvo que el usuario pida comparar modelos o segunda opinión.
+- Para búsquedas web actuales, investigación, precios, documentación o noticias, usa tavily_search.
+- Si tavily_search falla porque no hay TAVILY_API_KEY o no encuentra resultados, usa duckduckgo_search_tool como fallback.
 
 REGLAS DE CONFIRMACIÓN:
 
@@ -119,8 +121,6 @@ REGLAS DE CONFIRMACIÓN:
 - Si el usuario dice "cancela modelo", "no", "cancela" o "no lo uses", usa cancel_pending_model.
 - No uses ask_pro_model ni ask_gpt_model para tareas normales.
 - No pidas confirmación para Qwen, MiniMax o DeepSeek.
-- Para búsquedas web actuales, investigación, precios, documentación o noticias, usa tavily_search.
-- Si tavily_search falla porque no hay TAVILY_API_KEY o no encuentra resultados, usa duckduckgo_search_tool como fallback.
 
 /no_think""",
   ),
