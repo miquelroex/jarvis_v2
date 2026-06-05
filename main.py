@@ -109,6 +109,16 @@ Tienes herramientas para delegar tareas a modelos especializados. Debes usarlas 
 - Si delegas, resume el resultado final de forma clara y breve.
 - No uses varios modelos a la vez salvo que el usuario pida comparar modelos o segunda opinión.
 
+REGLAS DE CONFIRMACIÓN:
+
+- Los modelos normales pueden usarse automáticamente: DeepSeek, Qwen y MiniMax.
+- Los modelos caros requieren confirmación antes de ejecutarse: Kimi/modo pro y GPT.
+- Si una herramienta responde pidiendo confirmación, no intentes resolver la tarea todavía. Pregunta al usuario si confirma.
+- Si el usuario dice "confirmo modelo", "sí", "adelante", "ejecuta" o "confirma", usa confirm_pending_model.
+- Si el usuario dice "cancela modelo", "no", "cancela" o "no lo uses", usa cancel_pending_model.
+- No uses ask_pro_model ni ask_gpt_model para tareas normales.
+- No pidas confirmación para Qwen, MiniMax o DeepSeek.
+
 /no_think""",
   ),
   ("placeholder", "{chat_history}"),
