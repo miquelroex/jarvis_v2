@@ -14,7 +14,7 @@ def tavily_search(query: str) -> str:
   api_key = os.getenv("TAVILY_API_KEY")
 
   if not api_key:
-    return "No TAVILY_API_KEY found in .env. Use duckduckgo_search as fallback."
+    return "No TAVILY_API_KEY found in .env. Use duckduckgo_search_tool as fallback."
 
   client = TavilyClient(api_key=api_key)
 
