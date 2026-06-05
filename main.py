@@ -17,6 +17,7 @@ from langchain.memory import ConversationBufferWindowMemory
 from gui.app import run_gui_in_background, update_state
 from datetime import datetime
 from pathlib import Path
+import unicodedata
 
 # voice tool doesn't use standard @tool because it's called directly by main
 from tools.voice import speak
@@ -186,17 +187,78 @@ def listen_for_next_command(source):
     logging.info(f"📥 Command: {transcript}")
     return transcript, transcript
 
+def normalize_text(text: str) -> str:
+  text = text.lower().strip()
+  text = unicodedata.normalize("NFD", text)
+  text = "".join(char for char in text if unicodedata.category(char) != "Mn")
+  return text
+
+
+def handle_fast_command(command: str):
+  text = normalize_text(command)
+
+  websites = {
+    "youtube": "https://www.youtube.com",
+    "google": "https://www.google.com",
+    "github": "https://github.com",
+    "gmail": "https://mail.google.com",
+    "chatgpt": "https://chatgpt.com",
+    "whatsapp": "https://web.whatsapp.com",
+  }
+
+  apps = {
+    "calculadora": "calc",
+    "bloc de notas": "notepad",
+    "notepad": "notepad",
+    "explorador": "explorer",
+    "archivos": "explorer",
+    "chrome": "chrome",
+    "spotify": "spotify",
+  }
+
+  for name, url in websites.items():
+    if f"abre {name}" in text or f"abrir {name}" in text:
+      webbrowser.open(url)
+      return f"Abriendo {name}, señor."
+
+  for name, executable in apps.items():
+    if f"abre {name}" in text or f"abrir {name}" in text:
+      os.system(f"start {executable}")
+      return f"Abriendo {name}, señor."
+
+  if "que hora es" in text or "dime la hora" in text:
+    now = datetime.now()
+    return f"Son las {now.hour:02d}:{now.minute:02d}, señor."
+
+  if "que dia es" in text or "fecha de hoy" in text or "que fecha es" in text:
+    meses = [
+      "enero", "febrero", "marzo", "abril", "mayo", "junio",
+      "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+    ]
+    now = datetime.now()
+    return f"Hoy es {now.day} de {meses[now.month - 1]} de {now.year}."
+
+  return None
+
 def process_command(command_to_execute, transcript_for_ui):
-    update_state("thinking", transcript=transcript_for_ui)
-    logging.info("🤖 Sending command to agent...")
+  update_state("thinking", transcript=transcript_for_ui)
+
+  fast_response = handle_fast_command(command_to_execute)
+
+  if fast_response:
+    content = fast_response
+    logging.info(f"Fast command handled without AI: {content}")
+  else:
+    logging.info("Sending command to agent...")
     log_main_model_use(command_to_execute)
     response = executor.invoke({"input": command_to_execute})
     content = response["output"]
-    logging.info(f"✅ Agent responded: {content}")
-    update_state("speaking", response=content)
-    print("Jarvis:", content)
-    speak(content)
-    update_state("idle")
+    logging.info(f"Agent responded: {content}")
+
+  update_state("speaking", response=content)
+  print("Jarvis:", content)
+  speak(content)
+  update_state("idle")
 
 # Main interaction loop
 def write():
