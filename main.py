@@ -38,13 +38,11 @@ mic = sr.Microphone()
 
 # Alternativas (descomentar la que quieras usar):
 # llm = ChatOllama(model="qwen3:14b")
-# llm = ChatGoogleGenerativeAI(
-#     model="gemini-2.5-flash",
-#     google_api_key=os.getenv("GEMINI_API_KEY")
-# )
+
+default_model = os.getenv("JARVIS_MODEL_DEFAULT", "deepseek/deepseek-v3.2")
 
 llm = ChatOpenAI(
-    model="openai/gpt-5.4-mini",
+    model=default_model,
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("OPENROUTER_API_KEY"),
 )
