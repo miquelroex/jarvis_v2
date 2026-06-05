@@ -15,6 +15,8 @@ from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.memory import ConversationBufferWindowMemory
 from gui.app import run_gui_in_background, update_state
+from datetime import datetime
+from pathlib import Path
 
 # voice tool doesn't use standard @tool because it's called directly by main
 from tools.voice import speak
@@ -28,6 +30,17 @@ TRIGGER_WORD = "jarvis"
 CONVERSATION_TIMEOUT = 10
 
 logging.basicConfig(level=logging.INFO)
+def log_main_model_use(prompt: str) -> None:
+  logs_dir = Path("logs")
+  logs_dir.mkdir(exist_ok=True)
+
+  short_prompt = prompt.replace("\n", " ")[:120]
+
+  with open(logs_dir / "model_usage.log", "a", encoding="utf-8") as file:
+    file.write(
+      f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | "
+      f"main_model | {default_model} | {short_prompt}\n"
+    )
 
 recognizer = sr.Recognizer()
 recognizer.pause_threshold = 2.0  # Espera 2 segundos de silencio antes de cortar la frase
@@ -166,6 +179,7 @@ def listen_for_next_command(source):
 def process_command(command_to_execute, transcript_for_ui):
     update_state("thinking", transcript=transcript_for_ui)
     logging.info("🤖 Sending command to agent...")
+    log_main_model_use(command_to_execute)
     response = executor.invoke({"input": command_to_execute})
     content = response["output"]
     logging.info(f"✅ Agent responded: {content}")
