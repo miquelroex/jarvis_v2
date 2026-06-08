@@ -66,7 +66,7 @@ class TestPrivacySentinel(unittest.TestCase):
         file_tavily.write_text(f"tavily_api_key = \"tvly-{'a'*32}\"", encoding="utf-8")
         
         file_telegram = self.test_dir / "test_telegram.py"
-        file_telegram.write_text("token = '777888999:abcdefghijklmnopqrstuvwxyzABCDEFGHIJK'", encoding="utf-8")
+        file_telegram.write_text("token = '777888999:abcdefghijklmnopqrstuvwxyzABCDEFGHIJK1234'", encoding="utf-8")
         
         # Ejecutar escaneo apuntando a nuestra carpeta temporal de prueba
         with patch("core.privacy_sentinel.PROJECT_ROOT", self.test_dir):

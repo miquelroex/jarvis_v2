@@ -354,14 +354,14 @@ def start_telegram_bot():
                 elif "gpt" in route_type:
                     model_display = os.getenv("JARVIS_MODEL_GPT", "openai/gpt-5.4-mini")
                 elif "code" in route_type:
-                    model_display = os.getenv("JARVIS_MODEL_CODE", "qwen/qwen3-coder-next")
+                    model_display = os.getenv("JARVIS_MODEL_CODE", "qwen/qwen3-coder")
                 elif "reasoning" in route_type:
-                    model_display = os.getenv("JARVIS_MODEL_THINK", "qwen/qwen3-30b-a3b-thinking-2507")
+                    model_display = os.getenv("JARVIS_MODEL_THINK", "qwen/qwen3.7-plus")
                 else:
                     model_display = "Procesador Interno"
             else:
                 # 2. Delegar al agente de LangChain
-                default_model = os.getenv("JARVIS_MODEL_DEFAULT", "deepseek/deepseek-v3.2")
+                default_model = os.getenv("JARVIS_MODEL_DEFAULT", "deepseek/deepseek-v4-pro")
                 log_model_usage("main_model", default_model, text)
                 response = get_executor().invoke({"input": text})
                 content = response["output"]

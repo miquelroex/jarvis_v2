@@ -97,7 +97,7 @@ def ask_reasoning_model(prompt: str) -> str:
   return ask_openrouter_model(
     tool_name="ask_reasoning_model",
     model_env="JARVIS_MODEL_THINK",
-    fallback_model="qwen/qwen3-30b-a3b-thinking-2507",
+    fallback_model="qwen/qwen3.7-plus",
     prompt=prompt,
   )
 
@@ -112,7 +112,7 @@ def ask_code_model(prompt: str) -> str:
   return ask_openrouter_model(
     tool_name="ask_code_model",
     model_env="JARVIS_MODEL_CODE",
-    fallback_model="qwen/qwen3-coder-next",
+    fallback_model="qwen/qwen3-coder",
     prompt=prompt,
   )
 

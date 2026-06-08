@@ -11,9 +11,9 @@ Está diseñado sobre una arquitectura híbrida en Python que combina un **enrut
 *   🗣 **Activación por Voz**: Despierta con la palabra clave **"Jarvis"** o mediante el comando por voz *"despierta"* en modo vigilante.
 *   🧭 **Enrutamiento Inteligente (Smart Router)**: Detecta y deriva peticiones síncronas locales o derivaciones de código/razonamiento en Python antes de llamar al agente general de LangChain, optimizando latencia y costes de API.
 *   🧠 **Arquitectura Híbrida de LLMs**:
-    *   **Modelo Principal**: DeepSeek V3 (económico y rápido).
-    *   **Código**: Qwen Coder (resolución de programación y scripts).
-    *   **Razonamiento**: Qwen Thinking (análisis lógico y matemático).
+    *   **Modelo Principal**: DeepSeek V4 Pro (razonamiento avanzado y workflows largos).
+    *   **Código**: Qwen Coder (resolución de programación y scripts premium).
+    *   **Razonamiento**: Qwen 3.7 Plus (análisis lógico y matemático rápido y preciso).
     *   **Agente/Acciones**: MiniMax (tareas de múltiples pasos).
     *   **Premium**: Kimi (Modo Pro) y GPT (requieren confirmación explícita por seguridad de costes).
     *   **Google**: Gemini 3.5 Flash integrado de forma nativa.
@@ -50,9 +50,9 @@ ELEVENLABS_API_KEY=tu_clave_de_elevenlabs
 ELEVENLABS_VOICE_ID=voice_id_deseado
 
 # Modelos Jarvis
-JARVIS_MODEL_DEFAULT=deepseek/deepseek-v3.2
-JARVIS_MODEL_THINK=qwen/qwen3-30b-a3b-thinking-2507
-JARVIS_MODEL_CODE=qwen/qwen3-coder-next
+JARVIS_MODEL_DEFAULT=deepseek/deepseek-v4-pro
+JARVIS_MODEL_THINK=qwen/qwen3.7-plus
+JARVIS_MODEL_CODE=qwen/qwen3-coder
 JARVIS_MODEL_AGENT=minimax/minimax-m2.7
 JARVIS_MODEL_PRO=moonshotai/kimi-k2.6
 JARVIS_MODEL_GPT=openai/gpt-5.4-mini

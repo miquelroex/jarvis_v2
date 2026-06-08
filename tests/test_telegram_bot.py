@@ -209,7 +209,7 @@ class TestTelegramBot(unittest.TestCase):
             
             # Verificar que actualizó los estados de la GUI
             mock_update_state.assert_any_call("thinking", transcript="[Telegram] busca en internet", model="")
-            mock_update_state.assert_any_call("speaking", response="Respuesta del agente general", model="deepseek/deepseek-v3.2")
+            mock_update_state.assert_any_call("speaking", response="Respuesta del agente general", model="deepseek/deepseek-v4-pro")
             mock_update_state.assert_any_call("idle")
 
     @patch('telebot.TeleBot')

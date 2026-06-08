@@ -101,7 +101,7 @@ Por favor, redacta un informe detallado que cumpla obligatoriamente con los sigu
 """
 
     try:
-        model_name = os.getenv("JARVIS_MODEL_DEFAULT", "deepseek/deepseek-v3.2")
+        model_name = os.getenv("JARVIS_MODEL_DEFAULT", "deepseek/deepseek-v4-pro")
         llm = get_llm(model_name, temperature=0.3)
         response = llm.invoke(prompt)
         return response.content
