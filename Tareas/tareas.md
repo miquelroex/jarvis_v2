@@ -38,8 +38,8 @@
 * [x] Mover el prompt principal a `core/prompts.py`.
 * [x] Mover la creación de modelos a `core/llm_factory.py`.
 * [x] Mover el logging de modelos a `core/model_logging.py`.
-* [ ] Crear memoria persistente simple con SQLite.
-* [ ] Crear comandos tipo “recuerda que...” y “qué recuerdas de...”.
+* [x] Crear memoria persistente simple con SQLite.
+* [x] Crear comandos tipo “recuerda que...” y “qué recuerdas de...”.
 * [x] Actualizar `README.md` para que refleje el estado real de Jarvis.
 
 ## Prioridad baja

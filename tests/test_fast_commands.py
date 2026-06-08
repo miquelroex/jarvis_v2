@@ -1,6 +1,7 @@
 import sys
 import os
 import unittest
+import tempfile
 from unittest.mock import patch
 
 # Asegurar que el root del proyecto está en sys.path
@@ -9,8 +10,21 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from core.fast_commands import handle_fast_command
+from core.memory import set_db_path, init_db
 
 class TestFastCommands(unittest.TestCase):
+    def setUp(self):
+        # Configurar base de datos temporal para los comandos rápidos en los tests
+        self.temp_db_file = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        self.test_db_path = self.temp_db_file.name
+        self.temp_db_file.close()
+        set_db_path(self.test_db_path)
+        init_db(self.test_db_path)
+
+    def tearDown(self):
+        # Limpiar base de datos temporal
+        if os.path.exists(self.test_db_path):
+            os.remove(self.test_db_path)
     def test_time_command(self):
         resp = handle_fast_command("que hora es")
         self.assertIsNotNone(resp)
@@ -48,6 +62,37 @@ class TestFastCommands(unittest.TestCase):
     def test_no_match(self):
         resp = handle_fast_command("cual es el sentido de la vida")
         self.assertIsNone(resp)
+
+    def test_memory_save_command(self):
+        resp = handle_fast_command("recuerda que me gusta la lasaña")
+        self.assertIsNotNone(resp)
+        self.assertIn("He guardado en mi memoria: me gusta la lasaña", resp)
+
+        # Duplicado
+        resp_dup = handle_fast_command("recuerda que me gusta la lasaña")
+        self.assertIn("ya estaba registrado en mi memoria", resp_dup)
+
+    def test_memory_query_and_delete_commands(self):
+        # Guardar algunos registros
+        handle_fast_command("recuerda que mi perro es Toby")
+        handle_fast_command("recuerda que mi coche es rojo")
+
+        # Consulta específica
+        resp_query = handle_fast_command("que recuerdas de mi perro")
+        self.assertIn("mi perro es Toby", resp_query)
+
+        # Consulta general
+        resp_all = handle_fast_command("dime mis recuerdos")
+        self.assertIn("mi perro es Toby", resp_all)
+        self.assertIn("mi coche es rojo", resp_all)
+
+        # Olvidar
+        resp_del = handle_fast_command("olvida mi coche")
+        self.assertIn("He olvidado lo relacionado con: mi coche", resp_del)
+
+        # Consulta después de olvidar
+        resp_query_post = handle_fast_command("que recuerdas de mi coche")
+        self.assertIn("No tengo recuerdos relacionados con 'mi coche'", resp_query_post)
 
 if __name__ == "__main__":
     unittest.main()

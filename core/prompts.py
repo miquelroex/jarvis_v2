@@ -70,7 +70,22 @@ def set_socratic_mode(active: bool) -> None:
     SOCRATIC_FILE.write_text(str(active), encoding="utf-8")
 
 def get_compiled_system_prompt() -> str:
+    base_prompt = SYSTEM_PROMPT
     if is_socratic_mode_active():
-        return SYSTEM_PROMPT + SOCRATIC_PROMPT_ADDITION
-    return SYSTEM_PROMPT
+        base_prompt += SOCRATIC_PROMPT_ADDITION
+
+    try:
+        from core.memory import get_all_memories
+        mems = get_all_memories(limit=20)
+        if mems:
+            memory_section = "\n\nINFORMACIÓN PERSISTENTE RECORDADA SOBRE EL USUARIO:\n"
+            for m in reversed(mems):  # Mostrar en orden cronológico ascendente en el prompt (los más antiguos primero, los más recientes abajo)
+                memory_section += f"- {m['content']}\n"
+            base_prompt += memory_section
+    except Exception as e:
+        # Fallback silencioso para no romper el sistema si falla la BD
+        import logging
+        logging.error(f"Error al integrar memoria en el prompt del sistema: {e}")
+
+    return base_prompt
 
