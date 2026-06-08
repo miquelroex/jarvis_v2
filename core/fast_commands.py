@@ -87,6 +87,51 @@ def handle_fast_command(command: str):
             return f"No tengo recuerdos relacionados con '{query_text}', señor."
         return "Señor, ¿de qué desea que haga memoria?"
 
+
+    # --- Comandos rápidos del Centinela de Pruebas ---
+    from core.test_watcher import start_test_watcher, stop_test_watcher, is_watcher_running, get_watcher_status
+    
+    # Activar
+    activate_keywords = [
+        "activa el centinela de pruebas", "activar centinela de pruebas", 
+        "iniciar centinela", "activa el watcher de tests", "iniciar watcher de tests"
+    ]
+    if any(kw in text for kw in activate_keywords):
+        if is_watcher_running():
+            return "Señor, el centinela de pruebas ya está activo en segundo plano."
+        start_test_watcher(force=True)
+        return "Entendido, señor. He activado el centinela de pruebas en segundo plano."
+        
+    # Desactivar
+    deactivate_keywords = [
+        "desactiva el centinela de pruebas", "desactivar centinela de pruebas", 
+        "detener centinela", "desactiva el watcher de tests", "detener watcher de tests"
+    ]
+    if any(kw in text for kw in deactivate_keywords):
+        if not is_watcher_running():
+            return "Señor, el centinela de pruebas ya estaba inactivo."
+        stop_test_watcher()
+        return "Entendido, señor. He desactivado el centinela de pruebas."
+        
+    # Estado
+    status_keywords = [
+        "estado del centinela de pruebas", "estado del centinela", 
+        "estado del watcher", "como estan los tests", "situacion de los tests"
+    ]
+    if any(kw in text for kw in status_keywords):
+        status = get_watcher_status()
+        running_str = "activo" if status["running"] else "inactivo"
+        last_run = status["last_run"]
+        
+        resp = f"El centinela de pruebas se encuentra actualmente {running_str}, señor.\n"
+        if last_run["last_run_time"]:
+            time_str = datetime.fromtimestamp(last_run["last_run_time"]).strftime("%H:%M:%S")
+            outcome = "exitoso" if last_run["last_success"] else "fallido"
+            resp += f"Última comprobación: {time_str} ({last_run['last_test_module']}) -> Estado: {outcome}."
+        else:
+            resp += "Aún no se ha realizado ninguna comprobación de cambios."
+        return resp
+
     # --- Comandos locales estándar ---
     websites = {
         "youtube": "https://www.youtube.com",

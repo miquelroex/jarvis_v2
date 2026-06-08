@@ -152,6 +152,13 @@ def write():
             start_integrity_sentinel_daemon()
         except Exception as e:
             logging.error(f"❌ Fallo al iniciar el sentinel de integridad: {e}")
+            
+        # Arrancar el centinela de pruebas unitarias (en segundo plano, respeta configuración .env)
+        try:
+            from core.test_watcher import start_test_watcher
+            start_test_watcher()
+        except Exception as e:
+            logging.error(f"❌ Fallo al iniciar el centinela de pruebas: {e}")
         
         if system_status == "AWAKE":
             print("Abriendo http://localhost:5000 en tu navegador...")
