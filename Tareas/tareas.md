@@ -63,7 +63,7 @@
 
 * [ ] **Autonomía de Agente:**
   * [x] Crear un bucle de ejecución autónomo (ReAct / Plan-and-Solve) para tareas complejas de múltiples pasos.
-  * [ ] Soporte para tareas programadas y ejecución en segundo plano (ej. monitorizar páginas web, alertas horarias).
+  * [x] Soporte para tareas programadas y ejecución en segundo plano (ej. monitorizar páginas web, alertas horarias).
   * [ ] Framework de seguridad por niveles (Modo Seguro con confirmación vs. Modo Autónomo en carpetas seguras).
   * [x] Creación autónoma de herramientas (Dynamic Tool Creation) cuando detecte que falta una función para cumplir la petición.
   * [ ] Optimizador de Personalidad Autónomo (Meta-Prompting): Modificar y refactorizar autónomamente su propio system prompt en base a tus peticiones en caliente.

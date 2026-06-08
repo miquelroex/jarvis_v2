@@ -226,6 +226,55 @@ def handle_fast_command(command: str):
             return f"No encontré ningún recordatorio o tarea programada que coincida con '{task_query}', señor."
         return "Señor, ¿qué recordatorio desea que cancele?"
 
+    # --- Comandos del Monitor de URLs (Fase 2) ---
+    # 1. Crear monitor de URL
+    match_monitor = re.search(r"\b(monitorea|vigila)\s+(\S+)\s+cada\s+(\d+)\s+(minuto|minutos|min|m|hora|horas|h)\b", text)
+    if match_monitor:
+        # Usar la posición del match para extraer la URL del comando original y preservar mayúsculas/minúsculas
+        start, end = match_monitor.span(2)
+        url_text = command[start:end].strip()
+        if not url_text.startswith(("http://", "https://")):
+            url_text = "https://" + url_text
+            
+        qty = int(match_monitor.group(3))
+        unit = match_monitor.group(4)
+        multiplier = 60
+        if "hor" in unit or unit == "h":
+            multiplier = 3600
+        interval_seconds = qty * multiplier
+        
+        import uuid
+        from urllib.parse import urlparse
+        try:
+            parsed = urlparse(url_text)
+            host_clean = re.sub(r"[^a-zA-Z0-9_]", "", parsed.netloc.replace(".", "_"))[:20]
+        except Exception:
+            host_clean = "site"
+        task_name = f"monitor_{host_clean}_{uuid.uuid4().hex[:6]}"
+        
+        from core.scheduler import add_url_monitor
+        res_msg = add_url_monitor(task_name, url_text, interval_seconds, allow_local_network=True)
+        return res_msg
+
+    # 2. Reactivar monitor de URL (limpiar alerta)
+    reactivate_pref = None
+    for pref in ["reactiva el monitoreo de ", "reactiva el monitor de ", "limpia la alerta de ", "reactivar monitoreo de "]:
+        norm_pref = normalize_text(pref)
+        if text.startswith(norm_pref):
+            reactivate_pref = pref
+            break
+            
+    if reactivate_pref is not None:
+        target_query = command[len(reactivate_pref):].strip()
+        if target_query:
+            from core.scheduler import reactivate_url_monitor
+            res = reactivate_url_monitor(target_query)
+            if res.startswith("Éxito:"):
+                return f"Entendido, señor. {res[7:]}"
+            else:
+                return f"Señor, {res}"
+        return "Señor, ¿qué monitoreo de URL desea reactivar?"
+
     # --- Comandos locales estándar ---
     websites = {
         "youtube": "https://www.youtube.com",

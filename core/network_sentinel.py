@@ -13,6 +13,31 @@ from pathlib import Path
 KNOWN_DEVICES_FILE = Path("logs/known_devices.json")
 CREATE_NO_WINDOW = 0x08000000 if os.name == 'nt' else 0
 
+def is_private_ip(ip: str) -> bool:
+    """Retorna True si la IP es privada (RFC 1918), loopback o link-local."""
+    try:
+        parts = [int(p) for p in ip.split('.')]
+        if len(parts) != 4:
+            return False
+        # 127.0.0.0/8 (Loopback)
+        if parts[0] == 127:
+            return True
+        # 10.0.0.0/8
+        if parts[0] == 10:
+            return True
+        # 172.16.0.0/12
+        if parts[0] == 172 and (16 <= parts[1] <= 31):
+            return True
+        # 192.168.0.0/16
+        if parts[0] == 192 and parts[1] == 168:
+            return True
+        # 169.254.0.0/16 (Link-local)
+        if parts[0] == 169 and parts[1] == 254:
+            return True
+        return False
+    except Exception:
+        return False
+
 # Estado global en memoria del centinela
 active_devices = []        # Lista de dispositivos activos detectados en el último escaneo
 voiced_alerts = set()      # MACs para las cuales ya se emitió una alerta por voz en esta sesión
@@ -211,19 +236,27 @@ def notify_new_strange_devices(devices):
                 logging.error(f"[Sentinel] Error al enviar alerta de Telegram para MAC {mac}: {e}")
 
 def scan_network():
-    """Realiza un barrido completo de red y actualiza la lista de dispositivos."""
+    """
+    Realiza un barrido completo de red y actualiza la lista de dispositivos.
+    Este componente es de solo lectura (pasivo): utiliza pings cortos y la tabla ARP local.
+    """
     global active_devices
     
     with scan_lock:
         local_ip, prefix = get_subnet_prefix()
-        if not prefix:
+        if not prefix or not local_ip:
             logging.warning("[Sentinel] No se detectó red local activa (IP de bucle/offline).")
             return []
             
-        logging.info(f"[Sentinel] Iniciando ping sweep en subred {prefix}0/24...")
+        # Limitar estrictamente el escaneo a subredes privadas locales para evitar barridos en IPs públicas
+        if not is_private_ip(local_ip):
+            logging.warning(f"[Sentinel] La dirección IP local '{local_ip}' no pertenece a un rango privado de red. Abortando escaneo por seguridad.")
+            return []
+            
+        logging.info(f"[Sentinel] Iniciando sweep en subred local privada {prefix}0/24...")
         run_ping_sweep(prefix)
         
-        logging.info("[Sentinel] Analizando tabla ARP...")
+        logging.info("[Sentinel] Analizando tabla ARP (modo solo lectura)...")
         raw_devices = parse_arp_output()
         
         # Cargar dispositivos conocidos
@@ -272,7 +305,32 @@ def scan_network():
             ).start()
                 
         active_devices = scanned_devices
+        
+        # Registrar dispositivos en logs principales
         logging.info(f"[Sentinel] Escaneo completado. {len(active_devices)} dispositivos activos en subred.")
+        known_devs = [d for d in active_devices if d["known"]]
+        unknown_devs = [d for d in active_devices if not d["known"]]
+        
+        logging.info(f"[Sentinel] Dispositivos CONOCIDOS activos ({len(known_devs)}):")
+        for d in known_devs:
+            logging.info(f"  - IP: {d['ip']}, MAC: {d['mac']}, Nombre: {d['name']}")
+            
+        logging.info(f"[Sentinel] Dispositivos DESCONOCIDOS activos ({len(unknown_devs)}):")
+        for d in unknown_devs:
+            logging.info(f"  - IP: {d['ip']}, MAC: {d['mac']}")
+            
+        # Registrar y guardar en logs/last_network_scan.json
+        try:
+            last_scan_file = Path("logs/last_network_scan.json")
+            logs_dir = Path("logs")
+            logs_dir.mkdir(exist_ok=True)
+            last_scan_file.write_text(
+                json.dumps(active_devices, ensure_ascii=False, indent=2),
+                encoding="utf-8"
+            )
+        except Exception as e:
+            logging.error(f"[Sentinel] Error al escribir logs/last_network_scan.json: {e}")
+            
         return active_devices
 
 def run_quick_scan():
@@ -286,8 +344,12 @@ def network_sentinel_loop():
     """Bucle principal periódico del Centinela de Red."""
     global is_running
     is_running = True
-    interval = int(os.getenv("JARVIS_SENTINEL_INTERVAL", "45"))
     
+    interval = int(os.getenv("JARVIS_SENTINEL_INTERVAL", "300"))
+    if interval < 60:
+        logging.warning(f"[Sentinel] El intervalo configurado {interval}s es demasiado bajo. Usando 60 segundos por seguridad.")
+        interval = 60
+        
     # Pequeño retraso al iniciar el servidor para no ralentizar el arranque principal
     time.sleep(5)
     

@@ -156,5 +156,74 @@ class TestNetworkSentinel(unittest.TestCase):
         # 4. Validar que se lanzó la notificación para el dispositivo extraño
         mock_notify.assert_called_once_with([{"ip": "192.168.1.50", "mac": "aa:bb:cc:dd:ee:ff"}])
 
+    @patch('core.network_sentinel.get_subnet_prefix')
+    @patch('core.network_sentinel.run_ping_sweep')
+    @patch('core.network_sentinel.parse_arp_output')
+    @patch('core.network_sentinel.load_known_devices')
+    @patch('core.network_sentinel.notify_new_strange_devices')
+    def test_scan_network_public_ip_aborts(self, mock_notify, mock_load_known, mock_arp, mock_sweep, mock_prefix):
+        # 1. Configurar IP pública (no privada)
+        mock_prefix.return_value = ("8.8.8.8", "8.8.8.")
+        
+        # 2. Ejecutar escaneo -> debe abortar y retornar vacío
+        results = scan_network()
+        self.assertEqual(len(results), 0)
+        mock_sweep.assert_not_called()
+
+    @patch('core.network_sentinel.scan_network')
+    @patch('core.network_sentinel.time.sleep')
+    @patch('core.network_sentinel.os.getenv')
+    def test_network_sentinel_loop_interval_limit(self, mock_getenv, mock_sleep, mock_scan):
+        # Configurar variables de entorno ficticias: habilitado=True, intervalo=10 (menor a 60)
+        def getenv_side_effect(key, default=None):
+            if key == "JARVIS_SENTINEL_INTERVAL":
+                return "10"
+            elif key == "JARVIS_SENTINEL_ENABLED":
+                return "True"
+            return default
+            
+        mock_getenv.side_effect = getenv_side_effect
+        mock_scan.return_value = []
+        
+        # Simulamos que el loop corre una vez deteniendo con KeyboardInterrupt
+        def sleep_side_effect(secs):
+            if secs > 5:
+                raise KeyboardInterrupt("Stop loop")
+        mock_sleep.side_effect = sleep_side_effect
+        
+        from core.network_sentinel import network_sentinel_loop
+        
+        try:
+            network_sentinel_loop()
+        except KeyboardInterrupt:
+            pass
+            
+        # El sleep debe haber sido llamado con 60 (límite mínimo), no con 10
+        mock_sleep.assert_called_with(60)
+
+    @patch('core.network_sentinel.get_subnet_prefix')
+    @patch('core.network_sentinel.run_ping_sweep')
+    @patch('core.network_sentinel.parse_arp_output')
+    @patch('core.network_sentinel.load_known_devices')
+    @patch('core.network_sentinel.notify_new_strange_devices')
+    def test_scan_network_writes_json(self, mock_notify, mock_load_known, mock_arp, mock_sweep, mock_prefix):
+        mock_prefix.return_value = ("192.168.1.15", "192.168.1.")
+        mock_arp.return_value = [{"ip": "192.168.1.1", "mac": "e0:60:66:11:22:33"}]
+        mock_load_known.return_value = {"known_macs": [], "device_names": {}}
+        
+        # Asegurar que no existe
+        scan_json_path = Path("logs/last_network_scan.json")
+        if scan_json_path.exists():
+            scan_json_path.unlink()
+            
+        results = scan_network()
+        
+        # El archivo JSON debe haberse creado
+        self.assertTrue(scan_json_path.exists())
+        saved_data = json.loads(scan_json_path.read_text(encoding="utf-8"))
+        self.assertEqual(len(saved_data), 1)
+        self.assertEqual(saved_data[0]["ip"], "192.168.1.1")
+        self.assertEqual(saved_data[0]["mac"], "e0:60:66:11:22:33")
+
 if __name__ == '__main__':
     unittest.main()

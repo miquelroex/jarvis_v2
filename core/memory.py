@@ -274,22 +274,35 @@ def db_delete_task(name: str) -> bool:
     finally:
         conn.close()
 
-def db_update_task_execution(name: str, last_run: str, last_result: str, last_error: str = None, next_run: str = None) -> bool:
+def db_update_task_execution(name: str, last_run: str, last_result: str, last_error: str = None, next_run: str = None, metadata: str = None) -> bool:
     """
     Actualiza el estado de ejecución y resultado de una tarea.
     Si se provee next_run, la actualiza; de lo contrario se mantiene.
+    Si se provee metadata, se actualiza.
     """
     init_db()
     conn = sqlite3.connect(_db_path)
     cursor = conn.cursor()
     
     try:
-        if next_run:
+        if next_run and metadata is not None:
+            cursor.execute("""
+                UPDATE scheduled_tasks
+                SET last_run = ?, last_result = ?, last_error = ?, next_run = ?, metadata = ?
+                WHERE name = ?
+            """, (last_run, last_result, last_error, next_run, metadata, name))
+        elif next_run:
             cursor.execute("""
                 UPDATE scheduled_tasks
                 SET last_run = ?, last_result = ?, last_error = ?, next_run = ?
                 WHERE name = ?
             """, (last_run, last_result, last_error, next_run, name))
+        elif metadata is not None:
+            cursor.execute("""
+                UPDATE scheduled_tasks
+                SET last_run = ?, last_result = ?, last_error = ?, metadata = ?
+                WHERE name = ?
+            """, (last_run, last_result, last_error, metadata, name))
         else:
             cursor.execute("""
                 UPDATE scheduled_tasks

@@ -27,7 +27,8 @@ Está diseñado sobre una arquitectura híbrida en Python que combina un **enrut
 *   🔊 **Voz Natural Multicapa**: Sistema TTS asíncrono con preferencia por ElevenLabs y Edge-TTS (voces premium neurales en línea) con fallback a pyttsx3 (voz offline).
 *   💾 **Memoria Persistente (SQLite)**: Almacena recuerdos y preferencias del usuario entre reinicios de forma segura. Inyecta dinámicamente hasta 20 recuerdos en el prompt del sistema para dotar a Jarvis de una consciencia pasiva de tus datos sin coste extra de tokens.
 *   🛡️ **Centinela de Código en Caliente**: Daemon en segundo plano que monitoriza archivos Python del repositorio, ejecutando de forma optimizada y aislada las pruebas unitarias afectadas al guardar cambios. Alerta por voz únicamente en cambios de estado (`pass ↔ fail`).
-*   📅 **Planificador de Tareas (Scheduler MVP)**: Motor de segundo plano que gestiona recordatorios por voz y notificaciones push. Los recordatorios se guardan de forma persistente en SQLite y las ejecuciones únicas se auto-eliminan tras completarse.
+*   📅 **Planificador de Tareas y Monitor de URLs (Fase 2)**: Motor de segundo plano que gestiona recordatorios por voz y monitoreo periódico de páginas web (verificando cambios de contenido mediante hash SHA-256). Protege contra spam de alertas pausando la red hasta la reactivación del usuario. Bloquea el acceso a la red local por defecto (permitida únicamente con `allow_local_network=True` y confirmación verbal explícita).
+*   🛡️ **Centinela de Red Local (Network Sentinel)**: Daemon pasivo de solo lectura que monitoriza la red Wi-Fi mediante ping sweep y parsing ARP, limitándose estrictamente a la subred privada local con intervalos de seguridad razonables (mínimo 60s). Guarda los dispositivos en `logs/last_network_scan.json` y emite alertas por voz/Telegram de intrusos.
 
 ---
 

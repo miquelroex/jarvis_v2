@@ -92,5 +92,32 @@ def execute_pending_action() -> str:
             return "Datos insuficientes para la creación de la herramienta dinámica."
         return execute_create_tool(name, description, python_code)
         
+    elif action_type == "url_monitor_add":
+        from datetime import datetime, timezone
+        from core.memory import db_save_task
+        import json
+        name = data.get("name")
+        url = data.get("url")
+        interval_seconds = data.get("interval_seconds")
+        if not name or not url or not interval_seconds:
+            return "Datos insuficientes en la acción pendiente para agregar el monitoreo de URL."
+        
+        now_str = datetime.now(timezone.utc).isoformat()
+        metadata = json.dumps({"last_hash": "", "alerted": False, "allow_local_network": True})
+        
+        success = db_save_task(
+            name=name,
+            task_type="url_monitor",
+            target=url,
+            interval_seconds=interval_seconds,
+            next_run=now_str,
+            enabled=1,
+            metadata=metadata
+        )
+        if success:
+            return f"Acción confirmada: Se ha iniciado el monitoreo de la URL local '{url}' cada {interval_seconds} segundos."
+        else:
+            return f"Error al guardar la tarea de monitoreo para la URL local '{url}'."
+            
     else:
         return f"Tipo de acción pendiente desconocida: {action_type}"
