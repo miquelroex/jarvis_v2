@@ -2,44 +2,46 @@
 // JARVIS — Interfaz gráfica animada
 // ==========================================
 
-// --- CONFIGURACIÓN ---
+// --- CONFIGURACIÓN THREE.JS ---
 const canvas = document.getElementById('jarvis-canvas');
-const ctx = canvas.getContext('2d');
 
 // Elementos de texto
 const statusEl = document.getElementById('status');
 const transcriptEl = document.getElementById('transcript');
 const responseEl = document.getElementById('response');
+const modelContainerEl = document.getElementById('model-container');
+const modelNameEl = document.getElementById('model-name');
+const activeWindowContainerEl = document.getElementById('active-window-container');
+const activeWindowAppEl = document.getElementById('active-window-app');
+const activeWindowTitleEl = document.getElementById('active-window-title');
+const socraticBadgeEl = document.getElementById('socratic-badge');
 
-let logicalWidth = window.innerWidth;
-let logicalHeight = window.innerHeight;
+// Elementos de la Consola de Pensamiento y Planificación
+const thoughtConsoleContainerEl = document.getElementById('thought-console-container');
+const thoughtConsoleIndicatorEl = document.getElementById('thought-console-indicator');
+const thoughtLogEl = document.getElementById('thought-log');
+const planStepsListEl = document.getElementById('plan-steps-list');
 
-// Ajustar canvas al tamaño de la ventana con soporte Retina (DPR)
-function resize() {
-    logicalWidth = window.innerWidth;
-    logicalHeight = window.innerHeight;
-    const dpr = window.devicePixelRatio || 1;
-    
-    // Resolución real internamente
-    canvas.width = logicalWidth * dpr;
-    canvas.height = logicalHeight * dpr;
-    
-    // Tamaño lógico en CSS
-    canvas.style.width = `${logicalWidth}px`;
-    canvas.style.height = `${logicalHeight}px`;
-    
-    // Escalar el contexto bidimensional a la proporción de pixeles
-    ctx.scale(dpr, dpr);
-}
-window.addEventListener('resize', resize);
-resize();
+// Elementos del Panel de Artefactos
+const artifactsPanelEl = document.getElementById('artifacts-panel');
+const artifactFilenameEl = document.getElementById('artifact-filename');
+const artifactIconEl = document.getElementById('artifact-icon');
+const artifactCodeDisplayEl = document.getElementById('artifact-code-display');
+const artifactPreviewPaneEl = document.getElementById('artifact-preview-pane');
+const artifactCodePaneEl = document.getElementById('artifact-code-pane');
 
-// --- COLORES SEGÚN ESTADO ---
+const btnTabPreview = document.getElementById('artifact-tab-preview');
+const btnTabCode = document.getElementById('artifact-tab-code');
+const btnRun = document.getElementById('artifact-btn-run');
+const btnCopy = document.getElementById('artifact-btn-copy');
+const btnClose = document.getElementById('artifact-btn-close');
+
+// --- COLORES Y PARÁMETROS SEGÚN ESTADO ---
 const stateColors = {
-    idle:      { r: 0, g: 212, b: 255 },   // Azul cian
-    listening: { r: 0, g: 150, b: 255 },   // Azul brillante
-    thinking:  { r: 255, g: 200, b: 0 },   // Amarillo/dorado
-    speaking:  { r: 0, g: 255, b: 136 }    // Verde
+    idle:      { r: 0.0, g: 0.83, b: 1.0 },   // Azul cian (#00d4ff)
+    listening: { r: 0.0, g: 0.59, b: 1.0 },   // Azul brillante (#0096ff)
+    thinking:  { r: 1.0, g: 0.78, b: 0.0 },   // Amarillo/dorado (#ffc800)
+    speaking:  { r: 0.0, g: 1.0, b: 0.53 }    // Verde (#00ff88)
 };
 
 const stateLabels = {
@@ -49,128 +51,386 @@ const stateLabels = {
     speaking:  'RESPONDIENDO'
 };
 
+const stateParams = {
+    idle:      { driftAmp: 1.0, gravityContraction: 1.0, voiceRippleAmp: 0.0, connectionDistance: 1.1, lineOpacityMultiplier: 0.35, dustSpeed: 0.2, nodeSize: 0.12 },
+    listening: { driftAmp: 1.5, gravityContraction: 1.0, voiceRippleAmp: 0.1, connectionDistance: 1.3, lineOpacityMultiplier: 0.50, dustSpeed: 0.4, nodeSize: 0.15 },
+    thinking:  { driftAmp: 0.5, gravityContraction: 0.32, voiceRippleAmp: 0.0, connectionDistance: 0.6, lineOpacityMultiplier: 0.70, dustSpeed: 2.0, nodeSize: 0.08 },
+    speaking:  { driftAmp: 1.2, gravityContraction: 1.0, voiceRippleAmp: 0.45, connectionDistance: 1.2, lineOpacityMultiplier: 0.45, dustSpeed: 0.3, nodeSize: 0.16 }
+};
+
 let currentState = 'idle';
 let currentColor = { ...stateColors.idle };
 let targetColor = { ...stateColors.idle };
 
-// --- PARTÍCULAS ---
-const particles = [];
-const PARTICLE_COUNT = 1500; // Muchos puntitos, polvo holográfico
+let currentParams = { ...stateParams.idle };
+let targetParams = { ...stateParams.idle };
 
-// Cada partícula es un punto que flota alrededor del orbe
-for (let i = 0; i < PARTICLE_COUNT; i++) {
-    particles.push({
-        angle: Math.random() * Math.PI * 2,       
-        radius: 60 + Math.pow(Math.random(), 1.2) * 280, // Circular, centrado
-        // Velocidad relajada para que parezca movimiento inteligente
-        speed: (0.0010 + Math.random() * 0.002) * (Math.random() > 0.5 ? 1 : -1), 
-        size: 0.5 + Math.random() * 1.6,           
-        opacity: 0.3 + Math.random() * 0.7,        
-        // Frecuencia suave para ola interior
-        stretchFreq: 0.0003 + Math.random() * 0.001,
-        stretchPhase: Math.random() * Math.PI * 2,
-        x: 0, 
-        y: 0
+// Setup de Three.js
+const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 8.0;
+
+const hologramGroup = new THREE.Group();
+scene.add(hologramGroup);
+
+// Helper para crear textura de punto redondo suave dinámicamente
+const createCircleTexture = () => {
+    const canvasTex = document.createElement('canvas');
+    canvasTex.width = 16;
+    canvasTex.height = 16;
+    const ctx = canvasTex.getContext('2d');
+    const grad = ctx.createRadialGradient(8, 8, 0, 8, 8, 8);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    grad.addColorStop(0.5, 'rgba(255, 255, 255, 0.5)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 16, 16);
+    return new THREE.CanvasTexture(canvasTex);
+};
+const pointTexture = createCircleTexture();
+
+// 1. Nodos Neuronales Principales (220 centros activos)
+const nodeCount = 220;
+const nodesGeom = new THREE.BufferGeometry();
+const nodesPositions = new Float32Array(nodeCount * 3);
+nodesGeom.setAttribute('position', new THREE.BufferAttribute(nodesPositions, 3));
+
+const nodeData = [];
+for (let i = 0; i < nodeCount; i++) {
+    // Distribución esférica aleatoria tridimensional
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2.0 * Math.random() - 1.0);
+    const r = Math.pow(Math.random(), 0.8) * 2.2;
+    
+    const x = r * Math.sin(phi) * Math.cos(theta);
+    const y = r * Math.sin(phi) * Math.sin(theta);
+    const z = r * Math.cos(phi);
+    
+    nodesPositions[i * 3] = x;
+    nodesPositions[i * 3 + 1] = y;
+    nodesPositions[i * 3 + 2] = z;
+    
+    nodeData.push({
+        x: x, y: y, z: z,
+        baseX: x, baseY: y, baseZ: z,
+        // Parámetros de deriva orgánica individual
+        phaseX: Math.random() * Math.PI * 2,
+        phaseY: Math.random() * Math.PI * 2,
+        phaseZ: Math.random() * Math.PI * 2,
+        freqX: 0.8 + Math.random() * 1.5,
+        freqY: 0.8 + Math.random() * 1.5,
+        freqZ: 0.8 + Math.random() * 1.5,
+        amp: 0.2 + Math.random() * 0.4
     });
 }
 
-// --- ORBE CENTRAL ---
-let orbePulse = 0;  // Controla el "latido" del orbe
+const nodeMaterial = new THREE.PointsMaterial({
+    size: currentParams.nodeSize,
+    map: pointTexture,
+    color: new THREE.Color(currentColor.r, currentColor.g, currentColor.b),
+    transparent: true,
+    opacity: 0.85,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+});
+const coreNodes = new THREE.Points(nodesGeom, nodeMaterial);
+hologramGroup.add(coreNodes);
 
-// --- FUNCIÓN PRINCIPAL DE ANIMACIÓN ---
-function animate() {
-    // Limpiar el canvas
-    ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+// 2. Filamentos Dinámicos (Líneas interconectoras)
+const maxConnections = 800; // Limitar líneas para mantener 60 FPS
+const lineGeom = new THREE.BufferGeometry();
+const linePositions = new Float32Array(maxConnections * 2 * 3);
+const lineColors = new Float32Array(maxConnections * 2 * 3);
+lineGeom.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+lineGeom.setAttribute('color', new THREE.BufferAttribute(lineColors, 3));
 
-    const cx = logicalWidth / 2;   
-    const cy = logicalHeight / 2;  
+const lineMaterial = new THREE.LineBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 1.0,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+});
+const neuralLines = new THREE.LineSegments(lineGeom, lineMaterial);
+hologramGroup.add(neuralLines);
 
-    // Interpolar color suavemente
-    currentColor.r += (targetColor.r - currentColor.r) * 0.05;
-    currentColor.g += (targetColor.g - currentColor.g) * 0.05;
-    currentColor.b += (targetColor.b - currentColor.b) * 0.05;
+// 3. Enjambre Cósmico de Fondo (2500 micro-partículas)
+const dustCount = 2500;
+const dustGeom = new THREE.BufferGeometry();
+const dustPositions = new Float32Array(dustCount * 3);
+dustGeom.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
 
-    const r = Math.round(currentColor.r);
-    const g = Math.round(currentColor.g);
-    const b = Math.round(currentColor.b);
-
-    // Pulso (Súper natural y rítmico, como una respiración en reposo)
-    orbePulse += 0.02;
-    const pulseSize = currentState === 'idle' ? 4 : 10;
-    const pulse = Math.sin(orbePulse) * pulseSize;
-
-    // --- Dibujar el resplandor de fondo (Casi invisible) ---
-    const glowRadius = 450 + pulse * 2;
-    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowRadius);
-    glow.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.03)`); 
-    glow.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.01)`); 
-    glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, logicalWidth, logicalHeight);
-
-    // --- Dibujar el orbe central (Holograma sutil) ---
-    const orbeRadius = 120 + pulse * 1.5;
-    const orbeGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, orbeRadius);
-    orbeGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.3)`); 
-    orbeGradient.addColorStop(0.6, `rgba(${r}, ${g}, ${b}, 0.05)`);
-    orbeGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
-    ctx.beginPath();
-    ctx.arc(cx, cy, orbeRadius, 0, Math.PI * 2);
-    ctx.fillStyle = orbeGradient;
-    ctx.fill();
-
-    // Tiempo global y rotación de cámara
-    const time = Date.now();
-    const globalSpin = time * 0.00015; // Un giro global majestuoso y sumamente lento
-
-    // Deformación de respiración orgánica global - Movimientos lentos y fluidos
-    const rx = 1 + Math.sin(time * 0.00015) * 0.08;
-    const ry = 1 + Math.cos(time * 0.0001) * 0.06;
-
-    // --- Dibujar partículas y calcular coordenadas ---
-    particles.forEach(p => {
-        p.angle += p.speed;
-
-        // Suave agitación cuando procesa información
-        const agitation = currentState === 'idle' ? 1 : 2;
-        
-        // Movimiento vibratorio radial relajado
-        const wave = Math.sin(time * p.stretchFreq + p.stretchPhase) * 15 * agitation;
-        const currentRadius = p.radius + pulse * 1.2 * agitation + wave;
-
-        // Ecuación final con giro global y "respiración volumétrica" (rx, ry)
-        p.x = cx + Math.cos(p.angle + globalSpin) * currentRadius * rx;
-        p.y = cy + Math.sin(p.angle + globalSpin) * currentRadius * ry;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${p.opacity * 0.9})`;
-        ctx.fill();
+const dustData = [];
+for (let i = 0; i < dustCount; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2.0 * Math.random() - 1.0);
+    const r = 1.0 + Math.pow(Math.random(), 0.7) * 3.5;
+    
+    const x = r * Math.sin(phi) * Math.cos(theta);
+    const y = r * Math.sin(phi) * Math.sin(theta);
+    const z = r * Math.cos(phi);
+    
+    dustPositions[i * 3] = x;
+    dustPositions[i * 3 + 1] = y;
+    dustPositions[i * 3 + 2] = z;
+    
+    dustData.push({
+        r: r,
+        theta: theta,
+        phi: phi,
+        speed: 0.02 + Math.random() * 0.05
     });
+}
 
-    // --- Líneas de conexión (Hilos neuronales) ---
-    ctx.lineWidth = 0.6; // Un poco más visibles
-    for (let i = 0; i < particles.length; i++) {
-        // Aumentamos a 50 partículas colindantes (recuperamos parte de las uniones perdidas)
-        const maxJ = Math.min(particles.length, i + 50); 
-        for (let j = i + 1; j < maxJ; j++) {
-            const pi = particles[i];
-            const pj = particles[j];
-            
-            const dist = Math.hypot(pi.x - pj.x, pi.y - pj.y);
+const dustMaterial = new THREE.PointsMaterial({
+    size: 0.035,
+    color: new THREE.Color(currentColor.r, currentColor.g, currentColor.b),
+    transparent: true,
+    opacity: 0.25,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+});
+const dustPoints = new THREE.Points(dustGeom, dustMaterial);
+hologramGroup.add(dustPoints);
 
-            // Umbral de distancia a 45 para devolver algunos puentes obvios entre grupos de nodos
-            if (dist < 45) {
-                ctx.beginPath();
-                ctx.moveTo(pi.x, pi.y);
-                ctx.lineTo(pj.x, pj.y);
-                ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.4 * (1 - dist / 45)})`;
-                ctx.stroke();
+// Redimensionamiento dinámico
+function resize() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+}
+window.addEventListener('resize', resize);
+
+// Parallax con el ratón
+let mouseX = 0, mouseY = 0;
+let targetMouseX = 0, targetMouseY = 0;
+window.addEventListener('mousemove', (e) => {
+    targetMouseX = (e.clientX / window.innerWidth) * 2 - 1;
+    targetMouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+});
+
+const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
+
+let lastTime = 0;
+let runTime = 0;
+
+// Actualizar posiciones de nodos principales
+const updateNodes = (time) => {
+    const posAttr = coreNodes.geometry.attributes.position;
+    const posArray = posAttr.array;
+    
+    nodeData.forEach((node, i) => {
+        // Deriva orgánica individual
+        const driftX = Math.sin(time * node.freqX + node.phaseX) * node.amp * currentParams.driftAmp;
+        const driftY = Math.cos(time * node.freqY + node.phaseY) * node.amp * currentParams.driftAmp;
+        const driftZ = Math.sin(time * node.freqZ + node.phaseZ) * node.amp * currentParams.driftAmp;
+        
+        // Contracción gravitatoria en 'thinking'
+        const mult = currentParams.gravityContraction;
+        let targetX = node.baseX * mult + driftX;
+        let targetY = node.baseY * mult + driftY;
+        let targetZ = node.baseZ * mult + driftZ;
+        
+        // Onda expansiva radial para hablar ('speaking')
+        const distFromCenter = Math.sqrt(node.baseX * node.baseX + node.baseY * node.baseY + node.baseZ * node.baseZ);
+        if (distFromCenter > 0.1) {
+            const radialRipple = Math.sin(distFromCenter * 3.0 - time * 12.0) * currentParams.voiceRippleAmp;
+            if (radialRipple > 0) {
+                targetX += (node.baseX / distFromCenter) * radialRipple;
+                targetY += (node.baseY / distFromCenter) * radialRipple;
+                targetZ += (node.baseZ / distFromCenter) * radialRipple;
             }
         }
-    }
+        
+        node.x = targetX;
+        node.y = targetY;
+        node.z = targetZ;
+        
+        posArray[i * 3] = node.x;
+        posArray[i * 3 + 1] = node.y;
+        posArray[i * 3 + 2] = node.z;
+    });
+    posAttr.needsUpdate = true;
+};
 
+// Reconstruir filamentos de conexión basados en distancias
+const updateConnections = (threeColor) => {
+    const posAttr = neuralLines.geometry.attributes.position;
+    const colAttr = neuralLines.geometry.attributes.color;
+    const posArray = posAttr.array;
+    const colArray = colAttr.array;
+    
+    let lineIdx = 0;
+    const threshold = currentParams.connectionDistance;
+    
+    for (let i = 0; i < nodeCount; i++) {
+        const nodeA = nodeData[i];
+        for (let j = i + 1; j < nodeCount; j++) {
+            const nodeB = nodeData[j];
+            
+            const dx = nodeA.x - nodeB.x;
+            const dy = nodeA.y - nodeB.y;
+            const dz = nodeA.z - nodeB.z;
+            const distSq = dx*dx + dy*dy + dz*dz;
+            
+            if (distSq < threshold * threshold) {
+                const dist = Math.sqrt(distSq);
+                // La opacidad decae a mayor distancia
+                const opacity = (1.0 - dist / threshold) * currentParams.lineOpacityMultiplier;
+                
+                posArray[lineIdx * 6] = nodeA.x;
+                posArray[lineIdx * 6 + 1] = nodeA.y;
+                posArray[lineIdx * 6 + 2] = nodeA.z;
+                posArray[lineIdx * 6 + 3] = nodeB.x;
+                posArray[lineIdx * 6 + 4] = nodeB.y;
+                posArray[lineIdx * 6 + 5] = nodeB.z;
+                
+                // Color modulado por la opacidad (Additive Blending)
+                const r = threeColor.r * opacity;
+                const g = threeColor.g * opacity;
+                const b = threeColor.b * opacity;
+                
+                colArray[lineIdx * 6] = r;
+                colArray[lineIdx * 6 + 1] = g;
+                colArray[lineIdx * 6 + 2] = b;
+                colArray[lineIdx * 6 + 3] = r;
+                colArray[lineIdx * 6 + 4] = g;
+                colArray[lineIdx * 6 + 5] = b;
+                
+                lineIdx++;
+                if (lineIdx >= maxConnections) break;
+            }
+        }
+        if (lineIdx >= maxConnections) break;
+    }
+    
+    // Limpiar posiciones de filamentos sobrantes
+    for (let i = lineIdx; i < maxConnections; i++) {
+        posArray[i * 6] = 0; posArray[i * 6 + 1] = 0; posArray[i * 6 + 2] = 0;
+        posArray[i * 6 + 3] = 0; posArray[i * 6 + 4] = 0; posArray[i * 6 + 5] = 0;
+        
+        colArray[i * 6] = 0; colArray[i * 6 + 1] = 0; colArray[i * 6 + 2] = 0;
+        colArray[i * 6 + 3] = 0; colArray[i * 6 + 4] = 0; colArray[i * 6 + 5] = 0;
+    }
+    
+    posAttr.needsUpdate = true;
+    colAttr.needsUpdate = true;
+};
+
+// Actualizar enjambre cósmico lento
+const updateDust = (delta) => {
+    const posAttr = dustPoints.geometry.attributes.position;
+    const posArray = posAttr.array;
+    
+    for (let i = 0; i < dustCount; i++) {
+        const d = dustData[i];
+        d.theta += d.speed * delta * currentParams.dustSpeed;
+        
+        const mult = currentParams.gravityContraction;
+        const currentR = d.r * mult;
+        
+        posArray[i * 3] = currentR * Math.sin(d.phi) * Math.cos(d.theta);
+        posArray[i * 3 + 1] = currentR * Math.sin(d.phi) * Math.sin(d.theta);
+        posArray[i * 3 + 2] = currentR * Math.cos(d.phi);
+    }
+    posAttr.needsUpdate = true;
+};
+
+// Bucle de renderizado
+function animate(now) {
     requestAnimationFrame(animate);
+    
+    const delta = (now - lastTime) * 0.001 || 0.016;
+    lastTime = now;
+    
+    runTime += delta;
+    
+    // Suavizar transiciones de colores
+    currentColor.r = lerp(currentColor.r, targetColor.r, 0.05);
+    currentColor.g = lerp(currentColor.g, targetColor.g, 0.05);
+    currentColor.b = lerp(currentColor.b, targetColor.b, 0.05);
+    
+    // Suavizar transiciones de parámetros
+    currentParams.driftAmp = lerp(currentParams.driftAmp, targetParams.driftAmp, 0.05);
+    currentParams.gravityContraction = lerp(currentParams.gravityContraction, targetParams.gravityContraction, 0.05);
+    currentParams.voiceRippleAmp = lerp(currentParams.voiceRippleAmp, targetParams.voiceRippleAmp, 0.05);
+    currentParams.connectionDistance = lerp(currentParams.connectionDistance, targetParams.connectionDistance, 0.05);
+    currentParams.lineOpacityMultiplier = lerp(currentParams.lineOpacityMultiplier, targetParams.lineOpacityMultiplier, 0.05);
+    currentParams.dustSpeed = lerp(currentParams.dustSpeed, targetParams.dustSpeed, 0.05);
+    currentParams.nodeSize = lerp(currentParams.nodeSize, targetParams.nodeSize, 0.05);
+    
+    const threeColor = new THREE.Color(currentColor.r, currentColor.g, currentColor.b);
+    
+    // 1. Sincronizar colores y tamaños de materiales
+    nodeMaterial.color.copy(threeColor);
+    nodeMaterial.size = currentParams.nodeSize;
+    dustMaterial.color.copy(threeColor);
+    
+    // 1b. Sincronizar colores del badge del modelo en la GUI
+    if (modelContainerEl && modelContainerEl.classList.contains('active')) {
+        const r255 = Math.round(currentColor.r * 255);
+        const g255 = Math.round(currentColor.g * 255);
+        const b255 = Math.round(currentColor.b * 255);
+        
+        modelContainerEl.style.borderColor = `rgba(${r255}, ${g255}, ${b255}, 0.25)`;
+        modelContainerEl.style.boxShadow = `0 0 15px rgba(${r255}, ${g255}, ${b255}, 0.08)`;
+        modelContainerEl.style.background = `rgba(${r255}, ${g255}, ${b255}, 0.04)`;
+        
+        modelNameEl.style.color = `rgb(${r255}, ${g255}, ${b255})`;
+        modelNameEl.style.textShadow = `0 0 8px rgba(${r255}, ${g255}, ${b255}, 0.5)`;
+    }
+    
+    // 1c. Sincronizar colores del panel de artefactos en la GUI
+    if (artifactsPanelEl && artifactsPanelEl.classList.contains('active')) {
+        const r255 = Math.round(currentColor.r * 255);
+        const g255 = Math.round(currentColor.g * 255);
+        const b255 = Math.round(currentColor.b * 255);
+        
+        artifactsPanelEl.style.borderColor = `rgba(${r255}, ${g255}, ${b255}, 0.3)`;
+        
+        const headerEl = document.getElementById('artifact-header');
+        if (headerEl) {
+            headerEl.style.borderBottomColor = `rgba(${r255}, ${g255}, ${b255}, 0.2)`;
+        }
+        
+        const activeBtn = document.querySelector('#artifact-controls button.active');
+        if (activeBtn) {
+            activeBtn.style.background = `rgb(${r255}, ${g255}, ${b255})`;
+            activeBtn.style.boxShadow = `0 0 10px rgba(${r255}, ${g255}, ${b255}, 0.4)`;
+            activeBtn.style.color = '#000000';
+            activeBtn.style.borderColor = `rgb(${r255}, ${g255}, ${b255})`;
+        }
+        
+        const inactiveBtns = document.querySelectorAll('#artifact-controls button:not(.active)');
+        inactiveBtns.forEach(btn => {
+            btn.style.color = `rgb(${r255}, ${g255}, ${b255})`;
+            btn.style.borderColor = `rgba(${r255}, ${g255}, ${b255}, 0.35)`;
+            btn.style.background = 'transparent';
+            btn.style.boxShadow = 'none';
+        });
+    }
+    
+    // 2. Ejecutar físicas y actualizaciones
+    updateNodes(runTime);
+    updateConnections(threeColor);
+    updateDust(delta);
+    
+    // 3. Rotar suavemente todo el grupo neural
+    hologramGroup.rotation.y += 0.0012;
+    
+    // 4. Parallax del ratón
+    mouseX = lerp(mouseX, targetMouseX, 0.05);
+    mouseY = lerp(mouseY, targetMouseY, 0.05);
+    hologramGroup.rotation.y = mouseX * 0.35 + (runTime * 0.02);
+    hologramGroup.rotation.x = -mouseY * 0.35;
+    
+    renderer.render(scene, camera);
 }
 
 // Arrancar la animación
@@ -181,9 +441,41 @@ const socket = io();
 let clearTextTimer = null; // Guardará el ID del temporizador
 
 const chatHistoryEl = document.getElementById('chat-history');
+const modelUsageListEl = document.getElementById('model-usage-list');
+
+// --- BARGE-IN: INTERRUPCIÓN DE VOZ ---
+function requestMute() {
+    if (currentState === 'speaking') {
+        console.log('[JARVIS GUI] Enviando mute_request...');
+        socket.emit('mute_request');
+    }
+}
+
+// Interrupción al hacer clic en el fondo o en el panel central
+canvas.addEventListener('click', requestMute);
+document.getElementById('overlay').addEventListener('click', (e) => {
+    // Solo silenciar si se hace click en el contenedor o panel principal
+    if (e.target.id === 'overlay' || e.target.id === 'main-panel' || e.target.id === 'title') {
+        requestMute();
+    }
+});
+
+// Interrupción al pulsar ESC
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        requestMute();
+    }
+});
 
 function addChatMessage(role, text) {
     if (!text) return;
+    
+    // Evitar duplicados consecutivos idénticos para el mismo rol (evita duplicados por reconexión)
+    const lastMsg = chatHistoryEl.lastElementChild;
+    if (lastMsg && lastMsg.classList.contains(role) && lastMsg.textContent === text) {
+        return;
+    }
+
     const msg = document.createElement('div');
     msg.classList.add('chat-msg', role);
     msg.textContent = text;
@@ -192,13 +484,66 @@ function addChatMessage(role, text) {
     chatHistoryEl.scrollTo({ top: chatHistoryEl.scrollHeight, behavior: 'smooth' });
 }
 
+function renderLogItem(log) {
+    const item = document.createElement('div');
+    item.classList.add('log-item');
+    
+    // Obtener sólo la hora
+    const timeOnly = log.timestamp.split(' ')[1] || log.timestamp;
+    
+    item.innerHTML = `
+        <div class="log-header">
+            <span>${timeOnly}</span>
+            <span>${log.tool_name}</span>
+        </div>
+        <div class="log-model">${log.model_name}</div>
+        <div class="log-prompt">${log.prompt}</div>
+    `;
+    return item;
+}
+
+socket.on('initial_logs', (logs) => {
+    modelUsageListEl.innerHTML = '';
+    // Renderizar de más nuevo a más viejo (los últimos arriba)
+    logs.slice().reverse().forEach(log => {
+        modelUsageListEl.appendChild(renderLogItem(log));
+    });
+});
+
+socket.on('new_model_log', (log) => {
+    // Prepend (añadir al principio)
+    modelUsageListEl.insertBefore(renderLogItem(log), modelUsageListEl.firstChild);
+    // Limitar a 15 elementos
+    while (modelUsageListEl.children.length > 15) {
+        modelUsageListEl.removeChild(modelUsageListEl.lastChild);
+    }
+});
+
 socket.on('state_update', (data) => {
     // Actualizar estado
     currentState = data.status;
-    targetColor = { ...stateColors[data.status] } || stateColors.idle;
+    targetColor = { ...(stateColors[data.status] || stateColors.idle) };
+    targetParams = { ...(stateParams[data.status] || stateParams.idle) };
 
     // Actualizar textos
     statusEl.textContent = stateLabels[data.status] || 'EN ESPERA';
+
+    // Actualizar badge socrático
+    if (socraticBadgeEl) {
+        if (data.socratic_mode) {
+            socraticBadgeEl.style.display = 'inline-flex';
+        } else {
+            socraticBadgeEl.style.display = 'none';
+        }
+    }
+
+    // Actualizar modelo en la GUI
+    if (data.model) {
+        modelNameEl.textContent = data.model;
+        modelContainerEl.classList.add('active');
+    } else {
+        modelContainerEl.classList.remove('active');
+    }
 
     if (data.status === 'thinking' && data.transcript) {
         transcriptEl.textContent = '"' + data.transcript + '"';
@@ -207,6 +552,8 @@ socket.on('state_update', (data) => {
     if (data.status === 'speaking' && data.response) {
         responseEl.textContent = data.response;
         addChatMessage('jarvis', data.response);
+        // Analizar y crear artefacto si existe bloque de código
+        checkAndCreateArtifact(data.response);
     }
 
     // Limpiar temporizador previo si se interrumpe el estado idle
@@ -220,7 +567,27 @@ socket.on('state_update', (data) => {
         clearTextTimer = setTimeout(() => {
             transcriptEl.textContent = '';
             responseEl.textContent = '';
+            modelContainerEl.classList.remove('active');
+            if (thoughtConsoleContainerEl) {
+                thoughtConsoleContainerEl.style.display = 'none';
+                thoughtLogEl.textContent = '';
+                planStepsListEl.innerHTML = '';
+            }
         }, 5000);
+    }
+});
+
+socket.on('active_window_update', (data) => {
+    if (data && data.app_name && data.app_name.trim() !== "") {
+        activeWindowAppEl.textContent = data.app_name.toUpperCase();
+        let title = data.title || "";
+        if (title.length > 50) {
+            title = title.substring(0, 47) + "...";
+        }
+        activeWindowTitleEl.textContent = title;
+        activeWindowContainerEl.style.display = 'flex';
+    } else {
+        activeWindowContainerEl.style.display = 'none';
     }
 });
 
@@ -228,7 +595,7 @@ socket.on('connect', () => {
     console.log('[JARVIS GUI] Conectado al servidor');
 });
 
-// Cuando el servidor backend se apaga repentinamente (Por la Opción 2 del BAT)
+// Cuando el servidor backend se apaga repentinamente
 socket.on('disconnect', () => {
     console.log('[JARVIS GUI] Desconectado del servidor. Iniciando apagado de la interfaz...');
     
@@ -239,10 +606,9 @@ socket.on('disconnect', () => {
     
     // Intentar cerrar la pestaña después de 1.5 segundos
     setTimeout(() => {
-        // Ejecuta el cierre del navegador
         window.close();
         
-        // Si el navegador bloquea window.close() por motivos de seguridad, mostramos este fallo
+        // Fallback por si el navegador bloquea auto-cierre
         document.body.innerHTML = `
             <div style="display:flex; justify-content:center; align-items:center; height:100vh; background:black; color:red; font-family:monospace; flex-direction:column;">
                 <h1 style="font-size:3rem; margin:0;">[ CONEXIÓN PERDIDA ]</h1>
@@ -252,3 +618,802 @@ socket.on('disconnect', () => {
         `;
     }, 1500);
 });
+
+// ==========================================
+// LÓGICA DE CONTROL DEL PANEL DE ARTEFACTOS
+// ==========================================
+let currentArtifact = null;
+
+function checkAndCreateArtifact(text) {
+    if (!text) return;
+    
+    // Regex para encontrar el primer bloque de código markdown de lenguajes soportados
+    const regex = /```(html|css|js|javascript|json|php|python|bat|cmd|batch)\s*([\s\S]*?)```/;
+    const match = text.match(regex);
+    
+    if (match) {
+        let lang = match[1].toLowerCase();
+        let code = match[2];
+        
+        if (lang === 'js') lang = 'javascript';
+        
+        // Determinar icono y nombre por defecto
+        let filename = 'documento.txt';
+        let icon = '📁';
+        if (lang === 'html') { filename = 'index.html'; icon = '🌐'; }
+        else if (lang === 'css') { filename = 'estilos.css'; icon = '🎨'; }
+        else if (lang === 'javascript') { filename = 'script.js'; icon = '⚡'; }
+        else if (lang === 'json') { filename = 'datos.json'; icon = '📊'; }
+        else if (lang === 'php') { filename = 'index.php'; icon = '🐘'; }
+        else if (lang === 'python') { filename = 'programa.py'; icon = '🐍'; }
+        else if (lang === 'bat' || lang === 'cmd' || lang === 'batch') { filename = 'macro.bat'; icon = '⚙️'; }
+        
+        currentArtifact = { language: lang, code: code, filename: filename };
+        
+        // Actualizar cabecera
+        artifactFilenameEl.textContent = filename;
+        artifactIconEl.textContent = icon;
+        
+        // Resaltado de sintaxis con Prism.js
+        let prismLang = lang;
+        if (lang === 'javascript') prismLang = 'js';
+        artifactCodeDisplayEl.className = `language-${prismLang}`;
+        artifactCodeDisplayEl.textContent = code.trim();
+        if (window.Prism) {
+            Prism.highlightElement(artifactCodeDisplayEl);
+        }
+        
+        // Mostrar / Ocultar botón ejecutar
+        if (lang === 'python' || lang === 'php' || lang === 'bat' || lang === 'cmd' || lang === 'batch') {
+            btnRun.style.display = 'inline-block';
+        } else {
+            btnRun.style.display = 'none';
+        }
+        
+        // Renderizar vista previa por defecto
+        renderArtifactPreview();
+        
+        // Activar tab de vista previa al inicio
+        btnTabPreview.classList.add('active');
+        btnTabCode.classList.remove('active');
+        artifactPreviewPaneEl.classList.add('active');
+        artifactCodePaneEl.classList.remove('active');
+        
+        // Mostrar panel
+        artifactsPanelEl.classList.add('active');
+    }
+}
+
+function renderArtifactPreview() {
+    if (!currentArtifact) return;
+    
+    const { language, code } = currentArtifact;
+    artifactPreviewPaneEl.innerHTML = '';
+    
+    if (language === 'html' || language === 'javascript') {
+        const iframe = document.createElement('iframe');
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = 'none';
+        iframe.style.background = '#ffffff';
+        iframe.sandbox = 'allow-scripts';
+        
+        if (language === 'html') {
+            iframe.srcdoc = code;
+        } else {
+            iframe.srcdoc = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { font-family: monospace; padding: 20px; background: #02070e; color: #00ff88; font-size: 0.85rem; line-height: 1.4; margin: 0; }
+                        #console { white-space: pre-wrap; word-break: break-all; }
+                        h3 { color: #00d4ff; margin-top: 0; font-family: sans-serif; border-bottom: 1px solid rgba(0, 212, 255, 0.2); padding-bottom: 8px; font-size: 1rem; }
+                    </style>
+                </head>
+                <body>
+                    <h3>Javascript Output</h3>
+                    <div id="console"></div>
+                    <script>
+                        const consoleDiv = document.getElementById('console');
+                        const log = console.log;
+                        console.log = (...args) => {
+                            consoleDiv.textContent += args.join(' ') + '\\n';
+                            log(...args);
+                        };
+                        try {
+                            ${code}
+                        } catch(e) {
+                            consoleDiv.innerHTML += '<span style="color:#ff3344;">[ERROR] ' + e.message + '</span>\\n';
+                        }
+                    </script>
+                </body>
+                </html>
+            `;
+        }
+        artifactPreviewPaneEl.appendChild(iframe);
+    } 
+    else if (language === 'css') {
+        const iframe = document.createElement('iframe');
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = 'none';
+        iframe.style.background = '#ffffff';
+        iframe.sandbox = 'allow-scripts';
+        
+        iframe.srcdoc = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: sans-serif; padding: 25px; margin: 0; background: #f8fafc; color: #1e293b; }
+                    .demo-container { display: flex; flex-direction: column; gap: 20px; max-width: 500px; margin: 0 auto; }
+                    .demo-section { padding: 15px; border: 1px dashed #cbd5e1; border-radius: 6px; background: #ffffff; }
+                    .demo-title { font-size: 0.8rem; color: #64748b; text-transform: uppercase; margin-bottom: 10px; font-weight: bold; }
+                </style>
+                <style>
+                    ${code}
+                </style>
+            </head>
+            <body>
+                <div class="demo-container">
+                    <h3 style="margin:0;">Vista Previa de Estilos</h3>
+                    <div class="demo-section">
+                        <div class="demo-title">Botones (Buttons)</div>
+                        <button class="btn btn-primary">Botón Principal</button>
+                        <button class="btn btn-secondary">Botón Secundario</button>
+                    </div>
+                    <div class="demo-section">
+                        <div class="demo-title">Tarjetas (Cards)</div>
+                        <div class="card">
+                            <h4 class="card-title">Título de Tarjeta</h4>
+                            <p class="card-text">Párrafo de prueba para ver el estilo y maquetación de la tarjeta con tus estilos CSS.</p>
+                            <a href="#" class="card-link">Leer más</a>
+                        </div>
+                    </div>
+                    <div class="demo-section">
+                        <div class="demo-title">Formularios / Inputs</div>
+                        <input type="text" class="form-input" placeholder="Escribe algo aquí..." />
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        artifactPreviewPaneEl.appendChild(iframe);
+    }
+    else if (language === 'json') {
+        try {
+            const parsed = JSON.parse(code);
+            artifactPreviewPaneEl.appendChild(buildJSONNode(parsed));
+        } catch (e) {
+            artifactPreviewPaneEl.innerHTML = `<div style="color:#ff3344; font-family:monospace; padding:10px;">Error al parsear JSON: ${e.message}</div>`;
+        }
+    } 
+    else if (language === 'python' || language === 'php' || language === 'bat' || language === 'cmd' || language === 'batch') {
+        const consoleHtml = `
+            <div class="console-container">
+                <div class="terminal-box">
+                    <div class="terminal-header">Consola Virtual</div>
+                    <div id="console-output" class="terminal-output">
+                        <span class="info">Listo para ejecutar el script '${currentArtifact.filename}' en el servidor...</span>
+                    </div>
+                </div>
+                <div id="console-plot" class="console-plot-preview" style="display: none;"></div>
+            </div>
+        `;
+        artifactPreviewPaneEl.innerHTML = consoleHtml;
+    }
+}
+
+function buildJSONNode(value, key = null) {
+    const li = document.createElement('li');
+    li.className = 'json-node';
+    
+    if (key !== null) {
+        const keySpan = document.createElement('span');
+        keySpan.className = 'json-key';
+        keySpan.textContent = `"${key}": `;
+        li.appendChild(keySpan);
+    }
+    
+    if (value === null) {
+        const valSpan = document.createElement('span');
+        valSpan.className = 'json-value null';
+        valSpan.textContent = 'null';
+        li.appendChild(valSpan);
+    } 
+    else if (typeof value === 'object') {
+        const isArray = Array.isArray(value);
+        const collapsible = document.createElement('span');
+        collapsible.className = 'json-collapsible';
+        collapsible.textContent = isArray ? `Array[${value.length}]` : 'Object';
+        li.appendChild(collapsible);
+        
+        const childTree = document.createElement('ul');
+        childTree.className = 'json-tree';
+        
+        for (const k in value) {
+            childTree.appendChild(buildJSONNode(value[k], k));
+        }
+        li.appendChild(childTree);
+        
+        collapsible.addEventListener('click', (e) => {
+            e.stopPropagation();
+            collapsible.classList.toggle('collapsed');
+        });
+    } 
+    else {
+        const valSpan = document.createElement('span');
+        valSpan.className = `json-value ${typeof value}`;
+        if (typeof value === 'string') {
+            valSpan.textContent = `"${value}"`;
+        } else {
+            valSpan.textContent = value.toString();
+        }
+        li.appendChild(valSpan);
+    }
+    
+    if (key === null) {
+        const rootUl = document.createElement('ul');
+        rootUl.className = 'json-tree';
+        rootUl.appendChild(li);
+        return rootUl;
+    }
+    return li;
+}
+
+// Botones e interacción de pestañas
+btnTabPreview.addEventListener('click', () => {
+    btnTabPreview.classList.add('active');
+    btnTabCode.classList.remove('active');
+    artifactPreviewPaneEl.classList.add('active');
+    artifactCodePaneEl.classList.remove('active');
+});
+
+btnTabCode.addEventListener('click', () => {
+    btnTabCode.classList.add('active');
+    btnTabPreview.classList.remove('active');
+    artifactCodePaneEl.classList.add('active');
+    artifactPreviewPaneEl.classList.remove('active');
+});
+
+btnClose.addEventListener('click', () => {
+    artifactsPanelEl.classList.remove('active');
+});
+
+btnCopy.addEventListener('click', () => {
+    if (currentArtifact) {
+        navigator.clipboard.writeText(currentArtifact.code).then(() => {
+            const originalText = btnCopy.textContent;
+            btnCopy.textContent = '¡Copiado!';
+            setTimeout(() => btnCopy.textContent = originalText, 1500);
+        });
+    }
+});
+
+// Botón de ejecución socket
+btnRun.addEventListener('click', () => {
+    if (!currentArtifact) return;
+    
+    const consoleOutput = document.getElementById('console-output');
+    const consolePlot = document.getElementById('console-plot');
+    
+    if (consoleOutput) {
+        consoleOutput.innerHTML = '<span class="info">Ejecutando script, por favor espere...</span>';
+    }
+    if (consolePlot) {
+        consolePlot.style.display = 'none';
+        consolePlot.innerHTML = '';
+    }
+    
+    btnRun.disabled = true;
+    btnRun.textContent = 'Corriendo...';
+    
+    socket.emit('run_code_request', {
+        language: currentArtifact.language,
+        code: currentArtifact.code
+    });
+});
+
+socket.on('run_code_response', (data) => {
+    btnRun.disabled = false;
+    btnRun.textContent = 'Ejecutar';
+    
+    const consoleOutput = document.getElementById('console-output');
+    const consolePlot = document.getElementById('console-plot');
+    
+    if (!consoleOutput) return;
+    
+    consoleOutput.innerHTML = '';
+    
+    if (data.error) {
+        consoleOutput.innerHTML = `<span class="stderr">${data.error}</span>`;
+        return;
+    }
+    
+    let contentHtml = '';
+    if (data.stdout) {
+        contentHtml += `<span class="stdout">${data.stdout}</span>`;
+    }
+    if (data.stderr) {
+        contentHtml += `<span class="stderr">${data.stderr}</span>`;
+    }
+    
+    if (!data.stdout && !data.stderr) {
+        contentHtml += '<span class="info">[Ejecución concluida sin salida en consola]</span>';
+    }
+    
+    consoleOutput.innerHTML = contentHtml;
+    
+    // Si hay una gráfica en base64 de Python
+    if (data.image_base64 && consolePlot) {
+        consolePlot.innerHTML = `<img src="data:image/png;base64,${data.image_base64}" alt="Gráfica Generada" />`;
+        consolePlot.style.display = 'flex';
+    }
+});
+
+// --- CENTINELA DE RED LOCAL ---
+socket.on('network_devices_update', (devices) => {
+    const deviceListEl = document.getElementById('network-device-list');
+    const statusEl = document.getElementById('sentinel-status');
+    if (!deviceListEl) return;
+    
+    deviceListEl.innerHTML = '';
+    
+    if (statusEl) {
+        statusEl.textContent = devices.length > 0 ? 'ACTIVO' : 'ESCANEANDO';
+        statusEl.style.color = devices.length > 0 ? '#00ff88' : '#888888';
+    }
+    
+    if (!devices || devices.length === 0) {
+        deviceListEl.innerHTML = '<div style="color:#64748b; font-size:0.7rem; font-style:italic; text-align:center; padding:10px;">Escaneando red local...</div>';
+        return;
+    }
+    
+    // Ordenar: dispositivos extraños (unknown) primero
+    const sorted = [...devices].sort((a, b) => (a.known === b.known) ? 0 : a.known ? 1 : -1);
+    
+    sorted.forEach(dev => {
+        const item = document.createElement('div');
+        item.className = `device-item ${dev.known ? '' : 'strange'}`;
+        
+        const info = document.createElement('div');
+        info.className = 'device-info';
+        
+        const name = document.createElement('div');
+        name.className = 'device-name';
+        name.textContent = dev.name || (dev.known ? 'Dispositivo Confiado' : 'Dispositivo Extraño');
+        
+        const ip = document.createElement('div');
+        ip.className = 'device-ip';
+        ip.textContent = dev.ip;
+        
+        const mac = document.createElement('div');
+        mac.className = 'device-mac';
+        mac.textContent = dev.mac.toUpperCase();
+        
+        info.appendChild(name);
+        info.appendChild(ip);
+        info.appendChild(mac);
+        
+        const action = document.createElement('div');
+        action.className = 'device-action';
+        
+        if (dev.known) {
+            const badge = document.createElement('span');
+            badge.className = 'badge-trusted';
+            badge.textContent = 'CONFIADO';
+            action.appendChild(badge);
+        } else {
+            const btn = document.createElement('button');
+            btn.className = 'btn-trust';
+            btn.textContent = 'Confiar';
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const customName = prompt(`¿Confiar en el dispositivo con IP ${dev.ip} y MAC ${dev.mac.toUpperCase()}?\nIngresa un nombre descriptivo:`, "Mi Dispositivo");
+                if (customName !== null) {
+                    const finalName = customName.trim() || "Dispositivo Confiado";
+                    socket.emit('trust_device', { mac: dev.mac, name: finalName });
+                }
+            });
+            action.appendChild(btn);
+        }
+        
+        item.appendChild(info);
+        item.appendChild(action);
+        deviceListEl.appendChild(item);
+    });
+});
+
+// --- PRIVACY GUARD ---
+socket.on('privacy_update', (data) => {
+    const findingsListEl = document.getElementById('privacy-findings-list');
+    const statusEl = document.getElementById('privacy-status');
+    if (!findingsListEl) return;
+    
+    findingsListEl.innerHTML = '';
+    
+    if (statusEl) {
+        if (data.status === 'vulnerable') {
+            statusEl.textContent = 'VULNERABLE';
+            statusEl.style.color = '#ff3344';
+            statusEl.style.textShadow = '0 0 10px #ff3344';
+        } else {
+            statusEl.textContent = 'PROTEGIDO';
+            statusEl.style.color = '#00ff88';
+            statusEl.style.textShadow = '0 0 10px #00ff88';
+        }
+    }
+    
+    if (!data.findings || data.findings.length === 0) {
+        findingsListEl.innerHTML = '<div style="color:#64748b; font-size:0.7rem; font-style:italic; text-align:center; padding:10px; width:100%;">No se detectaron riesgos.</div>';
+        return;
+    }
+    
+    data.findings.forEach(f => {
+        const item = document.createElement('div');
+        item.className = 'device-item strange';
+        item.style.padding = '8px';
+        
+        const info = document.createElement('div');
+        info.className = 'device-info';
+        
+        const typeEl = document.createElement('div');
+        typeEl.className = 'device-name';
+        typeEl.style.color = '#ff3344';
+        typeEl.style.fontSize = '0.75rem';
+        typeEl.textContent = f.type;
+        
+        const fileEl = document.createElement('div');
+        fileEl.className = 'device-ip';
+        fileEl.style.fontSize = '0.65rem';
+        fileEl.textContent = `${f.file}:${f.line}`;
+        
+        const snippetEl = document.createElement('div');
+        snippetEl.className = 'device-mac';
+        snippetEl.style.fontSize = '0.65rem';
+        snippetEl.textContent = f.snippet;
+        
+        info.appendChild(typeEl);
+        info.appendChild(fileEl);
+        info.appendChild(snippetEl);
+        
+        const action = document.createElement('div');
+        action.className = 'device-action';
+        
+        const btn = document.createElement('button');
+        btn.className = 'btn-trust';
+        btn.style.borderColor = 'rgba(255, 51, 68, 0.4)';
+        btn.style.color = '#ff3344';
+        btn.textContent = 'Ignorar';
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm(`¿Ignorar este secreto en ${f.file}?\nSe agregará a la lista de ignorados.`)) {
+                socket.emit('ignore_secret', { hash: f.hash });
+            }
+        });
+        
+        action.appendChild(btn);
+        
+        item.appendChild(info);
+        item.appendChild(action);
+        findingsListEl.appendChild(item);
+    });
+});
+
+// --- DEPENDENCY PATCHER ---
+socket.on('vulnerability_update', (data) => {
+    const findingsListEl = document.getElementById('vulnerability-findings-list');
+    const statusEl = document.getElementById('vulnerability-status');
+    if (!findingsListEl) return;
+    
+    findingsListEl.innerHTML = '';
+    
+    if (statusEl) {
+        if (data.status === 'vulnerable') {
+            statusEl.textContent = 'VULNERABLE';
+            statusEl.style.color = '#ff3344';
+            statusEl.style.textShadow = '0 0 10px #ff3344';
+        } else {
+            statusEl.textContent = 'SEGURO';
+            statusEl.style.color = '#00ff88';
+            statusEl.style.textShadow = '0 0 10px #00ff88';
+        }
+    }
+    
+    if (!data.findings || data.findings.length === 0) {
+        findingsListEl.innerHTML = '<div style="color:#64748b; font-size:0.7rem; font-style:italic; text-align:center; padding:10px; width:100%;">Todas las dependencias están seguras.</div>';
+        return;
+    }
+    
+    data.findings.forEach(f => {
+        const item = document.createElement('div');
+        item.className = `vuln-item ${f.status}`;
+        
+        const info = document.createElement('div');
+        info.className = 'vuln-info';
+        
+        const pkgEl = document.createElement('div');
+        pkgEl.className = 'vuln-package';
+        pkgEl.textContent = f.package;
+        
+        const versionsSpan = document.createElement('span');
+        versionsSpan.className = 'vuln-versions';
+        versionsSpan.textContent = `${f.current_version} → ${f.latest_version}`;
+        pkgEl.appendChild(versionsSpan);
+        
+        const cvesEl = document.createElement('div');
+        cvesEl.className = 'vuln-cves';
+        cvesEl.textContent = f.vulnerabilities.map(v => v.id).join(', ');
+        
+        info.appendChild(pkgEl);
+        info.appendChild(cvesEl);
+        
+        const action = document.createElement('div');
+        action.className = 'vuln-action';
+        
+        if (f.status === 'conflictive') {
+            const badge = document.createElement('span');
+            badge.className = 'badge-conflict';
+            badge.textContent = 'CONFLICTO';
+            badge.title = 'Actualización rompió los tests unitarios. Revertida.';
+            action.appendChild(badge);
+        } else if (f.status === 'patching') {
+            const badge = document.createElement('span');
+            badge.className = 'badge-patching';
+            badge.textContent = 'PARCHEANDO...';
+            action.appendChild(badge);
+        } else {
+            const btn = document.createElement('button');
+            btn.className = 'btn-patch';
+            btn.textContent = 'Parchear';
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm(`¿Aplicar parche de seguridad para ${f.package} a la versión ${f.latest_version}?\nSe ejecutarán tests locales de validación.`)) {
+                    // Actualizar el estado visual del botón
+                    btn.disabled = true;
+                    btn.textContent = 'Parcheando...';
+                    item.className = 'vuln-item patching';
+                    action.innerHTML = '<span class="badge-patching">PARCHEANDO...</span>';
+                    
+                    socket.emit('apply_patch', { package: f.package, version: f.latest_version });
+                }
+            });
+            action.appendChild(btn);
+        }
+        
+        item.appendChild(info);
+        item.appendChild(action);
+        findingsListEl.appendChild(item);
+    });
+});
+
+// --- JARVIS INTEGRITY WATCHDOG ---
+socket.on('jarvis_health_update', (data) => {
+    const findingsListEl = document.getElementById('integrity-findings-list');
+    const statusEl = document.getElementById('integrity-status');
+    if (!findingsListEl) return;
+    
+    findingsListEl.innerHTML = '';
+    
+    if (statusEl) {
+        const status = data.status.toUpperCase();
+        statusEl.textContent = status;
+        if (status === 'CRITICAL') {
+            statusEl.style.color = '#ff3344';
+            statusEl.style.textShadow = '0 0 10px #ff3344';
+        } else if (status === 'WARNING') {
+            statusEl.style.color = '#ffaa00';
+            statusEl.style.textShadow = '0 0 10px #ffaa00';
+        } else {
+            statusEl.textContent = 'SEGURO';
+            statusEl.style.color = '#00ff88';
+            statusEl.style.textShadow = '0 0 10px #00ff88';
+        }
+    }
+    
+    // Crear items para el reporte
+    // 1. Análisis de Sintaxis
+    const syntaxItem = document.createElement('div');
+    syntaxItem.className = 'health-item';
+    const syntaxFails = data.syntax_failures || [];
+    syntaxItem.innerHTML = `
+        <div class="health-row">
+            <span class="health-name">Sintaxis de Código</span>
+            <span class="health-badge ${syntaxFails.length === 0 ? 'ok' : 'critical'}">
+                ${syntaxFails.length === 0 ? 'OK' : 'FALLO'}
+            </span>
+        </div>
+        <div class="health-detail ${syntaxFails.length > 0 ? 'error' : ''}">
+            ${syntaxFails.length === 0 ? 'Todos los archivos Python válidos' : `${syntaxFails.length} archivo(s) con errores`}
+        </div>
+    `;
+    findingsListEl.appendChild(syntaxItem);
+    
+    // 2. Carga de Herramientas
+    const toolsItem = document.createElement('div');
+    toolsItem.className = 'health-item';
+    const toolsFails = data.tools_failures || [];
+    toolsItem.innerHTML = `
+        <div class="health-row">
+            <span class="health-name">Módulos Tools</span>
+            <span class="health-badge ${toolsFails.length === 0 ? 'ok' : 'critical'}">
+                ${toolsFails.length === 0 ? 'OK' : 'ERROR'}
+            </span>
+        </div>
+        <div class="health-detail ${toolsFails.length > 0 ? 'error' : ''}">
+            ${toolsFails.length === 0 ? 'Herramientas importadas sin fallos' : `${toolsFails.length} fallo(s) de importación`}
+        </div>
+    `;
+    findingsListEl.appendChild(toolsItem);
+    
+    // 3. Variables de Entorno
+    const envItem = document.createElement('div');
+    envItem.className = 'health-item';
+    const envCheck = data.env_check || [];
+    const unconfigured = envCheck.filter(item => !item.configured);
+    const criticalMissing = unconfigured.filter(item => ['OPENAI_API_KEY', 'GOOGLE_API_KEY'].includes(item.name));
+    
+    let envStatus = 'ok';
+    let envLabel = 'OK';
+    if (criticalMissing.length > 0) {
+        envStatus = 'critical';
+        envLabel = 'FALTA API';
+    } else if (unconfigured.length > 0) {
+        envStatus = 'warning';
+        envLabel = 'INCOMPLETO';
+    }
+    
+    envItem.innerHTML = `
+        <div class="health-row">
+            <span class="health-name">Claves y Entorno</span>
+            <span class="health-badge ${envStatus}">
+                ${envLabel}
+            </span>
+        </div>
+        <div class="health-detail">
+            ${unconfigured.length === 0 ? 'Todas las variables configuradas' : `Falta(n) ${unconfigured.length} clave(s) (.env)`}
+        </div>
+    `;
+    findingsListEl.appendChild(envItem);
+    
+    // 4. Pruebas Unitarias
+    const testsItem = document.createElement('div');
+    testsItem.className = 'health-item';
+    const tests = data.test_results || {};
+    const testsPassed = tests.passed;
+    
+    testsItem.innerHTML = `
+        <div class="health-row">
+            <span class="health-name">Tests Unitarios</span>
+            <span class="health-badge ${testsPassed ? 'ok' : 'warning'}">
+                ${testsPassed ? 'PASANDO' : 'FALLANDO'}
+            </span>
+        </div>
+        <div class="health-detail">
+            ${tests.ran > 0 ? `${tests.ran - tests.failures - tests.errors}/${tests.ran} tests pasados` : 'Ejecutando tests de integridad...'}
+        </div>
+    `;
+    findingsListEl.appendChild(testsItem);
+});
+
+// Manejadores para la Consola de Pensamiento y Planificación
+socket.on('agent_thought', (data) => {
+    if (!thoughtConsoleContainerEl || !thoughtLogEl || !thoughtConsoleIndicatorEl) return;
+    
+    // Al recibir un pensamiento, mostrar la consola
+    thoughtConsoleContainerEl.style.display = 'block';
+    
+    // Si el temporizador de limpieza estaba activo por volver a idle, cancelarlo
+    if (clearTextTimer) {
+        clearTimeout(clearTextTimer);
+        clearTextTimer = null;
+    }
+    
+    if (data.type === 'tool_start') {
+        thoughtConsoleIndicatorEl.textContent = 'PENSANDO / USANDO HERRAMIENTA';
+        thoughtConsoleIndicatorEl.style.color = '#ffc800';
+        
+        let toolText = `> Decidiendo usar la herramienta: [${data.tool}]\n`;
+        if (data.tool_input) {
+            toolText += `  Parámetros: ${data.tool_input}\n`;
+        }
+        if (data.thought) {
+            // Limpiar log interno de la acción
+            let cleanThought = data.thought.replace(/Action:[\s\S]*/g, '').trim();
+            if (cleanThought) {
+                toolText += `  Razón: ${cleanThought}\n`;
+            }
+        }
+        thoughtLogEl.textContent = toolText;
+    } else if (data.type === 'tool_end') {
+        let outputText = thoughtLogEl.textContent;
+        let shortOutput = data.output || "";
+        if (shortOutput.length > 250) {
+            shortOutput = shortOutput.substring(0, 247) + "...";
+        }
+        outputText += `> Salida de la herramienta:\n  ${shortOutput}\n\n`;
+        thoughtLogEl.textContent = outputText;
+    } else if (data.type === 'agent_finish') {
+        thoughtConsoleIndicatorEl.textContent = 'EJECUCIÓN COMPLETADA';
+        thoughtConsoleIndicatorEl.style.color = '#00ff88';
+        let outputText = thoughtLogEl.textContent;
+        outputText += `> Respuesta final del agente obtenida.\n`;
+        thoughtLogEl.textContent = outputText;
+    }
+    
+    // Auto-scroll
+    thoughtConsoleContainerEl.scrollTop = thoughtConsoleContainerEl.scrollHeight;
+});
+
+socket.on('plan_update', (data) => {
+    if (!thoughtConsoleContainerEl || !planStepsListEl || !thoughtConsoleIndicatorEl) return;
+    
+    thoughtConsoleContainerEl.style.display = 'block';
+    thoughtConsoleIndicatorEl.textContent = data.completed ? 'PLAN FINALIZADO' : 'PLAN EN EJECUCIÓN';
+    thoughtConsoleIndicatorEl.style.color = data.completed ? '#00ff88' : '#ffc800';
+    
+    // Si el temporizador de limpieza estaba activo por volver a idle, cancelarlo
+    if (clearTextTimer) {
+        clearTimeout(clearTextTimer);
+        clearTextTimer = null;
+    }
+    
+    planStepsListEl.innerHTML = '';
+    
+    if (data.steps && data.steps.length > 0) {
+        data.steps.forEach(step => {
+            const stepEl = document.createElement('div');
+            stepEl.style.fontSize = '0.75rem';
+            stepEl.style.display = 'flex';
+            stepEl.style.alignItems = 'center';
+            stepEl.style.gap = '8px';
+            stepEl.style.padding = '4px 0';
+            
+            let statusIcon = '⚪';
+            let textColor = '#888888';
+            let textWeight = 'normal';
+            let textDecoration = 'none';
+            let animationClass = '';
+            
+            if (step.status === 'in_progress') {
+                statusIcon = '⚙️';
+                textColor = '#ffc800';
+                textWeight = 'bold';
+                animationClass = 'loading-rotate';
+            } else if (step.status === 'completed') {
+                statusIcon = '✅';
+                textColor = '#00ff88';
+                textDecoration = 'line-through';
+            } else if (step.status === 'failed') {
+                statusIcon = '❌';
+                textColor = '#ff3333';
+                textWeight = 'bold';
+            }
+            
+            const iconSpan = document.createElement('span');
+            iconSpan.textContent = statusIcon;
+            if (animationClass) {
+                iconSpan.classList.add(animationClass);
+            }
+            
+            const descSpan = document.createElement('span');
+            descSpan.textContent = `${step.id}. ${step.description}`;
+            descSpan.style.color = textColor;
+            descSpan.style.fontWeight = textWeight;
+            descSpan.style.textDecoration = textDecoration;
+            
+            if (step.status === 'in_progress') {
+                descSpan.style.animation = 'blink 1.5s infinite';
+            }
+            
+            stepEl.appendChild(iconSpan);
+            stepEl.appendChild(descSpan);
+            planStepsListEl.appendChild(stepEl);
+        });
+    }
+    
+    // Auto-scroll
+    thoughtConsoleContainerEl.scrollTop = thoughtConsoleContainerEl.scrollHeight;
+});
+

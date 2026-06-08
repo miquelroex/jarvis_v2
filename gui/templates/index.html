@@ -3,29 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <title>JARVIS</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=5">
+    <link rel="stylesheet" href="/static/css/style.css?v=6">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 </head>
 <body>
     <!-- Canvas donde se dibujan las animaciones -->
     <canvas id="jarvis-canvas"></canvas>
 
     <div id="overlay">
+        <!-- Panel Lateral Izquierdo (Logs de Modelos + Centinela de Red) -->
+        <div id="model-logs-panel">
+            <div class="panel-section">
+                <div id="logs-title">Logs de Acceso</div>
+                <div id="model-usage-list">
+                    <!-- Se llenará con llamadas en tiempo real -->
+                </div>
+            </div>
+            
+            <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
+                <div id="sentinel-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
+                    <span>Centinela de Red</span>
+                    <span id="sentinel-status" style="font-size: 0.65rem; color: #888888; letter-spacing: 0;">ESCUCHANDO</span>
+                </div>
+                <div id="network-device-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
+                    <!-- Se llenará con los dispositivos detectados en la red -->
+                </div>
+            </div>
+
+            <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
+                <div id="privacy-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
+                    <span>Privacy Guard</span>
+                    <span id="privacy-status" style="font-size: 0.65rem; color: #00ff88; letter-spacing: 0;">PROTEGIDO</span>
+                </div>
+                <div id="privacy-findings-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
+                    <!-- Se llenará con alertas de llaves o credenciales expuestas -->
+                </div>
+            </div>
+
+            <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
+                <div id="vulnerability-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
+                    <span>Dependency Patcher</span>
+                    <span id="vulnerability-status" style="font-size: 0.65rem; color: #00ff88; letter-spacing: 0;">SEGURO</span>
+                </div>
+                <div id="vulnerability-findings-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
+                    <!-- Se llenará con dependencias vulnerables -->
+                </div>
+            </div>
+
+            <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
+                <div id="integrity-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
+                    <span>Jarvis Integrity</span>
+                    <span id="integrity-status" style="font-size: 0.65rem; color: #00ff88; letter-spacing: 0;">SEGURO</span>
+                </div>
+                <div id="integrity-findings-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
+                    <!-- Se llenará con el diagnóstico de integridad del sistema -->
+                </div>
+            </div>
+        </div>
+
         <!-- Panel Principal (Centro) -->
         <div id="main-panel">
-            <div id="title">J  A  R  V  I  S</div>
+            <div id="title-container" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 1.5rem;">
+                <div id="title" style="margin-bottom: 0;">J  A  R  V  I  S</div>
+                <span id="socratic-badge" style="font-size: 0.75rem; color: #ffc800; border: 1px solid #ffc800; padding: 2px 10px; border-radius: 20px; text-shadow: 0 0 8px #ffc800; box-shadow: 0 0 10px rgba(255, 200, 0, 0.15); font-weight: bold; font-family: 'Courier New', monospace; display: none; align-items: center; gap: 4px; background: rgba(255, 200, 0, 0.04); vertical-align: middle;">🦆 PATITO</span>
+            </div>
             <div id="status">SISTEMA INICIADO</div>
+            <div id="active-window-container" style="font-size: 0.75rem; color: #888888; margin-bottom: 1.5rem; letter-spacing: 0.05rem; text-shadow: 0 0 5px rgba(0, 212, 255, 0.3); display: none; align-items: center; justify-content: center; gap: 6px;">
+                🖥️ <span id="active-window-app" style="font-weight: bold; color: #00d4ff;"></span>: <span id="active-window-title"></span>
+            </div>
+            <div id="model-container" style="display: none;">
+                <span id="model-label">SISTEMA:</span>
+                <span id="model-name"></span>
+            </div>
             <div id="transcript"></div>
+            
+            <!-- Consola de Pensamiento y Planificación -->
+            <div id="thought-console-container" style="display: none; width: 85%; max-width: 650px; background: rgba(0, 20, 30, 0.75); border: 1px solid rgba(0, 212, 255, 0.35); padding: 15px; border-radius: 10px; margin-bottom: 1.5rem; pointer-events: auto; max-height: 250px; overflow-y: auto; text-shadow: 0 0 5px rgba(0, 212, 255, 0.2); box-shadow: 0 0 15px rgba(0, 212, 255, 0.15); font-family: 'Courier New', monospace; text-align: left;">
+                <div style="font-size: 0.75rem; font-weight: bold; color: #00d4ff; border-bottom: 1px solid rgba(0, 212, 255, 0.2); padding-bottom: 6px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span>Consola de Ejecución Autónoma</span>
+                    <span id="thought-console-indicator" style="font-size: 0.65rem; color: #ffc800;">PLANIFICANDO</span>
+                </div>
+                <div id="thought-log" style="font-size: 0.75rem; color: #ffffff; line-height: 1.2rem; margin-bottom: 10px; white-space: pre-wrap; font-style: italic; opacity: 0.85;">
+                    <!-- Se mostrará el pensamiento actual de Jarvis -->
+                </div>
+                <div id="plan-steps-list" style="display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Lista de pasos del plan Plan-and-Solve -->
+                </div>
+            </div>
+
             <div id="response"></div>
+            <div id="barge-in-hint">Haz clic o presiona ESC para silenciar</div>
         </div>
         
-        <!-- Panel Lateral (Historial) -->
+        <!-- Panel Lateral Derecho (Historial) -->
         <div id="chat-history">
             <!-- Los mensajes se llenarán aquí -->
         </div>
     </div>
 
+    <!-- Panel de Artefactos Lateral (Derecha, deslizable) -->
+    <div id="artifacts-panel">
+        <div id="artifact-header">
+            <div id="artifact-title-wrapper">
+                <span id="artifact-icon">📁</span>
+                <span id="artifact-filename">archivo.txt</span>
+            </div>
+            <div id="artifact-controls">
+                <button id="artifact-tab-preview" class="active">Vista Previa</button>
+                <button id="artifact-tab-code">Código</button>
+                <button id="artifact-btn-run" style="display: none;">Ejecutar</button>
+                <button id="artifact-btn-copy">Copiar</button>
+                <button id="artifact-btn-close">Cerrar</button>
+            </div>
+        </div>
+        <div id="artifact-body">
+            <div id="artifact-preview-pane" class="pane active"></div>
+            <div id="artifact-code-pane" class="pane">
+                <pre><code id="artifact-code-display" class="language-clike"></code></pre>
+            </div>
+        </div>
+    </div>
+
     <!-- Socket.IO (comunicación en tiempo real) -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <!-- Three.js (Motor de gráficos 3D) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Prism.js para resaltado de sintaxis -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
     <!-- Nuestro JavaScript con las animaciones -->
     <script src="/static/js/jarvis.js?v=2"></script>
 </body>
