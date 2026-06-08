@@ -25,6 +25,9 @@ Está diseñado sobre una arquitectura híbrida en Python que combina un **enrut
     *   `open_windows_app` / `open_website`: Lanzamiento de aplicaciones del PC (calculadora, explorador, spotify) y apertura de URLs en navegador.
 *   🎨 **Interfaz Gráfica (GUI) en Tiempo Real**: Servidor Flask + Socket.IO incorporado para visualizar el estado cognitivo de Jarvis (idle, escuchando, pensando, hablando) mediante un lienzo animado en `http://localhost:5000`.
 *   🔊 **Voz Natural Multicapa**: Sistema TTS asíncrono con preferencia por ElevenLabs y Edge-TTS (voces premium neurales en línea) con fallback a pyttsx3 (voz offline).
+*   💾 **Memoria Persistente (SQLite)**: Almacena recuerdos y preferencias del usuario entre reinicios de forma segura. Inyecta dinámicamente hasta 20 recuerdos en el prompt del sistema para dotar a Jarvis de una consciencia pasiva de tus datos sin coste extra de tokens.
+*   🛡️ **Centinela de Código en Caliente**: Daemon en segundo plano que monitoriza archivos Python del repositorio, ejecutando de forma optimizada y aislada las pruebas unitarias afectadas al guardar cambios. Alerta por voz únicamente en cambios de estado (`pass ↔ fail`).
+*   📅 **Planificador de Tareas (Scheduler MVP)**: Motor de segundo plano que gestiona recordatorios por voz y notificaciones push. Los recordatorios se guardan de forma persistente en SQLite y las ejecuciones únicas se auto-eliminan tras completarse.
 
 ---
 
