@@ -10,9 +10,9 @@ def smart_route(command: str):
         {"type": "fast_command" | "delegation_...", "content": respuesta_texto}
     O retorna None si debe delegar el flujo al agente principal de LangChain.
     """
-    # 1. Si hay un modelo de coste alto o comando de terminal pendiente de confirmación,
+    # 1. Si hay una acción pendiente de confirmación (modelo, terminal, filesystem, etc.),
     # desactivamos el enrutador para que el agente maneje "confirmo" / "cancela".
-    if os.path.exists("logs/pending_model_request.json") or os.path.exists("logs/pending_terminal_command.json"):
+    if os.path.exists("logs/pending_action.json") or os.path.exists("logs/pending_model_request.json") or os.path.exists("logs/pending_terminal_command.json"):
         return None
 
     # 2. Comprobación de comandos rápidos locales (síncronos)

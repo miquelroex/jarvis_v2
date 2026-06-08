@@ -15,8 +15,16 @@ class TestDynamicToolCreator(unittest.TestCase):
     def setUp(self):
         init_agent()
         self.created_tools = []
+        self.original_safe_mode = os.environ.get("JARVIS_SAFE_MODE")
+        os.environ["JARVIS_SAFE_MODE"] = "False"
 
     def tearDown(self):
+        # Restaurar JARVIS_SAFE_MODE original
+        if self.original_safe_mode is not None:
+            os.environ["JARVIS_SAFE_MODE"] = self.original_safe_mode
+        elif "JARVIS_SAFE_MODE" in os.environ:
+            del os.environ["JARVIS_SAFE_MODE"]
+
         # Eliminar las herramientas dinámicas creadas para las pruebas
         tools_dir = Path(project_root) / "tools"
         for tool_name in self.created_tools:
@@ -125,6 +133,40 @@ def test_no_decor_tool(x: int) -> int:
         
         val = matching_tool.invoke({"x": 21})
         self.assertEqual(val, 42)
+
+    def test_safe_mode_interception(self):
+        os.environ["JARVIS_SAFE_MODE"] = "True"
+        tool_name = "test_safe_tool"
+        self.created_tools.append(tool_name)
+        
+        raw_code = """
+@tool
+def test_safe_tool() -> str:
+    \"\"\"Docstring.\"\"\"
+    return "Safe Hello"
+"""
+        from core.pending_actions import PENDING_ACTION_FILE, execute_pending_action, clear_pending_action
+        clear_pending_action()
+        
+        # Intentar crear bajo modo seguro
+        res = create_dynamic_tool.invoke({
+            "name": tool_name,
+            "description": "Safe tool",
+            "python_code": raw_code
+        })
+        
+        # 1. Comprobar que intercepta y pide confirmación
+        self.assertIn("interceptada bajo modo seguro", res)
+        self.assertTrue(PENDING_ACTION_FILE.exists())
+        
+        # 2. Confirmar la creación de la tool
+        confirm_res = execute_pending_action()
+        self.assertIn("creada, validada y registrada con éxito", confirm_res)
+        self.assertFalse(PENDING_ACTION_FILE.exists())
+        
+        # 3. Comprobar que el archivo se creó finalmente
+        tools_dir = Path(project_root) / "tools"
+        self.assertTrue((tools_dir / f"{tool_name}.py").exists())
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
 import threading
@@ -9,8 +10,8 @@ import sys
 
 # Crear la aplicación Flask
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'jarvis-secret'
-socketio = SocketIO(app, cors_allowed_origins="*")
+app.config['SECRET_KEY'] = os.getenv('JARVIS_SECRET_KEY', 'jarvis-secret-fallback-token-secure-382910')
+socketio = SocketIO(app, cors_allowed_origins=["http://localhost:5000", "http://127.0.0.1:5000"])
 
 # Estado actual de Jarvis
 jarvis_state = {

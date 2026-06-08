@@ -4,8 +4,15 @@ from pathlib import Path
 from langchain.tools import tool
 from core.llm_factory import get_llm
 from core.model_logging import log_model_usage
+from core.pending_actions import (
+  save_pending_action,
+  load_pending_action,
+  clear_pending_action,
+  execute_pending_action,
+  PENDING_ACTION_FILE
+)
 
-PENDING_MODEL_REQUEST = Path("logs/pending_model_request.json")
+PENDING_MODEL_REQUEST = PENDING_ACTION_FILE
 
 
 def save_pending_model_request(
@@ -14,21 +21,15 @@ def save_pending_model_request(
   model_name: str,
   prompt: str,
 ) -> None:
-  logs_dir = Path("logs")
-  logs_dir.mkdir(exist_ok=True)
-
   data = {
     "tool_name": tool_name,
     "model_env": model_env,
     "model_name": model_name,
     "prompt": prompt,
   }
+  save_pending_action("model", data)
 
-  PENDING_MODEL_REQUEST.write_text(
-    json.dumps(data, ensure_ascii=False, indent=2),
-    encoding="utf-8",
-  )
-
+  # Para tests o alertas, notificamos por Telegram si está disponible
   try:
     from core.telegram_bot import send_mfa_request
     send_mfa_request("model", {"model_name": model_name, "prompt": prompt})
@@ -38,15 +39,11 @@ def save_pending_model_request(
 
 
 def load_pending_model_request():
-  if not PENDING_MODEL_REQUEST.exists():
-    return None
-
-  return json.loads(PENDING_MODEL_REQUEST.read_text(encoding="utf-8"))
+  return load_pending_action()
 
 
 def clear_pending_model_request() -> None:
-  if PENDING_MODEL_REQUEST.exists():
-    PENDING_MODEL_REQUEST.unlink()
+  clear_pending_action()
 
 
 def ask_openrouter_model(
@@ -165,62 +162,71 @@ def ask_gpt_model(prompt: str) -> str:
 
 
 @tool
+def confirm_pending_action(prompt: str) -> str:
+  """
+  Confirm and execute any pending action (dangerous commands, critical file writes, model execution, dynamic tools).
+  Use this when the user says: confirma, adelante, sí, ejecuta, confirmo acción.
+  """
+  return execute_pending_action()
+
+
+@tool
+def cancel_pending_action(prompt: str) -> str:
+  """
+  Cancel any pending action (dangerous commands, file writes, model execution, dynamic tools).
+  Use this when the user says: cancela, no, no lo hagas, cancela acción.
+  """
+  pending = load_pending_action()
+  if not pending:
+    return "No hay ninguna acción pendiente de cancelar."
+    
+  action_type = pending.get("action_type")
+  clear_pending_action()
+  
+  desc = f"acción de tipo '{action_type}'"
+  if action_type == "model":
+    model_name = pending.get("model_name", "modelo")
+    desc = f"uso del modelo {model_name}"
+  elif action_type == "terminal":
+    desc = "comando de terminal"
+  elif action_type == "file_write":
+    desc = "escritura de archivo"
+  elif action_type == "tool_creation":
+    desc = "creación de herramienta dinámica"
+    
+  return f"Cancelado. Se canceló la ejecución de: {desc}."
+
+
+@tool
 def confirm_pending_model(prompt: str) -> str:
   """
-  Confirm and execute the pending expensive model request OR pending terminal command.
+  Confirm and execute the pending expensive model request OR pending action.
   Use this when the user says: confirma, adelante, sí, ejecuta, confirmo modelo.
   """
   pending_command_file = Path("logs/pending_terminal_command.json")
-  
-  # 1. Comprobar si hay un comando de terminal pendiente
   if pending_command_file.exists():
     try:
       data = json.loads(pending_command_file.read_text(encoding="utf-8"))
       command = data.get("command")
-      # Borrar el archivo
       pending_command_file.unlink()
-      
-      if not command:
-        return "No se encontró ningún comando en la solicitud de terminal pendiente."
-        
-      # Ejecutar el comando
-      from tools.terminal import execute_cmd
-      return execute_cmd(command)
-    except Exception as e:
-      if pending_command_file.exists():
-        try:
-          pending_command_file.unlink()
-        except Exception:
-          pass
-      return f"Error al confirmar el comando de terminal: {str(e)}"
+      if command:
+        from tools.terminal import execute_cmd
+        return execute_cmd(command)
+    except Exception:
+      pass
 
-  # 2. Comprobar si hay una solicitud de modelo costoso pendiente
-  pending = load_pending_model_request()
-
-  if not pending:
-    return "No hay ninguna acción pendiente de confirmar."
-
-  clear_pending_model_request()
-
-  return ask_openrouter_model(
-    tool_name=pending["tool_name"],
-    model_env=pending["model_env"],
-    fallback_model=pending["model_name"],
-    prompt=pending["prompt"],
-    require_confirmation=False,
-  )
+  return execute_pending_action()
 
 
 @tool
 def cancel_pending_model(prompt: str) -> str:
   """
-  Cancel the pending expensive model request or pending terminal command.
+  Cancel the pending expensive model request or pending action.
   Use this when the user says: cancela, no, no lo hagas, cancela modelo.
   """
-  pending_command_file = Path("logs/pending_terminal_command.json")
   cancelled_actions = []
-
-  # 1. Cancelar comando de terminal pendiente
+  
+  pending_command_file = Path("logs/pending_terminal_command.json")
   if pending_command_file.exists():
     try:
       pending_command_file.unlink()
@@ -228,14 +234,22 @@ def cancel_pending_model(prompt: str) -> str:
     except Exception:
       pass
 
-  # 2. Cancelar modelo pendiente
-  pending = load_pending_model_request()
+  pending = load_pending_action()
   if pending:
-    model_name = pending["model_name"]
-    clear_pending_model_request()
-    cancelled_actions.append(f"uso del modelo {model_name}")
+    action_type = pending.get("action_type")
+    clear_pending_action()
+    if action_type == "model":
+      model_name = pending.get("model_name", "modelo")
+      cancelled_actions.append(f"uso del modelo {model_name}")
+    elif action_type == "terminal":
+      cancelled_actions.append("comando de terminal")
+    elif action_type == "file_write":
+      cancelled_actions.append("escritura de archivo")
+    elif action_type == "tool_creation":
+      cancelled_actions.append("creación de herramienta dinámica")
+    else:
+      cancelled_actions.append(f"acción de tipo '{action_type}'")
 
-  if not cancelled_actions:
-    return "No había ninguna acción pendiente de cancelar."
-
-  return f"Cancelado. Se canceló la ejecución de: {', '.join(cancelled_actions)}."
+  if cancelled_actions:
+    return f"Cancelado. Se canceló la ejecución de: {', '.join(cancelled_actions)}."
+  return "No había ninguna acción pendiente de cancelar."

@@ -6,18 +6,38 @@ import subprocess
 import logging
 from pathlib import Path
 from langchain.tools import tool
+from core.pending_actions import save_pending_action, PENDING_ACTION_FILE
 
-PENDING_COMMAND_FILE = Path("logs/pending_terminal_command.json")
+PENDING_COMMAND_FILE = PENDING_ACTION_FILE
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-# Lista negra de comandos del sistema peligrosos
-BLACKLIST_REGEX = r"\b(del|rmdir|rd|format|shutdown|reboot|attrib|net|chkdsk|diskpart|reg|taskkill|sfc|sc|netsh|powershell|cmd)\b"
+# Lista de prefijos de comandos seguros que se permiten directamente
+SAFE_COMMAND_PREFIXES = [
+    "git status",
+    "git diff",
+    "git log",
+    "python -m unittest",
+    "pytest",
+    "dir",
+    "type"
+]
+
+# Lista negra de comandos del sistema destructivos o peligrosos
+DANGEROUS_COMMANDS_REGEX = r"\b(del|rmdir|rd|format|shutdown|reboot|attrib|net|chkdsk|diskpart|reg|taskkill|sfc|sc|netsh|powershell|cmd)\b"
 
 def is_command_safe(command: str) -> bool:
-    """Verifica si el comando no contiene comandos de sistema prohibidos."""
-    if re.search(BLACKLIST_REGEX, command.lower()):
+    """Verifica si el comando no contiene palabras del sistema prohibidas."""
+    if re.search(DANGEROUS_COMMANDS_REGEX, command.lower()):
         return False
     return True
+
+def is_command_in_allowlist(command: str) -> bool:
+    """Verifica si el comando coincide con la allowlist de comandos seguros."""
+    norm_cmd = command.strip().lower()
+    for prefix in SAFE_COMMAND_PREFIXES:
+        if norm_cmd.startswith(prefix):
+            return True
+    return False
 
 def save_failed_command_log(command: str, stdout: str, stderr: str):
     """Guarda los detalles de un comando fallido en logs/last_exception.json."""
@@ -91,24 +111,18 @@ def run_terminal_command(command: str) -> str:
     Use this tool when the user asks to run tests, execute scripts, check git status, or similar terminal commands.
     """
     if not is_command_safe(command):
-        return f"Error: El comando '{command}' fue bloqueado por seguridad."
+        return f"Error: El comando '{command}' fue bloqueado por seguridad por ser potencialmente destructivo o peligroso."
 
-    # Detectar Modo Seguro
+    # Si está en la allowlist, se ejecuta directamente
+    if is_command_in_allowlist(command):
+        return execute_cmd(command)
+
+    # Detectar Modo Seguro para otros comandos
     safe_mode = os.getenv("JARVIS_SAFE_MODE", "True").lower() in ("true", "1", "yes")
 
     if safe_mode:
-        # Guardar en solicitudes pendientes
-        logs_dir = Path("logs")
-        logs_dir.mkdir(exist_ok=True)
-        
-        data = {
-            "command": command
-        }
-        
-        PENDING_COMMAND_FILE.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2),
-            encoding="utf-8"
-        )
+        from core.pending_actions import save_pending_action
+        save_pending_action("terminal", {"command": command})
         
         try:
             from core.telegram_bot import send_mfa_request
@@ -118,7 +132,7 @@ def run_terminal_command(command: str) -> str:
 
         return (
             f"El comando '{command}' requiere confirmación de seguridad para ejecutarse. "
-            "Por favor, di 'adelante' o 'confirma' para autorizarlo."
+            "Por favor, di 'confirma acción' o 'adelante' para autorizarlo."
         )
     else:
         # Modo Autónomo: Ejecutar directamente

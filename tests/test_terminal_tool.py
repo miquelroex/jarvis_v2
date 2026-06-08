@@ -87,5 +87,21 @@ class TestTerminalTool(unittest.TestCase):
         self.assertIn("Hello Auto", res)
         self.assertFalse(PENDING_COMMAND_FILE.exists())
 
+    def test_allowlisted_commands_run_directly(self):
+        os.environ["JARVIS_SAFE_MODE"] = "True"
+        
+        # Un comando allowlist seguro como git status
+        res = run_terminal_command.invoke("git status")
+        self.assertNotIn("requiere confirmación", res)
+        self.assertFalse(PENDING_COMMAND_FILE.exists())
+
+    def test_dangerous_commands_blocked(self):
+        os.environ["JARVIS_SAFE_MODE"] = "False"
+        
+        # Un comando peligroso como format
+        res = run_terminal_command.invoke("format C:")
+        self.assertIn("bloqueado por seguridad", res)
+        self.assertFalse(PENDING_COMMAND_FILE.exists())
+
 if __name__ == "__main__":
     unittest.main()
