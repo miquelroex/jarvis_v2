@@ -42,6 +42,22 @@ def init_db(db_path: str = None):
             created_at TEXT
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS scheduled_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE,
+            task_type TEXT,
+            target TEXT,
+            interval_seconds INTEGER,
+            next_run TEXT,
+            enabled INTEGER DEFAULT 1,
+            last_run TEXT,
+            last_result TEXT,
+            last_error TEXT,
+            metadata TEXT,
+            created_at TEXT
+        )
+    """)
     conn.commit()
     conn.close()
     logging.info(f"Base de datos de memoria inicializada en: {_db_path}")
@@ -165,5 +181,126 @@ def get_all_memories(limit: int = 20) -> list:
     except Exception as e:
         logging.error(f"Error al obtener todas las memorias: {e}")
         return []
+
     finally:
         conn.close()
+
+def db_save_task(name: str, task_type: str, target: str, interval_seconds: int, next_run: str, enabled: int = 1, metadata: str = None) -> bool:
+    """
+    Guarda o actualiza una tarea programada en la base de datos.
+    Establece una conexión única por llamada.
+    """
+    init_db()
+    conn = sqlite3.connect(_db_path)
+    cursor = conn.cursor()
+    created_at = datetime.now(timezone.utc).isoformat()
+    
+    try:
+        cursor.execute("""
+            INSERT INTO scheduled_tasks (name, task_type, target, interval_seconds, next_run, enabled, metadata, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(name) DO UPDATE SET
+                task_type=excluded.task_type,
+                target=excluded.target,
+                interval_seconds=excluded.interval_seconds,
+                next_run=excluded.next_run,
+                enabled=excluded.enabled,
+                metadata=excluded.metadata
+        """, (name, task_type, target, interval_seconds, next_run, enabled, metadata, created_at))
+        conn.commit()
+        return True
+    except Exception as e:
+        logging.error(f"Error al guardar tarea programada '{name}': {e}")
+        return False
+    finally:
+        conn.close()
+
+def db_get_active_tasks() -> list:
+    """
+    Retorna la lista de todas las tareas habilitadas.
+    Establece una conexión única por llamada.
+    """
+    init_db()
+    conn = sqlite3.connect(_db_path)
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT id, name, task_type, target, interval_seconds, next_run, enabled, last_run, last_result, last_error, metadata, created_at
+            FROM scheduled_tasks
+            WHERE enabled = 1
+            ORDER BY next_run ASC
+        """)
+        rows = cursor.fetchall()
+        tasks = []
+        for r in rows:
+            tasks.append({
+                "id": r[0],
+                "name": r[1],
+                "task_type": r[2],
+                "target": r[3],
+                "interval_seconds": r[4],
+                "next_run": r[5],
+                "enabled": r[6],
+                "last_run": r[7],
+                "last_result": r[8],
+                "last_error": r[9],
+                "metadata": r[10],
+                "created_at": r[11]
+            })
+        return tasks
+    except Exception as e:
+        logging.error(f"Error al recuperar tareas activas: {e}")
+        return []
+    finally:
+        conn.close()
+
+def db_delete_task(name: str) -> bool:
+    """
+    Elimina una tarea programada por su nombre único.
+    Retorna True si se eliminó algún registro.
+    """
+    init_db()
+    conn = sqlite3.connect(_db_path)
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("DELETE FROM scheduled_tasks WHERE name = ?", (name,))
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as e:
+        logging.error(f"Error al eliminar la tarea '{name}': {e}")
+        return False
+    finally:
+        conn.close()
+
+def db_update_task_execution(name: str, last_run: str, last_result: str, last_error: str = None, next_run: str = None) -> bool:
+    """
+    Actualiza el estado de ejecución y resultado de una tarea.
+    Si se provee next_run, la actualiza; de lo contrario se mantiene.
+    """
+    init_db()
+    conn = sqlite3.connect(_db_path)
+    cursor = conn.cursor()
+    
+    try:
+        if next_run:
+            cursor.execute("""
+                UPDATE scheduled_tasks
+                SET last_run = ?, last_result = ?, last_error = ?, next_run = ?
+                WHERE name = ?
+            """, (last_run, last_result, last_error, next_run, name))
+        else:
+            cursor.execute("""
+                UPDATE scheduled_tasks
+                SET last_run = ?, last_result = ?, last_error = ?
+                WHERE name = ?
+            """, (last_run, last_result, last_error, name))
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as e:
+        logging.error(f"Error al actualizar ejecución de la tarea '{name}': {e}")
+        return False
+    finally:
+        conn.close()
+

@@ -159,6 +159,13 @@ def write():
             start_test_watcher()
         except Exception as e:
             logging.error(f"❌ Fallo al iniciar el centinela de pruebas: {e}")
+
+        # Arrancar el planificador central de tareas (en segundo plano)
+        try:
+            from core.scheduler import start_scheduler
+            start_scheduler()
+        except Exception as e:
+            logging.error(f"❌ Fallo al iniciar el planificador de tareas: {e}")
         
         if system_status == "AWAKE":
             print("Abriendo http://localhost:5000 en tu navegador...")

@@ -132,6 +132,100 @@ def handle_fast_command(command: str):
             resp += "Aún no se ha realizado ninguna comprobación de cambios."
         return resp
 
+
+    # --- Comandos rápidos del Planificador de Tareas ---
+    # 1. Crear recordatorio
+    match_reminder = re.search(r"\b(en|cada)\s+(\d+)\s+(segundo|segundos|seg|s|minuto|minutos|min|m|hora|horas|h)\b", text)
+    if match_reminder and (text.startswith("recuerdame ") or text.startswith("recuerda ")):
+        prefix_len = 11 if text.startswith("recuerdame ") else 9
+        match_start = match_reminder.start()
+        reminder_text = command[prefix_len:match_start].strip()
+        
+        # Limpiar conectores iniciales comunes ("que", "a", "de")
+        reminder_norm = normalize_text(reminder_text)
+        if reminder_norm.startswith("que "):
+            reminder_text = reminder_text[4:].strip()
+        elif reminder_norm.startswith("de "):
+            reminder_text = reminder_text[3:].strip()
+        elif reminder_norm.startswith("a "):
+            reminder_text = reminder_text[2:].strip()
+            
+        qty = int(match_reminder.group(2))
+        unit = match_reminder.group(3)
+        multiplier = 1
+        if "min" in unit or unit == "m":
+            multiplier = 60
+        elif "hor" in unit or unit == "h":
+            multiplier = 3600
+            
+        delay_seconds = qty * multiplier
+        is_periodic = (match_reminder.group(1) == "cada")
+        interval_seconds = delay_seconds if is_periodic else 0
+        
+        if reminder_text:
+            import uuid
+            # Generar un ID único amigable para la tarea
+            safe_text = re.sub(r"[^a-zA-Z0-9_]", "", normalize_text(reminder_text))[:20]
+            task_name = f"reminder_{safe_text}_{uuid.uuid4().hex[:6]}"
+            
+            from core.scheduler import add_reminder
+            success = add_reminder(task_name, reminder_text, delay_seconds, interval_seconds)
+            if success:
+                period_str = f"cada {qty} {unit}" if is_periodic else f"en {qty} {unit}"
+                return f"Entendido, señor. He programado el recordatorio: '{reminder_text}' para ejecutarse {period_str}."
+            else:
+                return "Lo siento, señor. Hubo un problema al guardar el recordatorio."
+
+    # 2. Listar recordatorios
+    list_keywords = ["lista las tareas", "que recordatorios tienes", "dime mis tareas", "dime mis recordatorios", "ver recordatorios"]
+    if any(kw in text for kw in list_keywords):
+        from core.scheduler import get_active_tasks
+        tasks = get_active_tasks()
+        if not tasks:
+            return "No tiene ningún recordatorio programado, señor."
+            
+        formatted = []
+        for t in tasks:
+            try:
+                # next_run es una fecha en formato ISO UTC. La mostramos amigable.
+                dt = datetime.fromisoformat(t["next_run"])
+                # Local time formatting
+                time_str = dt.astimezone().strftime("%d/%m/%Y a las %H:%M:%S")
+            except Exception:
+                time_str = t["next_run"]
+                
+            period_str = f" (Cada {t['interval_seconds']}s)" if t["interval_seconds"] > 0 else ""
+            formatted.append(f"- '{t['target']}' (ID: {t['name']}) -> Próxima: {time_str}{period_str}")
+        return "Señor, estas son las tareas programadas activas:\n" + "\n".join(formatted)
+
+    # 3. Cancelar recordatorio
+    cancel_pref = None
+    for pref in ["cancela la tarea ", "elimina el recordatorio ", "olvida el recordatorio ", "borra el recordatorio ", "cancela el recordatorio "]:
+        norm_pref = normalize_text(pref)
+        if text.startswith(norm_pref):
+            cancel_pref = pref
+            break
+    if cancel_pref is not None:
+        task_query = command[len(cancel_pref):].strip()
+        if task_query:
+            from core.scheduler import cancel_task, get_active_tasks
+            # Buscar por ID exacto primero
+            deleted = cancel_task(task_query)
+            if deleted:
+                return f"Entendido, señor. He cancelado y eliminado la tarea programada '{task_query}'."
+                
+            # Si no coincide el ID exacto, buscar coincidencias en el ID o en el contenido (target)
+            tasks = get_active_tasks()
+            matched_tasks = [t for t in tasks if task_query.lower() in t["name"].lower() or task_query.lower() in t["target"].lower()]
+            if len(matched_tasks) == 1:
+                cancel_task(matched_tasks[0]["name"])
+                return f"Entendido, señor. He cancelado el recordatorio '{matched_tasks[0]['target']}'."
+            elif len(matched_tasks) > 1:
+                return f"Señor, encontré múltiples recordatorios que coinciden con '{task_query}'. Por favor, especifique el ID exacto."
+                
+            return f"No encontré ningún recordatorio o tarea programada que coincida con '{task_query}', señor."
+        return "Señor, ¿qué recordatorio desea que cancele?"
+
     # --- Comandos locales estándar ---
     websites = {
         "youtube": "https://www.youtube.com",
