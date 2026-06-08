@@ -1,4 +1,6 @@
 import os
+import shutil
+import datetime
 from pathlib import Path
 from langchain.tools import tool
 
@@ -97,6 +99,37 @@ def read_workspace_file(relative_path: str) -> str:
     except Exception as e:
         return f"Error al leer el archivo: {str(e)}"
 
+def execute_write_file(relative_path: str, content: str, append: bool = False) -> str:
+    """Ejecuta la escritura del archivo física realizando una copia de seguridad previa si ya existe."""
+    target_path = os.path.join(WORKSPACE_ROOT, relative_path)
+    
+    # 1. Crear backup si el archivo existe
+    if os.path.exists(target_path) and os.path.isfile(target_path):
+        try:
+            backup_dir = os.path.join(WORKSPACE_ROOT, "logs", "backup")
+            os.makedirs(backup_dir, exist_ok=True)
+            
+            basename = os.path.basename(target_path)
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_path = os.path.join(backup_dir, f"{basename}.{timestamp}.bak")
+            
+            shutil.copy2(target_path, backup_path)
+        except Exception as e:
+            # Reportar backup fallido pero continuar con la escritura
+            print(f"[Backup] Warning: No se pudo crear copia de seguridad: {e}")
+            
+    # 2. Escribir el archivo
+    try:
+        os.makedirs(os.path.dirname(target_path), exist_ok=True)
+        mode = "a" if append else "w"
+        with open(target_path, mode, encoding="utf-8") as file:
+            file.write(content)
+            
+        action_verb = "añadido contenido a" if append else "escrito"
+        return f"He {action_verb} '{relative_path}' con éxito, señor."
+    except Exception as e:
+        return f"Error al escribir en el archivo: {str(e)}"
+
 @tool
 def write_workspace_file(relative_path: str, content: str, append: bool = False) -> str:
     """
@@ -113,15 +146,36 @@ def write_workspace_file(relative_path: str, content: str, append: bool = False)
     if filename == ".env":
         return "Acceso denegado: Por seguridad, no tengo permitido modificar el archivo .env, señor."
 
+    # 3. Interceptar si es una ruta crítica
+    is_critical = False
+    resolved_target = Path(target_path).resolve()
+    resolved_root = Path(WORKSPACE_ROOT).resolve()
+    
     try:
-        # Asegurar directorios padres
-        os.makedirs(os.path.dirname(target_path), exist_ok=True)
-        
-        mode = "a" if append else "w"
-        with open(target_path, mode, encoding="utf-8") as file:
-            file.write(content)
-            
-        action_verb = "añadido contenido a" if append else "escrito"
-        return f"He {action_verb} '{relative_path}' con éxito, señor."
-    except Exception as e:
-        return f"Error al escribir en el archivo: {str(e)}"
+        rel_to_root = resolved_target.relative_to(resolved_root)
+        rel_parts = rel_to_root.parts
+        if rel_parts:
+            first_dir = rel_parts[0]
+            if first_dir in ["core", "tools", "gui"]:
+                is_critical = True
+            elif len(rel_parts) == 1 and first_dir == "main.py":
+                is_critical = True
+    except ValueError:
+        pass
+
+    if is_critical:
+        from core.pending_actions import save_pending_action
+        data = {
+            "relative_path": relative_path,
+            "content": content,
+            "append": append
+        }
+        save_pending_action("file_write", data)
+        return (
+            f"La ruta '{relative_path}' es parte de los componentes críticos del sistema. "
+            f"Por razones de seguridad, esta escritura requiere confirmación verbal o por terminal. "
+            f"Si desea proceder a escribir el archivo, por favor diga 'confirmo acción' o 'adelante'."
+        )
+
+    # Escritura directa para rutas no críticas
+    return execute_write_file(relative_path, content, append)
