@@ -1,25 +1,11 @@
 import json
 import os
-from datetime import datetime
 from pathlib import Path
 from langchain.tools import tool
-from langchain_openai import ChatOpenAI
+from core.llm_factory import get_llm
+from core.model_logging import log_model_usage
 
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 PENDING_MODEL_REQUEST = Path("logs/pending_model_request.json")
-
-
-def log_model_use(tool_name: str, model_name: str, prompt: str) -> None:
-  logs_dir = Path("logs")
-  logs_dir.mkdir(exist_ok=True)
-
-  short_prompt = prompt.replace("\n", " ")[:120]
-
-  with open(logs_dir / "model_usage.log", "a", encoding="utf-8") as file:
-    file.write(
-      f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | "
-      f"{tool_name} | {model_name} | {short_prompt}\n"
-    )
 
 
 def save_pending_model_request(
@@ -42,6 +28,13 @@ def save_pending_model_request(
     json.dumps(data, ensure_ascii=False, indent=2),
     encoding="utf-8",
   )
+
+  try:
+    from core.telegram_bot import send_mfa_request
+    send_mfa_request("model", {"model_name": model_name, "prompt": prompt})
+  except Exception as e:
+    import logging
+    logging.error(f"[MFA] Error enviando solicitud MFA para modelo: {e}")
 
 
 def load_pending_model_request():
@@ -85,17 +78,14 @@ def ask_openrouter_model(
       "Si no, di: cancela modelo."
     )
 
-  log_model_use(tool_name, model, prompt)
+  log_model_usage(tool_name, model, prompt)
 
-  llm = ChatOpenAI(
-    model=model,
-    base_url=OPENROUTER_BASE_URL,
-    api_key=api_key,
-    temperature=0.2,
-  )
-
-  response = llm.invoke(prompt)
-  return response.content
+  try:
+    llm = get_llm(model, temperature=0.2)
+    response = llm.invoke(prompt)
+    return response.content
+  except Exception as e:
+    return f"Error al invocar OpenRouter ({model}): {str(e)}"
 
 @tool
 def ask_reasoning_model(prompt: str) -> str:
@@ -177,13 +167,38 @@ def ask_gpt_model(prompt: str) -> str:
 @tool
 def confirm_pending_model(prompt: str) -> str:
   """
-  Confirm and execute the pending expensive model request.
-  Use this when the user says: confirmo modelo, confirma, adelante, sí, ejecuta.
+  Confirm and execute the pending expensive model request OR pending terminal command.
+  Use this when the user says: confirma, adelante, sí, ejecuta, confirmo modelo.
   """
+  pending_command_file = Path("logs/pending_terminal_command.json")
+  
+  # 1. Comprobar si hay un comando de terminal pendiente
+  if pending_command_file.exists():
+    try:
+      data = json.loads(pending_command_file.read_text(encoding="utf-8"))
+      command = data.get("command")
+      # Borrar el archivo
+      pending_command_file.unlink()
+      
+      if not command:
+        return "No se encontró ningún comando en la solicitud de terminal pendiente."
+        
+      # Ejecutar el comando
+      from tools.terminal import execute_cmd
+      return execute_cmd(command)
+    except Exception as e:
+      if pending_command_file.exists():
+        try:
+          pending_command_file.unlink()
+        except Exception:
+          pass
+      return f"Error al confirmar el comando de terminal: {str(e)}"
+
+  # 2. Comprobar si hay una solicitud de modelo costoso pendiente
   pending = load_pending_model_request()
 
   if not pending:
-    return "No hay ninguna delegación pendiente de confirmar."
+    return "No hay ninguna acción pendiente de confirmar."
 
   clear_pending_model_request()
 
@@ -199,15 +214,28 @@ def confirm_pending_model(prompt: str) -> str:
 @tool
 def cancel_pending_model(prompt: str) -> str:
   """
-  Cancel the pending expensive model request.
-  Use this when the user says: cancela modelo, no, cancela, no lo uses.
+  Cancel the pending expensive model request or pending terminal command.
+  Use this when the user says: cancela, no, no lo hagas, cancela modelo.
   """
+  pending_command_file = Path("logs/pending_terminal_command.json")
+  cancelled_actions = []
+
+  # 1. Cancelar comando de terminal pendiente
+  if pending_command_file.exists():
+    try:
+      pending_command_file.unlink()
+      cancelled_actions.append("comando de terminal")
+    except Exception:
+      pass
+
+  # 2. Cancelar modelo pendiente
   pending = load_pending_model_request()
+  if pending:
+    model_name = pending["model_name"]
+    clear_pending_model_request()
+    cancelled_actions.append(f"uso del modelo {model_name}")
 
-  if not pending:
-    return "No había ningún modelo pendiente de cancelar."
+  if not cancelled_actions:
+    return "No había ninguna acción pendiente de cancelar."
 
-  model_name = pending["model_name"]
-  clear_pending_model_request()
-
-  return f"Cancelado. No se ha usado {model_name}."
+  return f"Cancelado. Se canceló la ejecución de: {', '.join(cancelled_actions)}."

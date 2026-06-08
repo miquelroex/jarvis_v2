@@ -14,7 +14,7 @@ def take_screenshot() -> str:
     - "Save a screenshot"
     """
     try:
-        image_path = os.path.expanduser("~/path/to/example.png")
+        image_path = "logs/latest_screenshot.png"
         os.makedirs(os.path.dirname(image_path), exist_ok=True)
 
         with mss.mss() as sct:
@@ -22,6 +22,6 @@ def take_screenshot() -> str:
             screenshot = sct.grab(monitor)
             mss.tools.to_png(screenshot.rgb, screenshot.size, output=image_path)
 
-        return f"Screenshot captured and saved sir."
+        return f"Captura de pantalla realizada y guardada, señor."
     except Exception as e:
         return f"Failed to capture screenshot: {str(e)}"
