@@ -12,6 +12,7 @@ from gui.app import update_state
 
 bot = None
 bot_thread = None
+stop_event = threading.Event()
 
 def send_mfa_request(mfa_type: str, details: dict) -> None:
     """
@@ -85,7 +86,12 @@ def start_telegram_bot():
         logging.info("[Telegram] Bot token not found or empty in .env. Remote control bot disabled.")
         return
         
+    if bot_thread is not None and bot_thread.is_alive():
+        logging.info("[Telegram] Bot already running.")
+        return
+        
     logging.info("[Telegram] Initializing remote control bot...")
+    stop_event.clear()
     
     try:
         # Usar ThreadedSender para evitar bloqueos
@@ -376,12 +382,26 @@ def start_telegram_bot():
 
     def run_polling():
         logging.info("[Telegram] Bot polling thread started.")
-        while True:
+        while not stop_event.is_set():
             try:
                 bot.infinity_polling(timeout=20, long_polling_timeout=10)
             except Exception as ex:
+                if stop_event.is_set():
+                    break
                 logging.error(f"[Telegram] Connection error in polling, reconnecting in 5s: {ex}")
-                time.sleep(5)
+                stop_event.wait(timeout=5)
 
     bot_thread = threading.Thread(target=run_polling, name="TelegramBotThread", daemon=True)
     bot_thread.start()
+
+def stop_telegram_bot():
+    """Detiene el bot de Telegram de forma limpia."""
+    global bot
+    logging.info("[Telegram] Deteniendo bot...")
+    stop_event.set()
+    if bot:
+        try:
+            bot.stop_polling()
+            logging.info("[Telegram] Bot polling stopped.")
+        except Exception as e:
+            logging.error(f"[Telegram] Error stopping bot: {e}")

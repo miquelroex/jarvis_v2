@@ -46,17 +46,25 @@ def clear_pending_model_request() -> None:
   clear_pending_action()
 
 
-def ask_openrouter_model(
+def ask_delegated_model(
   tool_name: str,
   model_env: str,
   fallback_model: str,
   prompt: str,
   require_confirmation: bool = False,
 ) -> str:
-  api_key = os.getenv("OPENROUTER_API_KEY")
-
-  if not api_key:
-    return "No OPENROUTER_API_KEY found in .env"
+  # Determinamos el proveedor
+  provider = "openrouter"
+  
+  # Forzar que JARVIS_MODEL_THINK use google_ai_studio (requisito 3)
+  if model_env == "JARVIS_MODEL_THINK":
+    provider = "google_ai_studio"
+  else:
+    # Si hay una variable de entorno JARVIS_<SUFFIX>_PROVIDER
+    suffix = model_env.replace("JARVIS_MODEL_", "") if model_env else ""
+    provider_env = os.getenv(f"JARVIS_{suffix}_PROVIDER") or os.getenv(f"{model_env}_PROVIDER")
+    if provider_env:
+      provider = provider_env.lower()
 
   model = os.getenv(model_env, fallback_model)
 
@@ -69,7 +77,7 @@ def ask_openrouter_model(
     )
 
     return (
-      f"Para esta tarea usaría el modelo {model}. "
+      f"Para esta tarea usaría el modelo {model} ({provider}). "
       "Es un modelo de coste alto. "
       "Si quieres ejecutarlo, di: confirmo modelo. "
       "Si no, di: cancela modelo."
@@ -78,11 +86,36 @@ def ask_openrouter_model(
   log_model_usage(tool_name, model, prompt)
 
   try:
-    llm = get_llm(model, temperature=0.2)
-    response = llm.invoke(prompt)
-    return response.content
+    if provider == "google_ai_studio":
+      api_key = os.getenv("GOOGLE_API_KEY")
+      if not api_key:
+        return "No GOOGLE_API_KEY found in .env"
+      from google import genai
+      client = genai.Client(api_key=api_key)
+      response = client.models.generate_content(
+        model=model,
+        contents=prompt,
+      )
+      return response.text
+    else:
+      api_key = os.getenv("OPENROUTER_API_KEY")
+      if not api_key:
+        return "No OPENROUTER_API_KEY found in .env"
+      llm = get_llm(model, temperature=0.2)
+      response = llm.invoke(prompt)
+      return response.content
   except Exception as e:
-    return f"Error al invocar OpenRouter ({model}): {str(e)}"
+    return f"Error al invocar {provider} ({model}): {str(e)}"
+
+# Alias compatible por si se sigue llamando ask_openrouter_model en otros archivos
+def ask_openrouter_model(
+  tool_name: str,
+  model_env: str,
+  fallback_model: str,
+  prompt: str,
+  require_confirmation: bool = False,
+) -> str:
+  return ask_delegated_model(tool_name, model_env, fallback_model, prompt, require_confirmation)
 
 @tool
 def ask_reasoning_model(prompt: str) -> str:
@@ -91,10 +124,10 @@ def ask_reasoning_model(prompt: str) -> str:
   Use this for complex reasoning, comparisons, debugging ideas, planning, or when the user asks to think carefully.
   Do not use this for simple commands.
   """
-  return ask_openrouter_model(
+  return ask_delegated_model(
     tool_name="ask_reasoning_model",
     model_env="JARVIS_MODEL_THINK",
-    fallback_model="qwen/qwen3.7-plus",
+    fallback_model="gemini-3.5-flash",
     prompt=prompt,
   )
 
@@ -106,10 +139,10 @@ def ask_code_model(prompt: str) -> str:
   Use this for Python, errors, refactoring, project structure, tools, Git, APIs, or programming tasks.
   Do not use this for normal conversation.
   """
-  return ask_openrouter_model(
+  return ask_delegated_model(
     tool_name="ask_code_model",
     model_env="JARVIS_MODEL_CODE",
-    fallback_model="qwen/qwen3-coder",
+    fallback_model="anthropic/claude-sonnet-4.6",
     prompt=prompt,
   )
 
@@ -121,7 +154,7 @@ def ask_agent_model(prompt: str) -> str:
   Use this for multi-step tasks, workflows, tool planning, task organization, or assistant-like execution plans.
   Do not use this for simple questions.
   """
-  return ask_openrouter_model(
+  return ask_delegated_model(
     tool_name="ask_agent_model",
     model_env="JARVIS_MODEL_AGENT",
     fallback_model="minimax/minimax-m2.7",
@@ -132,16 +165,34 @@ def ask_agent_model(prompt: str) -> str:
 @tool
 def ask_pro_model(prompt: str) -> str:
   """
-  Delegate to the expensive pro model.
+  Delegate to the expensive pro model (GPT-5.5).
   Use this only if the user explicitly asks for modo pro, Kimi, or maximum quality.
   This model requires confirmation before execution.
   """
-  return ask_openrouter_model(
+  require_confirm = os.getenv("JARVIS_REQUIRE_CONFIRM_PRO", "True").lower() == "true"
+  return ask_delegated_model(
     tool_name="ask_pro_model",
     model_env="JARVIS_MODEL_PRO",
-    fallback_model="moonshotai/kimi-k2.6",
+    fallback_model="openai/gpt-5.5",
     prompt=prompt,
-    require_confirmation=True,
+    require_confirmation=require_confirm,
+  )
+
+
+@tool
+def ask_ultra_model(prompt: str) -> str:
+  """
+  Delegate to the ultra expensive model (GPT-5.5 Pro).
+  Use this only for extreme cases, very hard problems, or complex tasks.
+  This model requires confirmation before execution.
+  """
+  require_confirm = os.getenv("JARVIS_REQUIRE_CONFIRM_ULTRA", "True").lower() == "true"
+  return ask_delegated_model(
+    tool_name="ask_ultra_model",
+    model_env="JARVIS_MODEL_ULTRA",
+    fallback_model="openai/gpt-5.5-pro",
+    prompt=prompt,
+    require_confirmation=require_confirm,
   )
 
 
@@ -152,13 +203,11 @@ def ask_gpt_model(prompt: str) -> str:
   Use this only if the user explicitly asks to use GPT.
   This model requires confirmation before execution.
   """
-  return ask_openrouter_model(
-    tool_name="ask_gpt_model",
-    model_env="JARVIS_MODEL_GPT",
-    fallback_model="openai/gpt-5.4-mini",
-    prompt=prompt,
-    require_confirmation=True,
-  )
+  lower_prompt = prompt.lower()
+  if "pro" in lower_prompt or "ultra" in lower_prompt or "gpt-5.5-pro" in lower_prompt:
+    return ask_ultra_model(prompt)
+  else:
+    return ask_pro_model(prompt)
 
 
 @tool

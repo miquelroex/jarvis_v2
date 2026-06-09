@@ -23,6 +23,9 @@ LATEST_HEALTH_REPORT = {
     "env_check": [],
     "test_results": {"ran": 0, "failures": 0, "errors": 0, "passed": True}
 }
+
+INTEGRITY_THREAD = None
+stop_event = threading.Event()
 LAST_STATUS = "secure"
 
 def check_codebase_syntax() -> list:
@@ -269,17 +272,36 @@ def run_integrity_check() -> dict:
 def _integrity_sentinel_loop():
     """Bucle infinito del hilo daemon del sentinel de integridad."""
     # Espera inicial para no sobrecargar el arranque de Jarvis (30 segundos)
-    time.sleep(30)
-    while True:
+    if stop_event.wait(timeout=30):
+        return
+        
+    while not stop_event.is_set():
         try:
             run_integrity_check()
         except Exception as e:
             logging.error(f"[Integrity] Error en el bucle del sentinel: {e}")
         # Cada 20 minutos (1200 segundos)
-        time.sleep(1200)
+        if stop_event.wait(timeout=1200):
+            break
 
 def start_integrity_sentinel_daemon():
-    """Lanza el daemon del sentinel de integridad en segundo plano."""
-    thread = threading.Thread(target=_integrity_sentinel_loop, name="JarvisIntegritySentinel", daemon=True)
-    thread.start()
+    """Lanza el daemon del sentinel de integridad en segundo plano. Es idempotente."""
+    global INTEGRITY_THREAD
+    
+    if os.getenv("JARVIS_INTEGRITY_SENTINEL_ENABLED", "True").lower() not in ("true", "1", "yes"):
+        logging.info("[Integrity] Disabled in .env.")
+        return
+        
+    if INTEGRITY_THREAD is not None and INTEGRITY_THREAD.is_alive():
+        logging.info("[Integrity] Already running.")
+        return
+        
+    stop_event.clear()
+    INTEGRITY_THREAD = threading.Thread(target=_integrity_sentinel_loop, name="JarvisIntegritySentinel", daemon=True)
+    INTEGRITY_THREAD.start()
     logging.info("[Integrity] Sentinel de Integridad de Jarvis iniciado en segundo plano (cada 20m).")
+
+def stop_integrity_sentinel_daemon():
+    """Detiene el sentinel de integridad de forma limpia."""
+    logging.info("[Integrity] Deteniendo sentinel de integridad...")
+    stop_event.set()

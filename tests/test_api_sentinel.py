@@ -98,26 +98,30 @@ class TestAPISentinel(unittest.TestCase):
             }
         ]
 
-        iter_count = 0
-        def sleep_effect(secs):
-            nonlocal iter_count
-            iter_count += 1
-            if iter_count >= 4:
-                raise GeneratorExit("Stop loop")
+        import core.api_sentinel
+        wait_calls = 0
+        def mock_wait(timeout=None):
+            nonlocal wait_calls
+            wait_calls += 1
+            if wait_calls >= 4:
+                return True
+            return False
 
-        mock_sleep.side_effect = sleep_effect
+        original_stop = core.api_sentinel.stop_event
+        core.api_sentinel.stop_event = MagicMock()
+        core.api_sentinel.stop_event.wait.side_effect = mock_wait
+        core.api_sentinel.stop_event.is_set.side_effect = lambda: wait_calls >= 4
 
-        with patch('core.api_sentinel.SENTINEL_RUNNING', True):
-            try:
-                _sentinel_loop()
-            except GeneratorExit:
-                pass
+        try:
+            _sentinel_loop()
+        finally:
+            core.api_sentinel.stop_event = original_stop
 
-            self.assertEqual(mock_speak.call_count, 2)
-            args1 = mock_speak.call_args_list[0][0][0]
-            args2 = mock_speak.call_args_list[1][0][0]
-            self.assertIn("degradación de servicio", args1)
-            self.assertIn("se ha restablecido", args2)
+        self.assertEqual(mock_speak.call_count, 2)
+        args1 = mock_speak.call_args_list[0][0][0]
+        args2 = mock_speak.call_args_list[1][0][0]
+        self.assertIn("degradación de servicio", args1)
+        self.assertIn("se ha restablecido", args2)
 
     @patch('core.api_sentinel.check_all_apis_status')
     @patch('core.api_sentinel.is_internet_available')
@@ -141,17 +145,26 @@ class TestAPISentinel(unittest.TestCase):
             }
         ]
 
-        def sleep_effect(secs):
-            raise GeneratorExit("Stop loop")
-        mock_sleep.side_effect = sleep_effect
+        import core.api_sentinel
+        wait_calls = 0
+        def mock_wait(timeout=None):
+            nonlocal wait_calls
+            wait_calls += 1
+            if wait_calls >= 2:
+                return True
+            return False
 
-        with patch('core.api_sentinel.SENTINEL_RUNNING', True):
-            try:
-                _sentinel_loop()
-            except GeneratorExit:
-                pass
+        original_stop = core.api_sentinel.stop_event
+        core.api_sentinel.stop_event = MagicMock()
+        core.api_sentinel.stop_event.wait.side_effect = mock_wait
+        core.api_sentinel.stop_event.is_set.side_effect = lambda: wait_calls >= 2
 
-            mock_speak.assert_not_called()
+        try:
+            _sentinel_loop()
+        finally:
+            core.api_sentinel.stop_event = original_stop
+
+        mock_speak.assert_not_called()
 
     @patch('tools.api_sentinel_tool.check_all_apis_status')
     def test_api_sentinel_tool(self, mock_check):

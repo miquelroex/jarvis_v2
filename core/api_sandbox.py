@@ -43,6 +43,12 @@ def scan_project_endpoints(workspace_path: str = None) -> list[dict]:
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
         for file in files:
             p = Path(r_dir) / file
+            # Limitar lectura a archivos de máximo 1 MB
+            try:
+                if p.stat().st_size > 1024 * 1024:
+                    continue
+            except OSError:
+                continue
             if file.endswith(".py"):
                 try:
                     content = p.read_text(encoding="utf-8")

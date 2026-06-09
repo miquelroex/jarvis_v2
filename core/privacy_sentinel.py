@@ -30,7 +30,7 @@ SECRET_PATTERNS = {
 
 # Hilos globales
 MONITOR_THREAD = None
-MONITOR_RUNNING = False
+stop_event = threading.Event()
 LATEST_FINDINGS = []
 
 def load_ignored_hashes() -> set:
@@ -158,6 +158,14 @@ def scan_workspace_privacy() -> list:
                 continue
                 
             try:
+                # Limitar lectura a archivos de máximo 1 MB para evitar consumo excesivo de RAM
+                try:
+                    file_size = file_path.stat().st_size
+                except OSError:
+                    continue
+                if file_size > 1024 * 1024:  # 1 MB
+                    continue
+
                 # Leer con errors="ignore" para evitar fallos de decodificación binaria
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     for line_num, line in enumerate(f, 1):
@@ -199,35 +207,33 @@ def get_privacy_status() -> dict:
     }
 
 def start_privacy_monitor() -> None:
-    """Arranca el hilo de monitoreo periódico de privacidad."""
-    global MONITOR_THREAD, MONITOR_RUNNING, LATEST_FINDINGS
+    """Arranca el hilo de monitoreo periódico de privacidad. Es idempotente."""
+    global MONITOR_THREAD, LATEST_FINDINGS
     
-    if MONITOR_RUNNING:
+    if MONITOR_THREAD is not None and MONITOR_THREAD.is_alive():
         return
         
-    MONITOR_RUNNING = True
-    
     # Cargar hallazgos iniciales
     try:
         LATEST_FINDINGS = scan_workspace_privacy()
     except Exception as e:
         logging.error(f"[Privacy Guard] Error on initial scan: {e}")
         
+    stop_event.clear()
     MONITOR_THREAD = threading.Thread(target=_monitor_loop, name="PrivacyMonitorThread", daemon=True)
     MONITOR_THREAD.start()
     logging.info("[Privacy Guard] Monitor thread started.")
 
 def _monitor_loop() -> None:
-    global LATEST_FINDINGS, MONITOR_RUNNING
+    global LATEST_FINDINGS
     
-    while MONITOR_RUNNING:
+    while not stop_event.is_set():
         try:
             interval = int(os.getenv("JARVIS_PRIVACY_SCAN_INTERVAL", "900"))
         except Exception:
             interval = 900
             
-        time.sleep(interval)
-        if not MONITOR_RUNNING:
+        if stop_event.wait(timeout=interval):
             break
             
         try:
@@ -273,5 +279,6 @@ def _monitor_loop() -> None:
             logging.error(f"[Privacy Guard] Error in monitor loop check: {e}")
 
 def stop_privacy_monitor() -> None:
-    global MONITOR_RUNNING
-    MONITOR_RUNNING = False
+    global MONITOR_THREAD
+    logging.info("[Privacy Guard] Deteniendo monitor de privacidad...")
+    stop_event.set()

@@ -10,6 +10,7 @@ from tools.voice import speak
 _watcher_running = False
 _watcher_thread = None
 _test_lock = threading.Lock()
+stop_event = threading.Event()
 
 # Registro de estados de los tests en memoria: { "tests.test_memory": "pass"/"fail" }
 _test_states = {}
@@ -166,12 +167,10 @@ def run_test(test_module: str = None) -> bool:
                 msg = f"Señor, las pruebas de {display_name} se han corregido y vuelven a pasar."
                 logging.info(f"[TestWatcher] Alerta emitida: {msg}")
                 speak(msg)
-                
         return success
-
+                
 def watcher_loop(workspace_root: str):
     """Bucle principal del hilo watcher con debounce y escaneo."""
-    global _watcher_running
     logging.info(f"[TestWatcher] Hilo del Centinela iniciado vigilando en: {workspace_root}")
     
     # Inicializar la indexación inicial de marcas de tiempo
@@ -181,7 +180,7 @@ def watcher_loop(workspace_root: str):
     last_change_time = 0
     debounce_delay = 2.5 # Debounce de 2.5 segundos
     
-    while _watcher_running:
+    while not stop_event.is_set():
         try:
             modified = scan_files(workspace_root)
             if modified:
@@ -204,15 +203,18 @@ def watcher_loop(workspace_root: str):
                 for module in test_modules:
                     run_test(module)
                     
-            time.sleep(1.0) # Esperar 1 segundo antes del próximo escaneo
+            if stop_event.wait(timeout=1.0):
+                break
         except Exception as e:
             logging.error(f"[TestWatcher] Error en bucle del centinela: {e}")
-            time.sleep(5.0)
+            if stop_event.wait(timeout=5.0):
+                break
 
 def start_test_watcher(force: bool = False):
     """
     Inicia el Centinela en segundo plano.
     Si force es True, lo inicia ignorando la variable del .env.
+    Es idempotente.
     """
     global _watcher_running, _watcher_thread
     
@@ -223,11 +225,12 @@ def start_test_watcher(force: bool = False):
             logging.info("[TestWatcher] Centinela desactivado por configuración (JARVIS_TEST_WATCHER=false).")
             return
             
-    if _watcher_running:
+    if _watcher_thread is not None and _watcher_thread.is_alive():
         logging.info("[TestWatcher] El Centinela ya está activo.")
         return
         
     _watcher_running = True
+    stop_event.clear()
     workspace_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     _watcher_thread = threading.Thread(
         target=watcher_loop,
@@ -246,4 +249,5 @@ def stop_test_watcher():
         return
         
     _watcher_running = False
+    stop_event.set()
     logging.info("[TestWatcher] Centinela detenido.")

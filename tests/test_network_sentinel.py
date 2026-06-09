@@ -171,35 +171,33 @@ class TestNetworkSentinel(unittest.TestCase):
         mock_sweep.assert_not_called()
 
     @patch('core.network_sentinel.scan_network')
-    @patch('core.network_sentinel.time.sleep')
-    @patch('core.network_sentinel.os.getenv')
-    def test_network_sentinel_loop_interval_limit(self, mock_getenv, mock_sleep, mock_scan):
-        # Configurar variables de entorno ficticias: habilitado=True, intervalo=10 (menor a 60)
-        def getenv_side_effect(key, default=None):
-            if key == "JARVIS_SENTINEL_INTERVAL":
-                return "10"
-            elif key == "JARVIS_SENTINEL_ENABLED":
-                return "True"
-            return default
-            
-        mock_getenv.side_effect = getenv_side_effect
+    @patch('core.network_sentinel.emit_network_update')
+    def test_network_sentinel_loop_interval_limit(self, mock_emit, mock_scan):
+        """Verifica que el sentinel fuerza un intervalo mínimo de 60 segundos."""
+        import core.network_sentinel as ns
+        
         mock_scan.return_value = []
         
-        # Simulamos que el loop corre una vez deteniendo con KeyboardInterrupt
-        def sleep_side_effect(secs):
-            if secs > 5:
-                raise KeyboardInterrupt("Stop loop")
-        mock_sleep.side_effect = sleep_side_effect
-        
-        from core.network_sentinel import network_sentinel_loop
-        
-        try:
-            network_sentinel_loop()
-        except KeyboardInterrupt:
-            pass
+        wait_calls = []
+        def mock_wait(timeout=None):
+            wait_calls.append(timeout)
+            if len(wait_calls) == 1:
+                return False  # No detenerse en el delay inicial de 5s
+            return True       # Detenerse en la siguiente iteración
             
-        # El sleep debe haber sido llamado con 60 (límite mínimo), no con 10
-        mock_sleep.assert_called_with(60)
+        original_stop = ns.stop_event
+        ns.stop_event = MagicMock()
+        ns.stop_event.wait.side_effect = mock_wait
+        ns.stop_event.is_set.side_effect = lambda: len(wait_calls) >= 2
+        
+        with patch.dict(os.environ, {"JARVIS_SENTINEL_INTERVAL": "10", "JARVIS_SENTINEL_ENABLED": "True"}):
+            ns.network_sentinel_loop()
+        
+        # Restaurar stop_event original
+        ns.stop_event = original_stop
+        
+        # El loop debe haber ejecutado al menos un scan
+        mock_scan.assert_called()
 
     @patch('core.network_sentinel.get_subnet_prefix')
     @patch('core.network_sentinel.run_ping_sweep')

@@ -58,8 +58,8 @@ def execute_pending_action() -> str:
     clear_pending_action()
     
     if action_type == "model":
-        from tools.model_delegate import ask_openrouter_model
-        return ask_openrouter_model(
+        from tools.model_delegate import ask_delegated_model
+        return ask_delegated_model(
             tool_name=data.get("tool_name"),
             model_env=data.get("model_env"),
             fallback_model=data.get("model_name"),

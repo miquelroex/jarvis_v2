@@ -31,6 +31,18 @@ class MockCallbackQuery:
         self.message = MockMessage(message_text, user_id, username)
 
 class TestTelegramBot(unittest.TestCase):
+    def setUp(self):
+        import core.telegram_bot
+        core.telegram_bot.bot = None
+        core.telegram_bot.bot_thread = None
+        core.telegram_bot.stop_event.clear()
+
+    def tearDown(self):
+        import core.telegram_bot
+        core.telegram_bot.bot = None
+        core.telegram_bot.bot_thread = None
+        core.telegram_bot.stop_event.clear()
+
     @patch('telebot.TeleBot')
     @patch('threading.Thread')
     def test_telegram_bot_disabled_when_no_token(self, mock_thread_class, mock_telebot_class):

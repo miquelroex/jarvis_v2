@@ -42,7 +42,7 @@ def is_private_ip(ip: str) -> bool:
 active_devices = []        # Lista de dispositivos activos detectados en el último escaneo
 voiced_alerts = set()      # MACs para las cuales ya se emitió una alerta por voz en esta sesión
 sentinel_thread = None
-is_running = False
+stop_event = threading.Event()
 scan_lock = threading.Lock()
 
 def get_host_mac():
@@ -148,7 +148,13 @@ def _ping_ip(ip):
 def run_ping_sweep(prefix):
     """Escanea la subred en paralelo con pings cortos para poblar la caché ARP."""
     ips = [f"{prefix}{i}" for i in range(1, 255)]
-    with ThreadPoolExecutor(max_workers=55) as executor:
+    try:
+        workers = int(os.getenv("JARVIS_NETWORK_SCAN_WORKERS", "20"))
+    except (ValueError, TypeError):
+        workers = 20
+    # Limitar a un máximo absoluto de 25 para no saturar el sistema
+    workers = max(1, min(workers, 25))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
         executor.map(_ping_ip, ips)
 
 def parse_arp_output():
@@ -342,38 +348,47 @@ def run_quick_scan():
 
 def network_sentinel_loop():
     """Bucle principal periódico del Centinela de Red."""
-    global is_running
-    is_running = True
-    
     interval = int(os.getenv("JARVIS_SENTINEL_INTERVAL", "300"))
     if interval < 60:
         logging.warning(f"[Sentinel] El intervalo configurado {interval}s es demasiado bajo. Usando 60 segundos por seguridad.")
         interval = 60
         
     # Pequeño retraso al iniciar el servidor para no ralentizar el arranque principal
-    time.sleep(5)
-    
-    while is_running:
+    if stop_event.wait(timeout=5):
+        return
+        
+    while not stop_event.is_set():
         if os.getenv("JARVIS_SENTINEL_ENABLED", "True").lower() == "true":
             try:
                 devices = scan_network()
                 emit_network_update(devices)
             except Exception as e:
                 logging.error(f"[Sentinel] Error en bucle del centinela: {e}")
-        time.sleep(interval)
+        if stop_event.wait(timeout=interval):
+            break
 
 def start_network_sentinel():
-    """Arranca el hilo secundario del Centinela de Red."""
+    """Arranca el hilo secundario del Centinela de Red. Es idempotente."""
     global sentinel_thread
     enabled = os.getenv("JARVIS_SENTINEL_ENABLED", "True").lower() == "true"
     if not enabled:
         logging.info("[Sentinel] Centinela de Red Local desactivado en .env.")
         return
         
+    if sentinel_thread is not None and sentinel_thread.is_alive():
+        logging.info("[Sentinel] Centinela de Red Local ya en ejecución.")
+        return
+        
     logging.info("[Sentinel] Inicializando Centinela de Red Local...")
+    stop_event.clear()
     sentinel_thread = threading.Thread(
         target=network_sentinel_loop,
         name="NetworkSentinelThread",
         daemon=True
     )
     sentinel_thread.start()
+
+def stop_network_sentinel():
+    """Detiene el centinela de red local de forma limpia."""
+    logging.info("[Sentinel] Deteniendo centinela de red...")
+    stop_event.set()

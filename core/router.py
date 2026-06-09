@@ -33,6 +33,15 @@ def smart_route(command: str):
         except Exception as e:
             return {"type": "delegation_gemini_error", "content": f"Fallo al invocar Gemini: {str(e)}"}
 
+    # Ultra (Requiere confirmación)
+    if "modo ultra" in text or "gpt pro" in text or "gpt-pro" in text or "ultra" in text:
+        from tools.model_delegate import ask_ultra_model
+        try:
+            resp = ask_ultra_model.invoke(command)
+            return {"type": "delegation_ultra", "content": resp}
+        except Exception as e:
+            return {"type": "delegation_ultra_error", "content": f"Fallo al invocar el modelo Ultra: {str(e)}"}
+
     # Pro / Kimi (Requiere confirmación)
     if "modo pro" in text or "kimi" in text:
         from tools.model_delegate import ask_pro_model
@@ -55,7 +64,8 @@ def smart_route(command: str):
     code_keywords = [
         "escribe un script", "escribe una funcion", "crea una clase",
         "codigo", "bug", "error de python", "refactorizar", "refactoriza",
-        "explicame este codigo", "git", "github", "crea un archivo"
+        "explicame este codigo", "git", "github", "crea un archivo",
+        "scripts", "tools", "arquitectura"
     ]
     if any(kw in text for kw in code_keywords):
         from tools.model_delegate import ask_code_model
@@ -68,7 +78,8 @@ def smart_route(command: str):
     # Razonamiento / Pensamiento profundo
     reason_keywords = [
         "razona", "piensa despacio", "deduce", "analiza logicamente",
-        "pensamiento profundo", "resuelve el acertijo", "piensa paso a paso"
+        "pensamiento profundo", "resuelve el acertijo", "piensa paso a paso",
+        "analisis largo", "análisis largo", "razonamiento general"
     ]
     if any(kw in text for kw in reason_keywords):
         from tools.model_delegate import ask_reasoning_model

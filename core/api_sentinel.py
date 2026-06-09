@@ -14,7 +14,7 @@ LAST_STATUS = {
 }
 
 SENTINEL_THREAD = None
-SENTINEL_RUNNING = False
+stop_event = threading.Event()
 
 def is_internet_available() -> bool:
     """Verifica si hay conectividad general a internet."""
@@ -87,21 +87,26 @@ def check_all_apis_status() -> dict:
     return results
 
 def start_api_sentinel():
-    """Arranca el monitoreo en segundo plano."""
-    global SENTINEL_THREAD, SENTINEL_RUNNING
+    """Arranca el monitoreo en segundo plano. Es idempotente."""
+    global SENTINEL_THREAD
     
     if os.getenv("JARVIS_API_SENTINEL_ENABLED", "True").lower() not in ("true", "1", "yes"):
         logging.info("[API Sentinel] Disabled in .env.")
         return
         
-    if SENTINEL_RUNNING:
+    if SENTINEL_THREAD is not None and SENTINEL_THREAD.is_alive():
         logging.info("[API Sentinel] Already running.")
         return
         
-    SENTINEL_RUNNING = True
+    stop_event.clear()
     SENTINEL_THREAD = threading.Thread(target=_sentinel_loop, name="APISentinelThread", daemon=True)
     SENTINEL_THREAD.start()
     logging.info("[API Sentinel] Sentinel background thread started.")
+
+def stop_api_sentinel():
+    """Detiene el monitoreo en segundo plano de forma limpia."""
+    logging.info("[API Sentinel] Deteniendo api sentinel...")
+    stop_event.set()
 
 def _sentinel_loop():
     global LAST_STATUS
@@ -119,9 +124,8 @@ def _sentinel_loop():
     except Exception as e:
         logging.error(f"[API Sentinel] Error initializing statuses: {e}")
         
-    while SENTINEL_RUNNING:
-        time.sleep(interval)
-        if not SENTINEL_RUNNING:
+    while not stop_event.is_set():
+        if stop_event.wait(timeout=interval):
             break
             
         try:

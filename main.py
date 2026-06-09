@@ -7,7 +7,7 @@ import webbrowser
 from dotenv import load_dotenv
 import speech_recognition as sr
 import threading
-from gui.app import run_gui_in_background, update_state
+from gui.app import update_state
 from datetime import datetime
 from pathlib import Path
 
@@ -112,60 +112,19 @@ def write():
     system_status = "AWAKE" if "--awake" in sys.argv else "SLEEPING"
     browser_opened = False
 
+    # Adquirir lock de instancia única
+    from core.instance_lock import acquire_instance_lock, release_instance_lock
+    if not acquire_instance_lock():
+        print("\n❌ Error: Ya hay una instancia de Jarvis en ejecución.")
+        print("   Si crees que es un error, elimina logs/jarvis.lock manualmente.")
+        sys.exit(1)
+
     try:
         # Inicializar el agente central
         init_agent()
-        # Arrancar la interfaz gráfica (solo una vez)
-        run_gui_in_background()
-        
-        # Arrancar el bot de Telegram de control remoto (en segundo plano)
-        try:
-            from core.telegram_bot import start_telegram_bot
-            start_telegram_bot()
-        except Exception as e:
-            logging.error(f"❌ Fallo al iniciar el bot de Telegram: {e}")
-            
-        # Arrancar el centinela de red local (en segundo plano)
-        try:
-            from core.network_sentinel import start_network_sentinel
-            start_network_sentinel()
-        except Exception as e:
-            logging.error(f"❌ Fallo al iniciar el centinela de red local: {e}")
-            
-        # Arrancar el centinela de APIs de terceros (en segundo plano)
-        try:
-            from core.api_sentinel import start_api_sentinel
-            start_api_sentinel()
-        except Exception as e:
-            logging.error(f"❌ Fallo al iniciar el centinela de APIs: {e}")
-            
-        # Arrancar el reparador autónomo de dependencias (en segundo plano)
-        try:
-            from core.vulnerability_patcher import start_vulnerability_patcher_daemon
-            start_vulnerability_patcher_daemon()
-        except Exception as e:
-            logging.error(f"❌ Fallo al iniciar el patcher de vulnerabilidades: {e}")
-
-        # Arrancar el sentinel de integridad de Jarvis (en segundo plano)
-        try:
-            from core.jarvis_integrity import start_integrity_sentinel_daemon
-            start_integrity_sentinel_daemon()
-        except Exception as e:
-            logging.error(f"❌ Fallo al iniciar el sentinel de integridad: {e}")
-            
-        # Arrancar el centinela de pruebas unitarias (en segundo plano, respeta configuración .env)
-        try:
-            from core.test_watcher import start_test_watcher
-            start_test_watcher()
-        except Exception as e:
-            logging.error(f"❌ Fallo al iniciar el centinela de pruebas: {e}")
-
-        # Arrancar el planificador central de tareas (en segundo plano)
-        try:
-            from core.scheduler import start_scheduler
-            start_scheduler()
-        except Exception as e:
-            logging.error(f"❌ Fallo al iniciar el planificador de tareas: {e}")
+        # Arrancar servicios de segundo plano de forma centralizada
+        from core.services import start_all_services
+        start_all_services()
         
         if system_status == "AWAKE":
             print("Abriendo http://localhost:5000 en tu navegador...")
@@ -286,6 +245,17 @@ def write():
         logging.critical(f"❌ Critical error: {e}")
         import traceback
         traceback.print_exc()
+    finally:
+        logging.info("[Main] Finalizando ejecución y deteniendo servicios en segundo plano...")
+        try:
+            from core.services import stop_all_services
+            stop_all_services()
+        except Exception as se:
+            logging.error(f"❌ Error al detener servicios de segundo plano: {se}")
+        try:
+            release_instance_lock()
+        except Exception as le:
+            logging.error(f"❌ Error al liberar lock de instancia: {le}")
 
 if __name__ == "__main__":
     write() 

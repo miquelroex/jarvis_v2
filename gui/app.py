@@ -252,12 +252,14 @@ def handle_apply_patch(data):
             print(f"[GUI] Error al aplicar el parche: {e}")
 
 # Monitor de ventana activa en segundo plano
+_gui_stop_event = threading.Event()
+
 def start_active_window_monitor():
     def monitor_loop():
         import time
         from tools.active_window import get_active_window_details
         last_window = None
-        while True:
+        while not _gui_stop_event.is_set():
             try:
                 current_window = get_active_window_details()
                 if not last_window or current_window["title"] != last_window["title"] or current_window["app_name"] != last_window["app_name"]:
@@ -269,7 +271,7 @@ def start_active_window_monitor():
                     socketio.emit('active_window_update', jarvis_state["active_window"])
             except Exception:
                 pass
-            time.sleep(2.5)
+            _gui_stop_event.wait(timeout=2.5)
 
     threading.Thread(target=monitor_loop, name="ActiveWindowMonitorThread", daemon=True).start()
 
@@ -280,9 +282,23 @@ def start_gui():
     port = int(os.getenv("JARVIS_GUI_PORT", "5000"))
     socketio.run(app, host=host, port=port, allow_unsafe_werkzeug=True)
 
+_gui_thread = None
+
 def run_gui_in_background():
-    gui_thread = threading.Thread(target=start_gui, daemon=True)
-    gui_thread.start()
+    global _gui_thread
+
+    gui_enabled = os.getenv("JARVIS_GUI_ENABLED", "true").lower() in ("true", "1", "yes")
+    if not gui_enabled:
+        print("[GUI] Interfaz web desactivada por configuración (JARVIS_GUI_ENABLED=false).")
+        return
+
+    if _gui_thread is not None and _gui_thread.is_alive():
+        print("[GUI] Servidor GUI ya está en ejecución.")
+        return
+        
+    _gui_stop_event.clear()
+    _gui_thread = threading.Thread(target=start_gui, name="GUIFlaskThread", daemon=True)
+    _gui_thread.start()
     start_active_window_monitor()
     
     # Arrancar el monitor de privacidad local
@@ -293,3 +309,7 @@ def run_gui_in_background():
         print(f"[GUI] Error al iniciar monitor de privacidad: {e}")
         
     print("[GUI] Interfaz disponible en http://localhost:5000")
+
+def stop_gui_monitor():
+    """Detiene el monitor de ventana activa de forma limpia."""
+    _gui_stop_event.set()

@@ -41,13 +41,13 @@ def is_private_ip(ip: str) -> bool:
     except Exception:
         return False
 
-_scheduler_running = False
+stop_event = threading.Event()
 _scheduler_thread = None
 
 def is_scheduler_running() -> bool:
     """Retorna True si el planificador está activo en segundo plano."""
-    global _scheduler_running
-    return _scheduler_running
+    global _scheduler_thread
+    return _scheduler_thread is not None and _scheduler_thread.is_alive()
 
 def execute_reminder_task(task: dict):
     """
@@ -287,10 +287,9 @@ def add_url_monitor(name: str, url: str, interval_seconds: int, allow_local_netw
 
 def scheduler_loop():
     """Bucle principal del planificador en segundo plano."""
-    global _scheduler_running
     logging.info("[Scheduler] Bucle del planificador central iniciado.")
     
-    while _scheduler_running:
+    while not stop_event.is_set():
         try:
             # Obtener todas las tareas habilitadas
             active_tasks = db_get_active_tasks()
@@ -309,9 +308,6 @@ def scheduler_loop():
                     
                 # Si la hora de ejecución ya pasó o se cumple ahora
                 if now >= next_run:
-                    # Marcar temporalmente in-place para evitar ejecuciones repetidas antes de que termine el hilo
-                    # deshabilitándola o actualizando de inmediato en la base de datos
-                    # Lo más simple y seguro es actualizar last_run inmediatamente a "running"
                     db_update_task_execution(task["name"], last_run=now.isoformat(), last_result="running")
                     
                     if task["task_type"] == "reminder":
@@ -326,10 +322,12 @@ def scheduler_loop():
                         logging.warning(f"[Scheduler] Tipo de tarea no soportado en esta fase: '{task['task_type']}'")
                         db_delete_task(task["name"])
                         
-            time.sleep(2.0) # Escanear base de datos cada 2 segundos
+            if stop_event.wait(timeout=2.0):
+                break
         except Exception as e:
             logging.error(f"[Scheduler] Error en el bucle principal: {e}")
-            time.sleep(5.0)
+            if stop_event.wait(timeout=5.0):
+                break
 
 def add_reminder(name: str, target: str, seconds_delay: int, interval_seconds: int = 0) -> bool:
     """
@@ -404,23 +402,24 @@ def get_active_tasks() -> list:
     return db_get_active_tasks()
 
 def start_scheduler():
-    """Inicia el planificador central en segundo plano."""
-    global _scheduler_running, _scheduler_thread
-    if _scheduler_running:
+    """Inicia el planificador central en segundo plano. Es idempotente."""
+    global _scheduler_thread
+    
+    if _scheduler_thread is not None and _scheduler_thread.is_alive():
         logging.info("[Scheduler] El planificador ya está en ejecución.")
         return
         
-    _scheduler_running = True
+    stop_event.clear()
     _scheduler_thread = threading.Thread(target=scheduler_loop, daemon=True, name="JarvisSchedulerThread")
     _scheduler_thread.start()
     logging.info("[Scheduler] Planificador central iniciado con éxito.")
 
 def stop_scheduler():
-    """Detiene el planificador central en segundo plano."""
-    global _scheduler_running
-    if not _scheduler_running:
+    """Detiene el planificador central en segundo plano de forma limpia."""
+    global _scheduler_thread
+    if _scheduler_thread is None or not _scheduler_thread.is_alive():
         logging.info("[Scheduler] El planificador ya estaba inactivo.")
         return
         
-    _scheduler_running = False
+    stop_event.set()
     logging.info("[Scheduler] Planificador central detenido.")

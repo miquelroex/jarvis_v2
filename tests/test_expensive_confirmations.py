@@ -60,10 +60,10 @@ class TestExpensiveConfirmations(unittest.TestCase):
         # 2. Comprobar que se ha creado el archivo temporal de solicitud
         self.assertTrue(PENDING_MODEL_REQUEST.exists())
 
-        # 3. Comprobar que el contenido del archivo es correcto
+        # 3. ask_gpt_model delega a ask_pro_model (ya que no contiene "ultra" ni "pro" ni "gpt-5.5-pro")
         data = json.loads(PENDING_MODEL_REQUEST.read_text(encoding="utf-8"))
-        self.assertEqual(data["tool_name"], "ask_gpt_model")
-        self.assertEqual(data["model_env"], "JARVIS_MODEL_GPT")
+        self.assertEqual(data["tool_name"], "ask_pro_model")
+        self.assertEqual(data["model_env"], "JARVIS_MODEL_PRO")
         self.assertEqual(data["prompt"], prompt)
 
 if __name__ == "__main__":
