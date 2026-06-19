@@ -218,6 +218,8 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 
 * [ ] **Resumen Proactivo de Operaciones ("Jarvis, ¿qué he hecho hoy?")**: Al apagar el equipo, Jarvis recopila tu historial de Git local, ventanas de desarrollo y logs para darte un resumen hablado sumamente interactivo del progreso del día. *"Señor, hoy ha completado la integración de 3 APIs y corregido 2 fallos de concurrencia. Buen progreso operativo."*
 
+* [ ] **Plan de Misión Interactivo (Arquitectura Visual Autónoma)**: Al describir verbalmente un proyecto, Jarvis genera de forma autónoma diagramas de flujo interactivos y esquemas de base de datos en 3D en la GUI web para su validación visual antes de escribir código. *"Hoja de ruta estructurada. He proyectado la arquitectura del sistema y el flujo de base de datos en su panel, señor."*
+
 ### 🎙️ Voz Avanzada
 
 * [ ] **Clonar la Voz de JARVIS (Paul Bettany) con ElevenLabs Voice Cloning**: Subir 1-2 minutos de audio limpio de Paul Bettany a ElevenLabs Instant Voice Cloning y usar ese voice_id. Con el modelo `eleven_multilingual_v2` ya implementado, el resultado en español debería ser extraordinario.
