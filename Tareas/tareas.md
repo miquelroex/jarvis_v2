@@ -195,6 +195,8 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 
 * [ ] **Protocolo "Blackout" (Modo Noche Inteligente)**: Monitorizar la hora y tus hábitos. Si pasa de la medianoche, Jarvis disminuye el volumen y adopta un tono de voz suave y susurrado, tiñe la interfaz de colores oscuros cálidos y te recuerda descansar. *(Voz suave)* *"Señor, es bastante tarde y su ritmo de tecleo ha disminuido. Sugiero suspender las operaciones."*
 
+* [ ] **Stark Diagnostic HUD (Telemetría Inyectada en el Navegador)**: Jarvis inyecta automáticamente un script ligero en tus páginas web de desarrollo local, creando un mini HUD flotante y semitransparente directamente en el navegador que muestra logs y excepciones de Python en tiempo real. *"Inyectando telemetría de depuración en la sesión del navegador local, señor."*
+
 ### 👁️ Percepción Proactiva
 
 * [ ] **JARVIS Proactivo Visual — "Te estoy mirando, señor"**: Daemon que cada 2-3 minutos captura la pantalla, la analiza con Gemini Vision y, si detecta algo relevante (debuggeando un error, llevas mucho tiempo en la misma pestaña, hay un mensaje urgente sin leer), interrumpe con voz sin que se lo pidas. *"Señor, observo que lleva 40 minutos analizando ese stack trace. ¿Desea que evalúe el error?"* Literalmente lo que hace JARVIS en el taller de Tony.
@@ -248,6 +250,8 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 * [ ] **Resumen Proactivo de Operaciones ("Jarvis, ¿qué he hecho hoy?")**: Al apagar el equipo, Jarvis recopila tu historial de Git local, ventanas de desarrollo y logs para darte un resumen hablado sumamente interactivo del progreso del día. *"Señor, hoy ha completado la integración de 3 APIs y corregido 2 fallos de concurrencia. Buen progreso operativo."*
 
 * [ ] **Plan de Misión Interactivo (Arquitectura Visual Autónoma)**: Al describir verbalmente un proyecto, Jarvis genera de forma autónoma diagramas de flujo interactivos y esquemas de base de datos en 3D en la GUI web para su validación visual antes de escribir código. *"Hoja de ruta estructurada. He proyectado la arquitectura del sistema y el flujo de base de datos en su panel, señor."*
+
+* [ ] **Protocolo "Back-in-Time" (Viaje en el Tiempo de Código)**: Al preguntarle a Jarvis *"Jarvis, ¿cómo era esta función ayer por la tarde?"*, Jarvis escanea los reflogs de Git, stash y commits locales para extraer la evolución cronológica exacta de un fragmento de código específico y mostrártelo de forma interactiva en la GUI con un deslizador temporal, reproduciendo el cambio paso a paso. *"Reconstruyendo la evolución temporal de la función. Historial de las últimas 24 horas cargado en el panel, señor."*
 
 ### 🎙️ Voz Avanzada
 
