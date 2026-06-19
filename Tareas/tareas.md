@@ -203,6 +203,8 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 
 * [ ] **Modo "Sala de Hologramas" (Explorador Relacional 3D)**: En la interfaz web de Jarvis, puedes abrir una vista en 3D interactiva que proyecta tus bases de datos o la estructura de clases del proyecto como partículas y enlaces de luz flotantes. Puedes "agarrar" y arrastrar las tablas o clases para ver cómo se relacionan físicamente y explorar visualmente el diseño del sistema. *"Estructura relacional de la base de datos proyectada en el panel 3D, señor."*
 
+* [ ] **Modo "Stark HUD - Telemetría de Red" (Packet Map 3D)**: Una visualización de tráfico de red interactiva en la GUI que muestra todas las llamadas HTTP/WS entrantes y salientes de tus aplicaciones locales en forma de haces de luz de colores que viajan en un mapa tridimensional de nodos interconectados (estilo sala de control de Stark Industries). *"Mapa de paquetes activo. Monitoreando latencia del canal y flujo de payloads entrantes."*
+
 ### 👁️ Percepción Proactiva
 
 * [ ] **JARVIS Proactivo Visual — "Te estoy mirando, señor"**: Daemon que cada 2-3 minutos captura la pantalla, la analiza con Gemini Vision y, si detecta algo relevante (debuggeando un error, llevas mucho tiempo en la misma pestaña, hay un mensaje urgente sin leer), interrumpe con voz sin que se lo pidas. *"Señor, observo que lleva 40 minutos analizando ese stack trace. ¿Desea que evalúe el error?"* Literalmente lo que hace JARVIS en el taller de Tony.
@@ -234,6 +236,8 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 * [ ] **Modo "Simulador de Vuelo" (Sandbox Seguro)**: Ejecutar cualquier script o archivo desconocido dentro de un contenedor Docker temporal y ligero para analizar su comportamiento en red y disco antes de permitir su ejecución real en tu máquina. *"Iniciando simulacion del archivo en entorno virtual aislado. Monitoreando llamadas al sistema, señor."*
 
 * [ ] **Radar de Ciberdefensa Activa ("Jarvis, ¿quién me escanea?")**: Jarvis monitoriza pasivamente los sockets de red abierta y los registros de eventos de Windows. Si detecta intentos fallados de conexión SSH o escaneos de puertos en tu IP local o pública, la GUI web muestra la localización de la IP atacante en un mapa mundial interactivo en 3D. *"Señor, hemos registrado un intento de escaneo de puertos desde una IP localizada en Frankfurt. He procedido a banear la dirección en el cortafuegos."*
+
+* [ ] **Auditoría de Dependencias Proactiva ("¿Qué vulnerabilidades tenemos?")**: Jarvis busca vulnerabilidades en tus dependencias en tiempo real de forma pasiva. Si encuentra alguna, interviene proactivamente: *"Señor, he encontrado una vulnerabilidad de severidad alta en la librería PyJWT. He preparado un diff para actualizarla de forma segura."* *"Alerta de seguridad. Dependencia crítica obsoleta detectada. He redactado el parche de actualización en la rama local."*
 
 ### 🧠 Inteligencia Autónoma
 
