@@ -239,6 +239,8 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 
 * [ ] **Auditoría de Dependencias Proactiva ("¿Qué vulnerabilidades tenemos?")**: Jarvis busca vulnerabilidades en tus dependencias en tiempo real de forma pasiva. Si encuentra alguna, interviene proactivamente: *"Señor, he encontrado una vulnerabilidad de severidad alta en la librería PyJWT. He preparado un diff para actualizarla de forma segura."* *"Alerta de seguridad. Dependencia crítica obsoleta detectada. He redactado el parche de actualización en la rama local."*
 
+* [ ] **Detección de Proximidad Física por Bluetooth (Smart Lock automático)**: Jarvis monitoriza de forma pasiva la intensidad de señal (RSSI) del Bluetooth de tu móvil o smartwatch. Si te alejas del PC a más de 3 metros, Jarvis bloquea la sesión de Windows de forma automática y entra en modo eco. Al volver a acercarte, te saluda por voz y desbloquea el PC. *"Señor, detecto su proximidad física. Reactivando subsistemas. Bienvenido de nuevo."*
+
 ### 🧠 Inteligencia Autónoma
 
 * [ ] **Briefing Matutino Autónomo**: Cada día a la hora configurada, Jarvis te envía por Telegram (o lee por voz al arrancar) un informe de inteligencia: commits pendientes del día anterior, recordatorios de hoy, estado de servicios monitorizados, novedades en tus APIs favoritas y el tiempo. Sin que lo pidas.
