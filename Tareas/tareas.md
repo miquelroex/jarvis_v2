@@ -199,6 +199,8 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 
 * [ ] **Modo "Simulación Multidispositivo" (Responsive Mockup 3D)**: Introduces una URL local en la GUI y Jarvis renderiza en tiempo real la página web simulada en múltiples dispositivos al mismo tiempo (móvil, tablet, portátil, monitor ultra-wide) utilizando modelos 3D que rotan de manera holográfica en pantalla, permitiéndote comprobar el diseño responsive visualmente. *"Simulación de visualizadores multidispositivo iniciada. Renderizando maquetas en tiempo real, señor."*
 
+* [ ] **Mapa de Calor de Hardware 3D (Stark Thermal Telemetry)**: Una representación tridimensional interactiva y translúcida de la placa base de tu ordenador en la interfaz web de Jarvis, que cambia de color (de azul a rojo) en tiempo real según la temperatura de los núcleos de tu procesador, la velocidad de los ventiladores y el voltaje de la batería. *"Telemetría térmica activa. Disipadores nominales operando a 2100 RPM."*
+
 ### 👁️ Percepción Proactiva
 
 * [ ] **JARVIS Proactivo Visual — "Te estoy mirando, señor"**: Daemon que cada 2-3 minutos captura la pantalla, la analiza con Gemini Vision y, si detecta algo relevante (debuggeando un error, llevas mucho tiempo en la misma pestaña, hay un mensaje urgente sin leer), interrumpe con voz sin que se lo pidas. *"Señor, observo que lleva 40 minutos analizando ese stack trace. ¿Desea que evalúe el error?"* Literalmente lo que hace JARVIS en el taller de Tony.
@@ -256,6 +258,8 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 * [ ] **Protocolo "Back-in-Time" (Viaje en el Tiempo de Código)**: Al preguntarle a Jarvis *"Jarvis, ¿cómo era esta función ayer por la tarde?"*, Jarvis escanea los reflogs de Git, stash y commits locales para extraer la evolución cronológica exacta de un fragmento de código específico y mostrártelo de forma interactiva en la GUI con un deslizador temporal, reproduciendo el cambio paso a paso. *"Reconstruyendo la evolución temporal de la función. Historial de las últimas 24 horas cargado en el panel, señor."*
 
 * [ ] **Protocolo "Mark-V" (Compilación y Despliegue en Caliente por Voz)**: Al decirle *"Jarvis, despliega Mark-V"*, Jarvis compila y despliega tu aplicación en un servidor en la nube de pruebas de forma automática, crea un túnel seguro con ngrok y te lee la URL pública o te genera un código QR en la GUI para que puedas escanearlo y probar la aplicación en tu móvil al instante. *"Despliegue Mark-V completado. Enlace de túnel activo. El código QR está proyectado en la consola, señor."*
+
+* [ ] **Base de Conocimiento de Errores ("¿Qué hemos aprendido hoy?")**: Jarvis analiza todos los tracebacks y bugs que has depurado y solucionado durante el día, y redacta de forma autónoma una entrada rápida en una base de conocimientos local de errores (una wiki de fallos comunes) para que Jarvis te dé la solución masticada al instante si te vuelve a ocurrir. *"He registrado la solución al fallo de concurrencia de base de datos. Guardado en su base de conocimiento operativa, señor."*
 
 ### 🎙️ Voz Avanzada
 
