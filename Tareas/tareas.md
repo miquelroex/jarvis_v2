@@ -197,6 +197,8 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 
 * [ ] **Stark Diagnostic HUD (Telemetría Inyectada en el Navegador)**: Jarvis inyecta automáticamente un script ligero en tus páginas web de desarrollo local, creando un mini HUD flotante y semitransparente directamente en el navegador que muestra logs y excepciones de Python en tiempo real. *"Inyectando telemetría de depuración en la sesión del navegador local, señor."*
 
+* [ ] **Modo "Simulación Multidispositivo" (Responsive Mockup 3D)**: Introduces una URL local en la GUI y Jarvis renderiza en tiempo real la página web simulada en múltiples dispositivos al mismo tiempo (móvil, tablet, portátil, monitor ultra-wide) utilizando modelos 3D que rotan de manera holográfica en pantalla, permitiéndote comprobar el diseño responsive visualmente. *"Simulación de visualizadores multidispositivo iniciada. Renderizando maquetas en tiempo real, señor."*
+
 ### 👁️ Percepción Proactiva
 
 * [ ] **JARVIS Proactivo Visual — "Te estoy mirando, señor"**: Daemon que cada 2-3 minutos captura la pantalla, la analiza con Gemini Vision y, si detecta algo relevante (debuggeando un error, llevas mucho tiempo en la misma pestaña, hay un mensaje urgente sin leer), interrumpe con voz sin que se lo pidas. *"Señor, observo que lleva 40 minutos analizando ese stack trace. ¿Desea que evalúe el error?"* Literalmente lo que hace JARVIS en el taller de Tony.
@@ -252,6 +254,8 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 * [ ] **Plan de Misión Interactivo (Arquitectura Visual Autónoma)**: Al describir verbalmente un proyecto, Jarvis genera de forma autónoma diagramas de flujo interactivos y esquemas de base de datos en 3D en la GUI web para su validación visual antes de escribir código. *"Hoja de ruta estructurada. He proyectado la arquitectura del sistema y el flujo de base de datos en su panel, señor."*
 
 * [ ] **Protocolo "Back-in-Time" (Viaje en el Tiempo de Código)**: Al preguntarle a Jarvis *"Jarvis, ¿cómo era esta función ayer por la tarde?"*, Jarvis escanea los reflogs de Git, stash y commits locales para extraer la evolución cronológica exacta de un fragmento de código específico y mostrártelo de forma interactiva en la GUI con un deslizador temporal, reproduciendo el cambio paso a paso. *"Reconstruyendo la evolución temporal de la función. Historial de las últimas 24 horas cargado en el panel, señor."*
+
+* [ ] **Protocolo "Mark-V" (Compilación y Despliegue en Caliente por Voz)**: Al decirle *"Jarvis, despliega Mark-V"*, Jarvis compila y despliega tu aplicación en un servidor en la nube de pruebas de forma automática, crea un túnel seguro con ngrok y te lee la URL pública o te genera un código QR en la GUI para que puedas escanearlo y probar la aplicación en tu móvil al instante. *"Despliegue Mark-V completado. Enlace de túnel activo. El código QR está proyectado en la consola, señor."*
 
 ### 🎙️ Voz Avanzada
 
