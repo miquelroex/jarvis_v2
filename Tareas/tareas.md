@@ -1,5 +1,25 @@
 # Jarvis v2 - Lista de mejoras
 
+## Ya hecho
+
+* [x] Subir el proyecto limpio a GitHub.
+* [x] Configurar `.gitignore` para no subir `.env`, `.venv/`, logs ni archivos sensibles.
+* [x] Cambiar el modelo principal para que sea configurable con `JARVIS_MODEL_DEFAULT`.
+* [x] Poner DeepSeek como modelo principal barato.
+* [x] Añadir Gemini por Google AI Studio.
+* [x] Añadir delegación a modelos especializados.
+* [x] Añadir Qwen para código.
+* [x] Añadir Qwen Thinking para razonamiento.
+* [x] Añadir MiniMax para tareas tipo agente.
+* [x] Añadir Kimi como modo pro.
+* [x] Añadir GPT como modelo manual.
+* [x] Pedir confirmación antes de usar modelos caros.
+* [x] Registrar en logs qué modelo se usa.
+* [x] Ignorar `logs/` en Git.
+* [x] Añadir comandos rápidos sin IA.
+* [x] Añadir Tavily Search.
+* [x] Añadir Tavily Extract para leer URLs concretas.
+
 ## Prioridad alta
 
 * [x] Crear un router inteligente en Python antes de llamar al agente.
@@ -30,6 +50,15 @@
 * [ ] Añadir selección manual de modelo desde la GUI.
 * [ ] Añadir más comandos rápidos sin IA.
 * [x] Añadir voz más natural o configurable.
+
+## No hacer todavía
+
+* [ ] TwinClaw.
+* [ ] Docker.
+* [ ] Multiagentes complejos.
+* [ ] Base vectorial/RAG avanzado.
+* [ ] Automatizaciones peligrosas del sistema.
+* [ ] Control profundo de Windows sin confirmaciones.
 
 ## Camino hacia un Jarvis Real (Autonomía e Integración)
 
