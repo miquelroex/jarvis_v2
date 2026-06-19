@@ -201,6 +201,8 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 
 * [ ] **Mapa de Calor de Hardware 3D (Stark Thermal Telemetry)**: Una representación tridimensional interactiva y translúcida de la placa base de tu ordenador en la interfaz web de Jarvis, que cambia de color (de azul a rojo) en tiempo real según la temperatura de los núcleos de tu procesador, la velocidad de los ventiladores y el voltaje de la batería. *"Telemetría térmica activa. Disipadores nominales operando a 2100 RPM."*
 
+* [ ] **Modo "Sala de Hologramas" (Explorador Relacional 3D)**: En la interfaz web de Jarvis, puedes abrir una vista en 3D interactiva que proyecta tus bases de datos o la estructura de clases del proyecto como partículas y enlaces de luz flotantes. Puedes "agarrar" y arrastrar las tablas o clases para ver cómo se relacionan físicamente y explorar visualmente el diseño del sistema. *"Estructura relacional de la base de datos proyectada en el panel 3D, señor."*
+
 ### 👁️ Percepción Proactiva
 
 * [ ] **JARVIS Proactivo Visual — "Te estoy mirando, señor"**: Daemon que cada 2-3 minutos captura la pantalla, la analiza con Gemini Vision y, si detecta algo relevante (debuggeando un error, llevas mucho tiempo en la misma pestaña, hay un mensaje urgente sin leer), interrumpe con voz sin que se lo pidas. *"Señor, observo que lleva 40 minutos analizando ese stack trace. ¿Desea que evalúe el error?"* Literalmente lo que hace JARVIS en el taller de Tony.
