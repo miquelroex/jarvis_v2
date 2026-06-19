@@ -1,25 +1,5 @@
 # Jarvis v2 - Lista de mejoras
 
-## Ya hecho
-
-* [x] Subir el proyecto limpio a GitHub.
-* [x] Configurar `.gitignore` para no subir `.env`, `.venv/`, logs ni archivos sensibles.
-* [x] Cambiar el modelo principal para que sea configurable con `JARVIS_MODEL_DEFAULT`.
-* [x] Poner DeepSeek como modelo principal barato.
-* [x] Añadir Gemini por Google AI Studio.
-* [x] Añadir delegación a modelos especializados.
-* [x] Añadir Qwen para código.
-* [x] Añadir Qwen Thinking para razonamiento.
-* [x] Añadir MiniMax para tareas tipo agente.
-* [x] Añadir Kimi como modo pro.
-* [x] Añadir GPT como modelo manual.
-* [x] Pedir confirmación antes de usar modelos caros.
-* [x] Registrar en logs qué modelo se usa.
-* [x] Ignorar `logs/` en Git.
-* [x] Añadir comandos rápidos sin IA.
-* [x] Añadir Tavily Search.
-* [x] Añadir Tavily Extract para leer URLs concretas.
-
 ## Prioridad alta
 
 * [x] Crear un router inteligente en Python antes de llamar al agente.
@@ -51,14 +31,6 @@
 * [ ] Añadir más comandos rápidos sin IA.
 * [x] Añadir voz más natural o configurable.
 
-## No hacer todavía
-
-* [ ] TwinClaw.
-* [ ] Docker.
-* [ ] Multiagentes complejos.
-* [ ] Base vectorial/RAG avanzado.
-* [ ] Automatizaciones peligrosas del sistema.
-* [ ] Control profundo de Windows sin confirmaciones.
 ## Camino hacia un Jarvis Real (Autonomía e Integración)
 
 * [ ] **Autonomía de Agente:**
@@ -184,7 +156,15 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 
 * [ ] **HUD Overlay Transparente (siempre visible)**: Ventana flotante semitransparente siempre encima de todo (topmost), estilo casco de Iron Man. Muestra en tiempo real: RAM/CPU del sistema, estado de servicios, hora, último comando procesado y alertas activas parpadeando en rojo. Visible mientras trabajas en el IDE. Implementable con PyQt5 o tkinter sin bordes.
 
+* [ ] **Widgets HUD Flotantes y Translúcidos**: Ventanas flotantes de escritorio minúsculas, transparentes y sin bordes que aparecen brevemente en las esquinas de tu monitor para mostrar telemetría rápida o notificaciones, simulando los micro-paneles de datos del casco de Iron Man.
+
 * [ ] **Sistema de Nivel de Amenaza DEFCON**: Jarvis tiene 4 niveles de alerta que cambian el color de toda la GUI en tiempo real — Verde (nominal), Amarillo (RAM elevada, test fallando, servicio caído), Rojo (RAM crítica, fallo de integridad, dispositivo extraño en red), Violeta (modo ultra-seguro activado). La esfera cambia de color y Jarvis adapta su tono de voz según el nivel.
+
+* [ ] **Diagnóstico de "Integridad de Armadura" (Hardware Check)**: Jarvis monitoriza no solo la RAM y CPU, sino la temperatura real de los componentes (tarjeta gráfica, procesador) y la salud del almacenamiento. Si el equipo se calienta demasiado al jugar o compilar, te da una alerta formal. *"Señor, detecto que el núcleo de la GPU está alcanzando los 82 grados. Recomiendo reducir la carga."*
+
+* [ ] **Modo "Taller Stark" (Sincronización Multi-Pantalla)**: Utilizar WebSockets para transmitir el panel web o HUD secundario a una tablet o teléfono en tu escritorio, dejando tu monitor principal libre exclusivamente para codificar. *"Transmitiendo señal del panel táctil al dispositivo secundario. Enlace establecido."*
+
+* [ ] **Protocolo "Blackout" (Modo Noche Inteligente)**: Monitorizar la hora y tus hábitos. Si pasa de la medianoche, Jarvis disminuye el volumen y adopta un tono de voz suave y susurrado, tiñe la interfaz de colores oscuros cálidos y te recuerda descansar. *(Voz suave)* *"Señor, es bastante tarde y su ritmo de tecleo ha disminuido. Sugiero suspender las operaciones."*
 
 ### 👁️ Percepción Proactiva
 
@@ -192,15 +172,29 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 
 * [ ] **Monitor de Portapapeles Inteligente**: Daemon que monitoriza el portapapeles en segundo plano. Al copiar un error de Python → ofrece solucionarlo. Una URL → ofrece resumirla. Código → ofrece explicarlo. Sin que le preguntes. *"Señor, detecto que acaba de copiar un traceback. ¿Desea que lo analice?"*
 
-* [ ] **Detector de Estrés y Ánimo por Voz**: Analizar el tono, ritmo y energía de la voz al hablar para detectar cansancio o frustración y que Jarvis adapte su respuesta: más conciso si detecta prisa, más pausado y empático si detecta estrés.
+* [ ] **Detector de Estrés y Ánimo por Voz**: Analizar el tono, ritmo y energía de la voz al hablar para detectar cansancio o frustración y que Jarvis adapta su respuesta: más conciso si detecta prisa, más pausado y empático si detecta estrés.
 
 * [ ] **Detección de Presencia por Webcam (Computer Vision)**: Detectar si el usuario está frente al monitor usando la webcam. Si te vas 10 minutos, Jarvis entra en modo low-power y dice *"Parece que se ha ausentado, señor. Pausando escucha activa."* Al volver, te saluda.
+
+* [ ] **Protocolo de Enfoque "Verónica"**: Al dar la orden de voz *"Jarvis, activa el protocolo Verónica"*, silencia las notificaciones de Windows, cambia la interfaz web a un esquema de color ámbar cálido de alto contraste, y muestra un temporizador de productividad tipo cuenta atrás en el HUD. *"Protocolo Verónica iniciado. Silenciando distractores externos."*
+
+* [ ] **Protocolo "Mantis" (Aislamiento Acústico Inteligente)**: Si Jarvis detecta ruido de fondo molesto en tu micrófono (ventilador, ladridos, obras), inicializa automáticamente filtros de ruido basados en IA en el canal de audio local. *"He detectado interferencias acústicas de fondo, señor. He inicializado el protocolo Mantis para aislar su voz."*
+
+* [ ] **Protocolo "Babel" (Traducción Simultánea por Voz)**: Escuchar audio en inglés u otro idioma en tiempo real (de llamadas o vídeos) y ofrecerte una traducción por síntesis de voz al oído o mediante subtítulos discretos en el HUD flotante. *"Traducción en tiempo real activa. Canalizando audio traducido al auricular secundario."*
 
 ### 🔐 Seguridad y Autenticación
 
 * [ ] **Autenticación por Huella de Voz (Voice Print Security)**: Al arrancar, Jarvis pide una frase de contraseña. Compara el patrón vocal con un perfil guardado. Si no coincide, entra en modo vigilante y bloquea comandos sensibles. *"No reconozco su perfil vocal, señor. Acceso a protocolos avanzados denegado."*
 
 * [ ] **Modo Paranoia (Escudo Total)**: Comando de voz que activa un perfil donde Jarvis deniega TODA ejecución de código, escritura de archivos y comandos de terminal sin doble confirmación vocal. Para dejar el PC sin supervisión.
+
+* [ ] **Escaneo de Dispositivos "Radar Local" (Radar Holográfico)**: Una sección interactiva en la GUI con forma de radar táctico circular que rastrea y mapea visualmente los dispositivos de tu red local. Los equipos autorizados aparecen en cian, mientras que cualquier dispositivo desconocido parpadea en rojo con una advertencia por voz de Jarvis. *"Alerta de proximidad de red. Se ha detectado una firma no registrada en el cuadrante local."*
+
+* [ ] **Sentry Mode (Vigilancia Física por Webcam)**: Al alejarte del PC, Jarvis activa la cámara. Si detecta movimiento frente al monitor, bloquea el sistema operativo, captura una foto del intruso y te la envía a Telegram. *"Protocolo Sentry activo. Monitoreando el perímetro físico de la consola, señor."*
+
+* [ ] **Protocolo de Contingencia (Cierre de Emergencia)**: Un comando de voz crítico que, al ser pronunciado, minimiza todo el trabajo activo, borra el portapapeles, cifra archivos temporales y apaga o suspende el sistema en menos de 2 segundos. *"Entendido, señor. Protocolo de contingencia iniciado. Apagando todos los subsistemas."*
+
+* [ ] **Modo "Simulador de Vuelo" (Sandbox Seguro)**: Ejecutar cualquier script o archivo desconocido dentro de un contenedor Docker temporal y ligero para analizar su comportamiento en red y disco antes de permitir su ejecución real en tu máquina. *"Iniciando simulacion del archivo en entorno virtual aislado. Monitoreando llamadas al sistema, señor."*
 
 ### 🧠 Inteligencia Autónoma
 
@@ -209,6 +203,18 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 * [ ] **Optimizador Autónomo de su Propio Prompt (Meta-Prompting)**: Jarvis analiza tus patrones de uso durante una semana (qué comandos usas más, qué corriges, qué rechazas) y propone ajustes a su propio `SYSTEM_PROMPT`. *"Señor, he observado que corrige mi nivel de detalle frecuentemente. Propongo ajustar el protocolo de verbosidad."*
 
 * [ ] **Grafo de Conocimiento del Proyecto (Architectural Knowledge Graph)**: Base de datos de grafos local que analiza dependencias del código del proyecto para que Jarvis entienda la arquitectura completa y pueda responder preguntas como *"¿Dónde se gestiona la autenticación de Telegram?"* sin enviar todo el código al LLM.
+
+* [ ] **Protocolo "House Party" (Orquestación Multi-Agente)**: Permitir a Jarvis desplegar agentes de software paralelos y especializados (ej. un redactor de tests, un documentador y un refactorizador) para trabajar cooperativamente. La GUI mostrará el progreso animado de cada agente simulando el despliegue de diferentes armaduras de Iron Man. *"Iniciando protocolo House Party. He desplegado las unidades Mark I, II y III para la refactorización paralela del repositorio."*
+
+* [ ] **Protocolo "Clean Slate" (Borrón y Cuenta Nueva)**: Para limpiar la carga del PC. Jarvis cierra de forma ordenada programas y navegadores no esenciales, vacía temporales, libera memoria RAM y reinicia los servicios de base de datos o desarrollo local principales. *"Ejecutando protocolo Clean Slate, señor. Despejando el área de trabajo y liberando recursos."*
+
+* [ ] **Modo "Piloto Automático" (Asistente de Tareas Largas)**: Delegar tareas automatizadas complejas y largas a Jarvis en segundo plano (como ejecutar una suite de testing de extremo a extremo). El HUD pasa a un modo de progreso holográfico visual simplificado. *"Estableciendo piloto automático para la compilación de la suite. Relájese, señor, yo me encargo del análisis."*
+
+* [ ] **Depuración Guiada por Voz ("Jarvis, ¿dónde falla?")**: En lugar de leer logs interminables, puedes preguntar verbalmente por el error actual y Jarvis analizará el traceback, logs de desarrollo y bases de datos para explicarte la causa exacta y las opciones por voz. *"Señor, el servidor devolvió un error 500 porque la variable de conexión de la base de datos está vacía. ¿Desea que la configure?"*
+
+* [ ] **Modo "Capa de Sigilo" (Stealth Mode / Panic Button)**: Al activar este modo, Jarvis minimiza aplicaciones distractoras, maximiza herramientas de desarrollo de prioridad, desactiva notificaciones sociales y selecciona una playlist silenciosa o de ruido blanco para máxima concentración. *"Activando modo de sigilo. Suite de desarrollo maximizada y notificaciones suspendidas."*
+
+* [ ] **Resumen Proactivo de Operaciones ("Jarvis, ¿qué he hecho hoy?")**: Al apagar el equipo, Jarvis recopila tu historial de Git local, ventanas de desarrollo y logs para darte un resumen hablado sumamente interactivo del progreso del día. *"Señor, hoy ha completado la integración de 3 APIs y corregido 2 fallos de concurrencia. Buen progreso operativo."*
 
 ### 🎙️ Voz Avanzada
 
@@ -219,4 +225,6 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 ### 🖥️ App de Escritorio Nativa
 
 * [ ] **App de Escritorio (Electron/Tauri) con GUI Web Embebida**: Empaquetar Jarvis como una aplicación de escritorio nativa para Windows que arranque el servidor Flask en background y muestre la GUI web actual (`localhost:5000`) dentro de un `BrowserWindow` de Electron o un WebView de Tauri — sin necesidad de abrir el navegador. Ventajas: icono en la barra de tareas, acceso directo en el escritorio, arranque automático con Windows, ventana sin bordes con control total del frame, acceso a APIs nativas del OS (notificaciones del sistema, bandeja, etc.) y posibilidad de añadir el HUD Overlay directamente en la app. La GUI web existente no necesitaría modificarse.
+
+
 
