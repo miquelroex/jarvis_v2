@@ -174,3 +174,46 @@
 * [ ] Rostro Holográfico 3D Reactivo por Fonemas (Lip-Sync Hologram): Renderizar un avatar 3D abstracto en Three.js que sincronice sus movimientos en tiempo real con los fonemas de la síntesis de voz (TTS) para una interfaz humanoide.
 
 
+## 🚀 JARVIS Real — Ciencia Ficción y Futurismo
+
+Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad. Ordenadas de mayor a menor factor "wow".
+
+### 🎬 Experiencia e Interfaz
+
+* [ ] **Secuencia de Inicio "Suit Up"**: Al arrancar Jarvis, la GUI muestra una animación de cuenta atrás con telemetría apareciendo progresivamente (RAM, servicios, red, alertas) y voz formal en secuencia: *"Inicializando subsistemas... RAM nominal... Protocolos de seguridad activos... Bienvenido, señor."* Como el montaje del casco de Iron Man.
+
+* [ ] **HUD Overlay Transparente (siempre visible)**: Ventana flotante semitransparente siempre encima de todo (topmost), estilo casco de Iron Man. Muestra en tiempo real: RAM/CPU del sistema, estado de servicios, hora, último comando procesado y alertas activas parpadeando en rojo. Visible mientras trabajas en el IDE. Implementable con PyQt5 o tkinter sin bordes.
+
+* [ ] **Sistema de Nivel de Amenaza DEFCON**: Jarvis tiene 4 niveles de alerta que cambian el color de toda la GUI en tiempo real — Verde (nominal), Amarillo (RAM elevada, test fallando, servicio caído), Rojo (RAM crítica, fallo de integridad, dispositivo extraño en red), Violeta (modo ultra-seguro activado). La esfera cambia de color y Jarvis adapta su tono de voz según el nivel.
+
+* [ ] **Modulación Dinámica de la GUI según Contexto y Modelo**: Cambiar paleta de colores y animaciones de la esfera según el modelo activo (DeepSeek → azul hielo, GPT → verde neón, Gemini → naranja solar, Claude → violeta).
+
+### 👁️ Percepción Proactiva
+
+* [ ] **JARVIS Proactivo Visual — "Te estoy mirando, señor"**: Daemon que cada 2-3 minutos captura la pantalla, la analiza con Gemini Vision y, si detecta algo relevante (debuggeando un error, llevas mucho tiempo en la misma pestaña, hay un mensaje urgente sin leer), interrumpe con voz sin que se lo pidas. *"Señor, observo que lleva 40 minutos analizando ese stack trace. ¿Desea que evalúe el error?"* Literalmente lo que hace JARVIS en el taller de Tony.
+
+* [ ] **Monitor de Portapapeles Inteligente**: Daemon que monitoriza el portapapeles en segundo plano. Al copiar un error de Python → ofrece solucionarlo. Una URL → ofrece resumirla. Código → ofrece explicarlo. Sin que le preguntes. *"Señor, detecto que acaba de copiar un traceback. ¿Desea que lo analice?"*
+
+* [ ] **Detector de Estrés y Ánimo por Voz**: Analizar el tono, ritmo y energía de la voz al hablar para detectar cansancio o frustración y que Jarvis adapte su respuesta: más conciso si detecta prisa, más pausado y empático si detecta estrés.
+
+* [ ] **Detección de Presencia por Webcam (Computer Vision)**: Detectar si el usuario está frente al monitor usando la webcam. Si te vas 10 minutos, Jarvis entra en modo low-power y dice *"Parece que se ha ausentado, señor. Pausando escucha activa."* Al volver, te saluda.
+
+### 🔐 Seguridad y Autenticación
+
+* [ ] **Autenticación por Huella de Voz (Voice Print Security)**: Al arrancar, Jarvis pide una frase de contraseña. Compara el patrón vocal con un perfil guardado. Si no coincide, entra en modo vigilante y bloquea comandos sensibles. *"No reconozco su perfil vocal, señor. Acceso a protocolos avanzados denegado."*
+
+* [ ] **Modo Paranoia (Escudo Total)**: Comando de voz que activa un perfil donde Jarvis deniega TODA ejecución de código, escritura de archivos y comandos de terminal sin doble confirmación vocal. Para dejar el PC sin supervisión.
+
+### 🧠 Inteligencia Autónoma
+
+* [ ] **Briefing Matutino Autónomo**: Cada día a la hora configurada, Jarvis te envía por Telegram (o lee por voz al arrancar) un informe de inteligencia: commits pendientes del día anterior, recordatorios de hoy, estado de servicios monitorizados, novedades en tus APIs favoritas y el tiempo. Sin que lo pidas.
+
+* [ ] **Optimizador Autónomo de su Propio Prompt (Meta-Prompting)**: Jarvis analiza tus patrones de uso durante una semana (qué comandos usas más, qué corriges, qué rechazas) y propone ajustes a su propio `SYSTEM_PROMPT`. *"Señor, he observado que corrige mi nivel de detalle frecuentemente. Propongo ajustar el protocolo de verbosidad."*
+
+* [ ] **Grafo de Conocimiento del Proyecto (Architectural Knowledge Graph)**: Base de datos de grafos local que analiza dependencias del código del proyecto para que Jarvis entienda la arquitectura completa y pueda responder preguntas como *"¿Dónde se gestiona la autenticación de Telegram?"* sin enviar todo el código al LLM.
+
+### 🎙️ Voz Avanzada
+
+* [ ] **Clonar la Voz de JARVIS (Paul Bettany) con ElevenLabs Voice Cloning**: Subir 1-2 minutos de audio limpio de Paul Bettany a ElevenLabs Instant Voice Cloning y usar ese voice_id. Con el modelo `eleven_multilingual_v2` ya implementado, el resultado en español debería ser extraordinario.
+
+* [ ] **Modulación Emocional de la Voz (Voice Tone Shifting)**: Adaptar velocidad, tono y estabilidad de la síntesis según el resultado: voz más grave y pausada para alertas críticas, más ligera para respuestas informales, urgente y sin florituras para emergencias.
