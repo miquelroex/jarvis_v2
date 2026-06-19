@@ -186,8 +186,6 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 
 * [ ] **Sistema de Nivel de Amenaza DEFCON**: Jarvis tiene 4 niveles de alerta que cambian el color de toda la GUI en tiempo real — Verde (nominal), Amarillo (RAM elevada, test fallando, servicio caído), Rojo (RAM crítica, fallo de integridad, dispositivo extraño en red), Violeta (modo ultra-seguro activado). La esfera cambia de color y Jarvis adapta su tono de voz según el nivel.
 
-* [ ] **Modulación Dinámica de la GUI según Contexto y Modelo**: Cambiar paleta de colores y animaciones de la esfera según el modelo activo (DeepSeek → azul hielo, GPT → verde neón, Gemini → naranja solar, Claude → violeta).
-
 ### 👁️ Percepción Proactiva
 
 * [ ] **JARVIS Proactivo Visual — "Te estoy mirando, señor"**: Daemon que cada 2-3 minutos captura la pantalla, la analiza con Gemini Vision y, si detecta algo relevante (debuggeando un error, llevas mucho tiempo en la misma pestaña, hay un mensaje urgente sin leer), interrumpe con voz sin que se lo pidas. *"Señor, observo que lleva 40 minutos analizando ese stack trace. ¿Desea que evalúe el error?"* Literalmente lo que hace JARVIS en el taller de Tony.
@@ -217,3 +215,8 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 * [ ] **Clonar la Voz de JARVIS (Paul Bettany) con ElevenLabs Voice Cloning**: Subir 1-2 minutos de audio limpio de Paul Bettany a ElevenLabs Instant Voice Cloning y usar ese voice_id. Con el modelo `eleven_multilingual_v2` ya implementado, el resultado en español debería ser extraordinario.
 
 * [ ] **Modulación Emocional de la Voz (Voice Tone Shifting)**: Adaptar velocidad, tono y estabilidad de la síntesis según el resultado: voz más grave y pausada para alertas críticas, más ligera para respuestas informales, urgente y sin florituras para emergencias.
+
+### 🖥️ App de Escritorio Nativa
+
+* [ ] **App de Escritorio (Electron/Tauri) con GUI Web Embebida**: Empaquetar Jarvis como una aplicación de escritorio nativa para Windows que arranque el servidor Flask en background y muestre la GUI web actual (`localhost:5000`) dentro de un `BrowserWindow` de Electron o un WebView de Tauri — sin necesidad de abrir el navegador. Ventajas: icono en la barra de tareas, acceso directo en el escritorio, arranque automático con Windows, ventana sin bordes con control total del frame, acceso a APIs nativas del OS (notificaciones del sistema, bandeja, etc.) y posibilidad de añadir el HUD Overlay directamente en la app. La GUI web existente no necesitaría modificarse.
+
