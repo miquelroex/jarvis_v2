@@ -196,6 +196,8 @@ Ideas que harían que Jarvis se sienta como el asistente de Tony Stark de verdad
 
 * [ ] **Modo "Simulador de Vuelo" (Sandbox Seguro)**: Ejecutar cualquier script o archivo desconocido dentro de un contenedor Docker temporal y ligero para analizar su comportamiento en red y disco antes de permitir su ejecución real en tu máquina. *"Iniciando simulacion del archivo en entorno virtual aislado. Monitoreando llamadas al sistema, señor."*
 
+* [ ] **Radar de Ciberdefensa Activa ("Jarvis, ¿quién me escanea?")**: Jarvis monitoriza pasivamente los sockets de red abierta y los registros de eventos de Windows. Si detecta intentos fallados de conexión SSH o escaneos de puertos en tu IP local o pública, la GUI web muestra la localización de la IP atacante en un mapa mundial interactivo en 3D. *"Señor, hemos registrado un intento de escaneo de puertos desde una IP localizada en Frankfurt. He procedido a banear la dirección en el cortafuegos."*
+
 ### 🧠 Inteligencia Autónoma
 
 * [ ] **Briefing Matutino Autónomo**: Cada día a la hora configurada, Jarvis te envía por Telegram (o lee por voz al arrancar) un informe de inteligencia: commits pendientes del día anterior, recordatorios de hoy, estado de servicios monitorizados, novedades en tus APIs favoritas y el tiempo. Sin que lo pidas.
