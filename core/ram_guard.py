@@ -110,7 +110,9 @@ def _ram_guard_loop():
                 try:
                     from tools.voice import speak
                     speak(
-                        "Advertencia: Consumo de memoria elevado. Pausando servicios secundarios para proteger el sistema.",
+                        "Señor, detecto un incremento inusual en el consumo de memoria. "
+                        "Me he tomado la libertad de suspender temporalmente los servicios secundarios "
+                        "para prevenir un desbordamiento del sistema.",
                         disable_vad=True
                     )
                 except Exception:

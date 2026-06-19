@@ -318,4 +318,10 @@ def handle_fast_command(command: str):
         res = get_date.invoke({})
         return f"Hoy es {res}."
 
+    # Resumen nocturno / diario (Daily Digest)
+    if ("resumen del dia" in text or "resumen de hoy" in text
+            or "resumen nocturno" in text or "como ha ido el dia" in text):
+        from core.daily_digest import generate_daily_digest
+        return generate_daily_digest()
+
     return None

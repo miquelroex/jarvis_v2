@@ -121,7 +121,7 @@ class TestAPISentinel(unittest.TestCase):
         args1 = mock_speak.call_args_list[0][0][0]
         args2 = mock_speak.call_args_list[1][0][0]
         self.assertIn("degradación de servicio", args1)
-        self.assertIn("se ha restablecido", args2)
+        self.assertIn("plenamente operativos", args2)
 
     @patch('core.api_sentinel.check_all_apis_status')
     @patch('core.api_sentinel.is_internet_available')

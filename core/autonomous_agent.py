@@ -64,7 +64,11 @@ def start_autonomous_execution(goal: str):
         
         # Avisar por voz y por websockets
         num_steps = len(plan["steps"])
-        speak(f"Señor, he estructurado un plan de {num_steps} pasos para resolver la tarea de forma autónoma. Iniciando ejecución de inmediato.", disable_vad=True)
+        speak(
+            f"Señor, he diseñado una secuencia de {num_steps} fases operativas para procesar su solicitud de forma autónoma. "
+            "Iniciando protocolos de ejecución de inmediato. Le mantendré informado del progreso.",
+            disable_vad=True
+        )
         
         # Enviar plan a la GUI
         socketio.emit('plan_update', plan)

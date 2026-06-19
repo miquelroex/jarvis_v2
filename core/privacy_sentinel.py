@@ -254,7 +254,7 @@ def _monitor_loop() -> None:
                 
             # Alertas proactivas para nuevos leaks
             if new_leaks:
-                msg = f"Señor, he detectado una posible clave expuesta en el archivo {new_leaks[0]['file']}. Por favor, revise el panel de privacidad."
+                msg = f"Advertencia de seguridad, señor. Mis protocolos de escaneo han localizado una potencial credencial expuesta en el archivo {new_leaks[0]['file']}. Sugiero purgarla del repositorio de inmediato."
                 speak(msg, disable_vad=True)
                 
                 # Alerta por Telegram

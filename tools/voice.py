@@ -159,8 +159,13 @@ def _play_audio(file_path: str, disable_vad: bool = False) -> bool:
         return False
 
 async def _generate_edge_tts(text: str, file_path: str):
-    """Genera audio con Edge-TTS."""
-    communicate = edge_tts.Communicate(text, "es-ES-AlvaroNeural")
+    """Genera audio con Edge-TTS.
+    
+    La voz se configura con JARVIS_EDGE_TTS_VOICE en .env.
+    Voces recomendadas (más graves/formales): es-ES-AlvaroNeural, es-ES-PabloNeural
+    """
+    voice = os.getenv("JARVIS_EDGE_TTS_VOICE", "es-ES-AlvaroNeural")
+    communicate = edge_tts.Communicate(text, voice)
     await communicate.save(file_path)
 
 def _speak_thread(text: str, disable_vad: bool = False):

@@ -45,6 +45,11 @@ sentinel_thread = None
 stop_event = threading.Event()
 scan_lock = threading.Lock()
 
+# Detector de Presencia del usuario
+_user_presence_seen = False          # True si el móvil fue detectado en el escaneo previo
+_user_absence_consecutive = 0        # Contador de escaneos sin ver el móvil (debounce)
+_PRESENCE_ABSENCE_THRESHOLD = 3      # Escaneos consecutivos sin el móvil para confirmar ausóencia
+
 def get_host_mac():
     """Obtiene la dirección MAC del host local formateada."""
     try:
@@ -339,6 +344,39 @@ def scan_network():
             
         return active_devices
 
+
+def _check_user_presence(scanned_macs: set):
+    """
+    Comprueba si el móvil del usuario (JARVIS_PRESENCE_MAC) está en el último escaneo.
+    Emite un saludo de bienvenida si la MAC reaparece tras estar ausente 3 escaneos consecutivos.
+    """
+    global _user_presence_seen, _user_absence_consecutive
+
+    presence_mac = os.getenv("JARVIS_PRESENCE_MAC", "").strip().lower().replace("-", ":")
+    if not presence_mac:
+        return  # Funcionalidad desactivada
+
+    user_present = presence_mac in scanned_macs
+
+    if user_present:
+        _user_absence_consecutive = 0
+        if not _user_presence_seen:
+            # El usuario ACABA de llegar (o es el primer escaneo que lo detecta)
+            _user_presence_seen = True
+            logging.info(f"[Sentinel] Presencia del usuario detectada (MAC: {presence_mac}). Emitiendo saludo.")
+            try:
+                from core.startup import generate_presence_greeting
+                from tools.voice import speak
+                speak(generate_presence_greeting(), disable_vad=True)
+            except Exception as e:
+                logging.error(f"[Sentinel] Error al emitir saludo de presencia: {e}")
+    else:
+        _user_absence_consecutive += 1
+        if _user_absence_consecutive >= _PRESENCE_ABSENCE_THRESHOLD and _user_presence_seen:
+            _user_presence_seen = False
+            logging.info(f"[Sentinel] Presencia del usuario no detectada tras {_PRESENCE_ABSENCE_THRESHOLD} escaneos. Marcando como ausente.")
+
+
 def run_quick_scan():
     """Ejecuta un escaneo rápido y actualiza la GUI inmediatamente."""
     def task():
@@ -362,6 +400,9 @@ def network_sentinel_loop():
             try:
                 devices = scan_network()
                 emit_network_update(devices)
+                # Comprobar presencia del usuario
+                scanned_macs = {d["mac"].lower() for d in devices}
+                _check_user_presence(scanned_macs)
             except Exception as e:
                 logging.error(f"[Sentinel] Error en bucle del centinela: {e}")
         if stop_event.wait(timeout=interval):

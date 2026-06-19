@@ -16,7 +16,7 @@ from tools.voice import speak
 from core.router import smart_route
 from core.llm_factory import get_llm
 from core.model_logging import log_model_usage
-from core.agent_manager import get_executor, init_agent
+from core.agent_manager import get_executor, init_agent, clear_conversation_memory
 
 
 load_dotenv()
@@ -38,20 +38,38 @@ default_model = os.getenv("JARVIS_MODEL_DEFAULT", "deepseek/deepseek-v4-pro")
 
 
 # Funciones auxiliares de escucha
+def _clean_trigger_word(text):
+    """Elimina la wake word y puntuación del texto transcrito."""
+    cleaned = text.lower().replace(TRIGGER_WORD.lower(), "").strip()
+    for p in [",", ".", "¿", "?", "!", "¡"]:
+        cleaned = cleaned.replace(p, "").strip()
+    return cleaned
+
 def listen_for_wake_word(source):
     logging.info("🎤 Listening for wake word...")
     from tools.voice import wait_while_speaking
     wait_while_speaking()
     audio = recognizer.listen(source, timeout=10, phrase_time_limit=15)
+    # Wake word detection siempre usa Google (rápido y ligero)
     transcript = recognizer.recognize_google(audio, language="es-ES")
     logging.info(f"🗣 Heard: {transcript}")
 
     if TRIGGER_WORD.lower() in transcript.lower():
         logging.info(f"🗣 Triggered by: {transcript}")
-        cleaned_command = transcript.lower().replace(TRIGGER_WORD.lower(), "").strip()
-        for p in [",", ".", "¿", "?", "!", "¡"]:
-            cleaned_command = cleaned_command.replace(p, "").strip()
+        cleaned_command = _clean_trigger_word(transcript)
         if len(cleaned_command) > 2:
+            # Re-transcribir con Whisper para mayor precisión del comando
+            stt_engine = os.getenv("JARVIS_STT_ENGINE", "whisper").lower()
+            if stt_engine == "whisper":
+                try:
+                    from core.whisper_stt import transcribe_audio
+                    whisper_text = transcribe_audio(audio)
+                    whisper_cmd = _clean_trigger_word(whisper_text)
+                    if len(whisper_cmd) > 2:
+                        return whisper_cmd, whisper_text, False
+                    logging.warning("⚠️ Whisper inline transcription too short, using Google.")
+                except Exception as e:
+                    logging.warning(f"⚠️ Whisper inline re-transcription failed: {e}")
             return cleaned_command, transcript, False
         else:
             return None, None, True
@@ -63,8 +81,15 @@ def listen_for_next_command(source):
     logging.info("🎤 Listening for next command...")
     from tools.voice import wait_while_speaking
     wait_while_speaking()
-    audio = recognizer.listen(source, timeout=10, phrase_time_limit=20)
-    transcript = recognizer.recognize_google(audio, language="es-ES")
+    audio = recognizer.listen(source, timeout=10, phrase_time_limit=30)
+
+    stt_engine = os.getenv("JARVIS_STT_ENGINE", "whisper").lower()
+    if stt_engine == "whisper":
+        from core.whisper_stt import transcribe_audio
+        transcript = transcribe_audio(audio)
+    else:
+        transcript = recognizer.recognize_google(audio, language="es-ES")
+
     logging.info(f"📥 Command: {transcript}")
     return transcript, transcript
 
@@ -132,6 +157,9 @@ def write():
             webbrowser.open("http://localhost:5000")
             browser_opened = True
             update_state("idle")
+            # Saludo de arranque dinámico con telemetría
+            from core.startup import generate_startup_greeting
+            speak(generate_startup_greeting(), disable_vad=True)
         else:
             time.sleep(2)
             update_state("offline")
@@ -170,7 +198,8 @@ def write():
                                         webbrowser.open("http://localhost:5000")
                                         browser_opened = True
                                     update_state("idle")
-                                    speak("Sistemas en línea, a su servicio.")
+                                    from core.startup import generate_wake_greeting
+                                    speak(generate_wake_greeting(), disable_vad=True)
                                 continue
 
                             if not conversation_mode:
@@ -217,7 +246,7 @@ def write():
                             ):
                                 logging.info("⌛ No input. Returning to wake word mode.")
                                 conversation_mode = False
-                                memory.clear()
+                                clear_conversation_memory()
                                 update_state("idle")
 
                         except sr.UnknownValueError:
@@ -228,7 +257,7 @@ def write():
                             ):
                                 logging.info("⌛ Noise but no valid words. Returning to wake word mode.")
                                 conversation_mode = False
-                                memory.clear()
+                                clear_conversation_memory()
                                 update_state("idle")
 
                         except Exception as e:

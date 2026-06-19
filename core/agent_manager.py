@@ -111,6 +111,16 @@ def init_agent() -> None:
     # Cargar herramientas y crear el executor inicial
     reload_agent()
 
+def clear_conversation_memory() -> None:
+    """Limpia el historial de conversación del agente de forma segura.
+    No falla si el agente todavía no ha sido inicializado."""
+    global memory
+    try:
+        if memory is not None:
+            memory.clear()
+    except Exception as e:
+        logging.error(f"Error al limpiar la memoria de conversación: {e}")
+
 def get_executor() -> AgentExecutor:
     """Retorna la instancia activa del AgentExecutor de Jarvis."""
     global executor

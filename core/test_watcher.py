@@ -160,11 +160,11 @@ def run_test(test_module: str = None) -> bool:
         # Emitir alertas por voz solo ante CAMBIOS reales de estado (evita ruidos repetitivos)
         if prev_state is not None:
             if prev_state == "pass" and current_state == "fail":
-                msg = f"Advertencia: Las pruebas de {display_name} ahora están fallando, señor."
+                msg = f"Señor, lamento informarle que las pruebas de {display_name} están fallando en este momento. Puede revisar la salida en el panel de logs."
                 logging.warning(f"[TestWatcher] Alerta emitida: {msg}")
                 speak(msg)
             elif prev_state == "fail" and current_state == "pass":
-                msg = f"Señor, las pruebas de {display_name} se han corregido y vuelven a pasar."
+                msg = f"Excelente, señor. Las pruebas de {display_name} se han corregido y vuelven a pasar correctamente."
                 logging.info(f"[TestWatcher] Alerta emitida: {msg}")
                 speak(msg)
         return success

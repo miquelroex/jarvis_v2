@@ -12,6 +12,7 @@ import core.jarvis_integrity as integrity
 import core.test_watcher as test_watcher
 import core.scheduler as scheduler
 import core.ram_guard as ram_guard
+import core.log_maintenance as log_maintenance
 
 def start_all_services():
     """
@@ -87,6 +88,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar RAM Guard: {e}")
 
+    # 10. Mantenimiento de logs/temporales — controlado por JARVIS_LOG_MAINTENANCE_ENABLED
+    try:
+        log_maintenance.start_log_maintenance()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Mantenimiento de Logs: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -95,6 +102,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 10. Mantenimiento de logs
+    try:
+        log_maintenance.stop_log_maintenance()
+    except Exception as e:
+        logging.error(f"Error al detener Mantenimiento de Logs: {e}")
 
     # 9. RAM Guard
     try:
@@ -192,14 +205,14 @@ def get_services_status() -> dict:
         status["network_sentinel"] = "running" if net_alive else "stopped"
 
     # 4. Centinela de APIs
-    if os.getenv("JARVIS_API_SENTINEL_ENABLED", "True").lower() not in ("true", "1", "yes"):
+    if os.getenv("JARVIS_API_SENTINEL_ENABLED", "false").lower() not in ("true", "1", "yes"):
         status["api_sentinel"] = "disabled"
     else:
         api_alive = api_sentinel.SENTINEL_THREAD is not None and api_sentinel.SENTINEL_THREAD.is_alive()
         status["api_sentinel"] = "running" if api_alive else "stopped"
 
     # 5. Patcher de Dependencias
-    patcher_key = os.getenv("JARVIS_PATCHER_ENABLED", os.getenv("JARVIS_VULNERABILITY_PATCHER_ENABLED", "True"))
+    patcher_key = os.getenv("JARVIS_PATCHER_ENABLED", os.getenv("JARVIS_VULNERABILITY_PATCHER_ENABLED", "false"))
     if patcher_key.lower() not in ("true", "1", "yes"):
         status["vulnerability_patcher"] = "disabled"
     else:
@@ -207,7 +220,7 @@ def get_services_status() -> dict:
         status["vulnerability_patcher"] = "running" if patcher_alive else "stopped"
 
     # 6. Sentinel de Integridad
-    if os.getenv("JARVIS_INTEGRITY_SENTINEL_ENABLED", "True").lower() not in ("true", "1", "yes"):
+    if os.getenv("JARVIS_INTEGRITY_SENTINEL_ENABLED", "false").lower() not in ("true", "1", "yes"):
         status["integrity_sentinel"] = "disabled"
     else:
         integrity_alive = integrity.INTEGRITY_THREAD is not None and integrity.INTEGRITY_THREAD.is_alive()
@@ -231,7 +244,15 @@ def get_services_status() -> dict:
     ram_alive = ram_guard.RAM_GUARD_THREAD is not None and ram_guard.RAM_GUARD_THREAD.is_alive()
     status["ram_guard"] = "running" if ram_alive else "stopped"
 
-    # 10. Privacy Monitor
+    # 10. Mantenimiento de logs
+    lm_enabled = os.getenv("JARVIS_LOG_MAINTENANCE_ENABLED", "true").lower() in ("true", "1", "yes")
+    if not lm_enabled:
+        status["log_maintenance"] = "disabled"
+    else:
+        lm_alive = log_maintenance.MAINTENANCE_THREAD is not None and log_maintenance.MAINTENANCE_THREAD.is_alive()
+        status["log_maintenance"] = "running" if lm_alive else "stopped"
+
+    # 11. Privacy Monitor
     try:
         interval = int(os.getenv("JARVIS_PRIVACY_SCAN_INTERVAL", "900"))
         if interval <= 0:

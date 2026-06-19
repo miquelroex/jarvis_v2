@@ -10,7 +10,18 @@ import sys
 
 # Crear la aplicación Flask
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('JARVIS_SECRET_KEY', 'jarvis-secret-fallback-token-secure-382910')
+
+# Clave secreta de sesión: nunca usar un valor fijo en el repositorio.
+# Si no está definida en .env, se genera una aleatoria por sesión (las
+# sesiones del navegador no sobrevivirán a un reinicio, lo cual es aceptable).
+_secret_key = os.getenv('JARVIS_SECRET_KEY')
+if not _secret_key or not _secret_key.strip():
+    import secrets
+    import logging as _logging
+    _secret_key = secrets.token_hex(32)
+    _logging.warning("[GUI] JARVIS_SECRET_KEY no esta definida en .env. "
+                     "Se ha generado una clave aleatoria temporal para esta sesion.")
+app.config['SECRET_KEY'] = _secret_key
 socketio = SocketIO(app, cors_allowed_origins=["http://localhost:5000", "http://127.0.0.1:5000"])
 
 # Estado actual de Jarvis

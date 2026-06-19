@@ -63,7 +63,7 @@ def execute_reminder_task(task: dict):
     
     try:
         # 1. Alerta por voz
-        speak(f"Señor, recordatorio: {target}")
+        speak(f"Disculpe la interrupción, señor. Me he tomado la libertad de recordarle que: {target}")
         
         # 2. Notificación push
         send_push_notification(
@@ -178,7 +178,7 @@ def execute_url_monitor(task: dict):
         if change_detected:
             metadata["alerted"] = True
             # Notificaciones
-            speak(f"Señor, he detectado un cambio en la página web: {name}.")
+            speak(f"Señor, mis sensores web registran una modificación en la página monitoreada: {name}. Sugiero revisar los detalles en el panel.")
             send_push_notification(
                 title="Cambio Web Detectado",
                 message=f"La página web monitoreada '{url}' ha cambiado.",

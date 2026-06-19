@@ -90,7 +90,7 @@ def start_api_sentinel():
     """Arranca el monitoreo en segundo plano. Es idempotente."""
     global SENTINEL_THREAD
     
-    if os.getenv("JARVIS_API_SENTINEL_ENABLED", "True").lower() not in ("true", "1", "yes"):
+    if os.getenv("JARVIS_API_SENTINEL_ENABLED", "false").lower() not in ("true", "1", "yes"):
         logging.info("[API Sentinel] Disabled in .env.")
         return
         
@@ -144,15 +144,15 @@ def _sentinel_loop():
                 
                 if curr != prev:
                     if is_degraded and not was_degraded:
-                        msg = f"Advertencia: Se ha detectado una degradación de servicio en la API de {api}."
+                        msg = f"Señor, la telemetría reporta una degradación de servicio en los servidores de la API de {api}. Estado actual: {curr}."
                         logging.warning(f"[API Sentinel] Alert: {msg} (Status: {curr})")
                         speak(msg, disable_vad=True)
                     elif is_degraded and was_degraded and curr == "critical" and prev != "critical":
-                        msg = f"Alerta crítica: La API de {api} reporta una caída total del servicio."
+                        msg = f"Alerta crítica, señor. Se ha registrado una interrupción absoluta del servicio en la API de {api}. Le recomiendo suspender cualquier operación dependiente de este servicio."
                         logging.warning(f"[API Sentinel] Critical Alert: {msg}")
                         speak(msg, disable_vad=True)
                     elif not is_degraded and was_degraded:
-                        msg = f"Excelente: El servicio de la API de {api} se ha restablecido por completo."
+                        msg = f"Buenas noticias, señor. Los servicios de la API de {api} vuelven a estar plenamente operativos."
                         logging.info(f"[API Sentinel] Recovery: {msg}")
                         speak(msg, disable_vad=True)
                         

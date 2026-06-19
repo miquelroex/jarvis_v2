@@ -68,7 +68,7 @@ class TestScheduler(unittest.TestCase):
         execute_reminder_task(task)
         
         # Debe llamar a speak y push
-        mock_speak.assert_called_with("Señor, recordatorio: Comprar pan")
+        mock_speak.assert_called_with("Disculpe la interrupción, señor. Me he tomado la libertad de recordarle que: Comprar pan")
         mock_push.assert_called_once()
         
         # Al ser ejecución única, debe eliminarse de la BD tras su ejecución

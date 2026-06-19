@@ -225,13 +225,13 @@ def run_integrity_check() -> dict:
             
         # Alertas si pasa de seguro a warning/critical
         if status != "secure" and LAST_STATUS == "secure":
-            msg = f"Atención señor. Se ha detectado una degradación de integridad en Jarvis. Estado del sistema: {status.upper()}."
+            msg = f"Disculpe, señor. Mis rutinas de autodiagnóstico han detectado una anomalía en la integridad del sistema. El estado actual es {status.upper()}."
             if syntax_failures:
-                msg += f" Hay {len(syntax_failures)} fallos de sintaxis."
+                msg += f" Registro {len(syntax_failures)} fallo{'s' if len(syntax_failures) > 1 else ''} de sintaxis en el código fuente."
             if tools_failures:
-                msg += f" {len(tools_failures)} herramientas no pudieron ser importadas."
+                msg += f" {len(tools_failures)} herramienta{'s' if len(tools_failures) > 1 else ''} no pudo ser importada correctamente."
             if not test_results["passed"]:
-                msg += " La suite de pruebas unitarias ha fallado."
+                msg += " La suite de pruebas unitarias ha presentado fallos. Sugiero una revisión inmediata, señor."
                 
             # Alerta por Voz (VAD desactivado para asegurar mensaje completo)
             try:
@@ -288,7 +288,7 @@ def start_integrity_sentinel_daemon():
     """Lanza el daemon del sentinel de integridad en segundo plano. Es idempotente."""
     global INTEGRITY_THREAD
     
-    if os.getenv("JARVIS_INTEGRITY_SENTINEL_ENABLED", "True").lower() not in ("true", "1", "yes"):
+    if os.getenv("JARVIS_INTEGRITY_SENTINEL_ENABLED", "false").lower() not in ("true", "1", "yes"):
         logging.info("[Integrity] Disabled in .env.")
         return
         
