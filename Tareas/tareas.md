@@ -71,7 +71,6 @@
 * [ ] **HUD Overlay Transparente (siempre visible)**: Ventana flotante semitransparente siempre encima de todo (topmost), estilo casco de Iron Man. Muestra en tiempo real: RAM/CPU del sistema, estado de servicios, hora, último comando procesado y alertas activas parpadeando en rojo. Visible mientras trabajas en el IDE. Implementable con PyQt5 o tkinter sin bordes.
 * [ ] **Widgets HUD Flotantes y Translúcidos**: Ventanas flotantes de escritorio minúsculas, transparentes y sin bordes que aparecen brevemente en las esquinas de tu monitor para mostrar telemetría rápida o notificaciones, simulando los micro-paneles de datos del casco de Iron Man.
 * [ ] **Sistema de Nivel de Amenaza DEFCON**: Jarvis tiene 4 niveles de alerta que cambian el color de toda la GUI en tiempo real — Verde (nominal), Amarillo (RAM elevada, test fallando, servicio caído), Rojo (RAM crítica, fallo de integridad, dispositivo extraño en red), Violeta (modo ultra-seguro activado). La esfera cambia de color y Jarvis adapta su tono de voz según el nivel.
-* [ ] **Diagnóstico de "Integridad de Armadura" (Hardware Check)**: Jarvis monitoriza no solo la RAM y CPU, sino la temperatura real de los componentes (tarjeta gráfica, procesador) y la salud del almacenamiento. Si el equipo se calienta demasiado al jugar o compilar, te da una alerta formal. *"Señor, detecto que el núcleo de la GPU está alcanzando los 82 grados. Recomiendo reducir la carga."*
 * [ ] **Modo "Taller Stark" (Sincronización Multi-Pantalla)**: Utilizar WebSockets para transmitir el panel web o HUD secundario a una tablet o teléfono en tu escritorio, dejando tu monitor principal libre exclusivamente para codificar. *"Transmitiendo señal del panel táctil al dispositivo secundario. Enlace establecido."*
 * [ ] **Protocolo "Blackout" (Modo Noche Inteligente)**: Monitorizar la hora y tus hábitos. Si pasa de la medianoche, Jarvis disminuye el volumen y adopta un tono de voz suave y susurrado, tiñe la interfaz de colores oscuros cálidos y te recuerda descansar. *(Voz suave)* *"Señor, es bastante tarde y su ritmo de tecleo ha disminuido. Sugiero suspender las operaciones."*
 * [ ] **Stark Diagnostic HUD (Telemetría Inyectada en el Navegador)**: Jarvis inyecta automáticamente un script ligero en tus páginas web de desarrollo local, creando un mini HUD flotante y semitransparente directamente en el navegador que muestra logs y excepciones de Python en tiempo real. *"Inyectando telemetría de depuración en la sesión del navegador local, señor."*
@@ -83,10 +82,8 @@
 ### 👁️ Percepción Proactiva
 * [ ] **JARVIS Proactivo Visual — "Te estoy mirando, señor"**: Daemon que cada 2-3 minutos captura la pantalla, la analiza con Gemini Vision y, si detecta algo relevante (debuggeando un error, llevas mucho tiempo en la misma pestaña, hay un mensaje urgente sin leer), interrumpe con voz sin que se lo pidas. *"Señor, observo que lleva 40 minutos analizando ese stack trace. ¿Desea que elija evaluar el error?"*
 * [ ] **Monitor de Portapapeles Inteligente**: Daemon que monitoriza el portapapeles en segundo plano. Al copiar un error de Python → ofrece solucionarlo. Una URL → ofrece resumirla. Código → ofrece explicarlo. Sin que le preguntes. *"Señor, detecto que acaba de copiar un traceback. ¿Desea que lo analice?"*
-* [ ] **Detector de Estrés y Ánimo por Voz**: Analizar el tono, ritmo y energía de la voz al hablar para detectar cansancio o frustración y que Jarvis adapte su respuesta: más conciso si detecta prisa, más pausado y empático si detecta estrés.
 * [ ] **Detección de Presencia por Webcam (Computer Vision)**: Detectar si el usuario está frente al monitor usando la webcam. Si te vas 10 minutos, Jarvis entra en modo low-power y dice *"Parece que se ha ausentado, señor. Pausando escucha activa."* Al volver, te saluda.
 * [ ] **Protocolo de Enfoque "Verónica"**: Al dar la orden de voz *"Jarvis, activa el protocolo Verónica"*, silencia las notificaciones de Windows, cambia la interfaz web a un esquema de color ámbar cálido de alto contraste, y muestra un temporizador de productividad tipo cuenta atrás en el HUD. *"Protocolo Verónica iniciado. Silenciando distractores externos."*
-* [ ] **Protocolo "Mantis" (Aislamiento Acústico Inteligente)**: Si Jarvis detecta ruido de fondo molesto en tu micrófono (ventilador, ladridos, obras), inicializa automáticamente filtros de ruido basados en IA en el canal de audio local. *"He detectado interferencias acústicas de fondo, señor. He inicializado el protocolo Mantis para aislar su voz."*
 * [ ] **Protocolo "Babel" (Traducción Simultánea por Voz)**: Escuchar audio en inglés u otro idioma en tiempo real (de llamadas o vídeos) y ofrecerte una traducción por síntesis de voz al oído o mediante subtítulos discretos en el HUD flotante. *"Traducción en tiempo real activa. Canalizando audio traducido al auricular secundario."*
 
 ### 🧠 Memoria y Contexto Persistente
@@ -128,6 +125,8 @@
 * [ ] Load Tester: simulador de rendimiento de red y usuarios concurrentes locales en el servidor.
 * [ ] Mutation Testing: inyección de mutantes en memoria para validar la calidad de las pruebas.
 * [ ] Concurrency Stress Pilot: simulación de condiciones de carrera, hilos y deadlocks locales.
+* [ ] Asistente Git Inteligente: generación automática de mensajes de commit (Conventional Commits), changelogs y resúmenes de branch por voz.
+* [ ] Auto-Documentador de Código: generación de docstrings PEP 257 y documentación de endpoints Flask con revisión interactiva antes de aplicar.
 
 ### 🛡️ Seguridad y Autenticación
 * [x] Reparador Autónomo de dependencias vulnerables.
@@ -145,14 +144,16 @@
 * [ ] Weekly Reflection: recopilación semanal estructurada del progreso de desarrollo.
 * [ ] Developer Journal: diario de hitos motivacionales interactivo en la GUI.
 * [ ] Base de conocimiento de errores recurrentes.
+* [ ] Rastreador de Productividad por Proyecto: daemon que registra ventana activa y repo git asociado para medir tiempo real dedicado a cada proyecto.
+* [ ] Canal de Notificaciones Externas (Telegram/Discord): bot para enviar alertas configurables al móvil (test fallido, dispositivo en red, build completado).
 
 ### 📂 Gestión de Archivos y Tareas (Jarvis Inbox)
 * [ ] Jarvis Inbox para notas rápidas, ideas y recordatorios por voz o texto.
 * [ ] Downloads Inbox (bandeja de descargas física monitoreada).
 * [ ] Clasificador de archivos inteligente con confirmación interactiva en la GUI.
+* [ ] Gestor de Entornos (.env Manager): escaneo de variables referenciadas en código vs. presentes en `.env`, detección de faltantes y vacías.
 
 ### 📱 Futuro Wow
-* [ ] Modo "Sala de Hologramas": exploración en 3D interactiva de clases y bases de datos.
 * [ ] Rostro Holográfico 3D reactivo por fonemas (Lip-Sync).
 * [ ] Copiloto interactivo por gestos (MediaPipe + Webcam).
 
