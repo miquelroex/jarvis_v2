@@ -50,11 +50,11 @@
 
 ## Prioridad alta
 
-* [ ] **Panel de Configuración GUI:**
+* [x] **Panel de Configuración GUI:**
   - [x] Activar/desactivar servicios pesados de fondo.
   - [x] Cambiar STT (small/medium/large).
-  - [ ] Ver historial de llamadas a modelos.  
-  - [ ] Ver coste aproximado, tokens y proveedor usado.
+  - [x] Ver historial de llamadas a modelos.  
+  - [x] Ver coste aproximado, tokens y proveedor usado.
 
 * [ ] **Comandos Rápidos sin IA concretos:**
   - [ ] Comando rápido: resumen del día.

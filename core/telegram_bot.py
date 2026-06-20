@@ -368,9 +368,34 @@ def start_telegram_bot():
             else:
                 # 2. Delegar al agente de LangChain
                 default_model = os.getenv("JARVIS_MODEL_DEFAULT", "deepseek/deepseek-v4-pro")
-                log_model_usage("main_model", default_model, text)
-                response = get_executor().invoke({"input": text})
-                content = response["output"]
+                prompt_tokens = 0
+                completion_tokens = 0
+                from langchain_community.callbacks import get_openai_callback
+                try:
+                    with get_openai_callback() as cb:
+                        response = get_executor().invoke({"input": text})
+                        prompt_tokens = cb.prompt_tokens
+                        completion_tokens = cb.completion_tokens
+                    content = response["output"]
+                except Exception as ex:
+                    log_model_usage(
+                        tool_name="main_model",
+                        model_name=default_model,
+                        prompt=text,
+                        prompt_tokens=0,
+                        completion_tokens=0,
+                        provider="openrouter"
+                    )
+                    raise ex
+                
+                log_model_usage(
+                    tool_name="main_model",
+                    model_name=default_model,
+                    prompt=text,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    provider="openrouter"
+                )
                 model_display = default_model
                 
             update_state("speaking", response=content, model=model_display)

@@ -43,6 +43,11 @@ const settingsBtnClose = document.getElementById('settings-btn-close');
 const whisperModelSelect = document.getElementById('whisper-model-select');
 const whisperStatusValue = document.getElementById('whisper-status-value');
 
+// Elementos de métricas acumuladas diarias
+const dailyCallsVal = document.getElementById('daily-calls-val');
+const dailyTokensVal = document.getElementById('daily-tokens-val');
+const dailyCostVal = document.getElementById('daily-cost-val');
+
 // --- COLORES Y PARÁMETROS SEGÚN ESTADO ---
 const stateColors = {
     idle:      { r: 0.0, g: 0.83, b: 1.0 },   // Azul cian (#00d4ff)
@@ -498,13 +503,24 @@ function renderLogItem(log) {
     // Obtener sólo la hora
     const timeOnly = log.timestamp.split(' ')[1] || log.timestamp;
     
+    // Formatear el coste y tokens
+    const costText = log.cost ? '$' + parseFloat(log.cost).toFixed(5) : '$0.00000';
+    const providerText = (log.provider || 'openrouter').toUpperCase();
+    const promptTokens = log.prompt_tokens || 0;
+    const completionTokens = log.completion_tokens || 0;
+    const totalTokens = log.total_tokens || 0;
+    
     item.innerHTML = `
         <div class="log-header">
-            <span>${timeOnly}</span>
-            <span>${log.tool_name}</span>
+            <span>${timeOnly} | <span style="font-size: 0.62rem; color: #00d4ff; font-weight: normal;">${providerText}</span></span>
+            <span style="font-weight: bold; font-family: monospace; font-size: 0.7rem;">${log.tool_name}</span>
         </div>
-        <div class="log-model">${log.model_name}</div>
-        <div class="log-prompt">${log.prompt}</div>
+        <div class="log-model" style="font-weight: bold; color: #ffffff; margin-top: 2px;">${log.model_name}</div>
+        <div class="log-prompt" style="margin-top: 4px; font-style: italic; color: #888888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${log.prompt}</div>
+        <div class="log-meta-stats" style="display: flex; justify-content: space-between; font-size: 0.62rem; color: #888888; margin-top: 6px; border-top: 1px dashed rgba(0, 212, 255, 0.15); padding-top: 4px; font-family: monospace;">
+            <span>TOKENS: ${promptTokens}+${completionTokens} (${totalTokens})</span>
+            <span style="color: #00ff88; font-weight: bold; text-shadow: 0 0 4px rgba(0, 255, 136, 0.2);">${costText}</span>
+        </div>
     `;
     return item;
 }
@@ -523,6 +539,14 @@ socket.on('new_model_log', (log) => {
     // Limitar a 15 elementos
     while (modelUsageListEl.children.length > 15) {
         modelUsageListEl.removeChild(modelUsageListEl.lastChild);
+    }
+});
+
+socket.on('daily_usage_update', (data) => {
+    if (dailyCallsVal) dailyCallsVal.textContent = data.calls || 0;
+    if (dailyTokensVal) dailyTokensVal.textContent = data.tokens ? data.tokens.toLocaleString() : 0;
+    if (dailyCostVal) {
+        dailyCostVal.textContent = data.cost ? '$' + parseFloat(data.cost).toFixed(5) : '$0.00000';
     }
 });
 

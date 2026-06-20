@@ -61,6 +61,13 @@ def handle_connect():
     emit('active_window_update', jarvis_state.get("active_window", {"title": "", "app_name": ""}))
     print("[GUI] Navegador conectado")
     
+    # Enviar reporte de uso acumulado hoy al conectar
+    try:
+        from core.model_logging import get_daily_usage
+        emit('daily_usage_update', get_daily_usage())
+    except Exception as e:
+        print(f"[GUI] Error al enviar reporte de uso diario inicial: {e}")
+    
     # Enviar lista actual de dispositivos de red al conectar
     try:
         from core.network_sentinel import active_devices, run_quick_scan
@@ -113,16 +120,31 @@ def handle_connect():
             with open(log_path, "r", encoding="utf-8") as f:
                 lines = f.readlines()
             
+            import json
             recent_logs = []
             for line in lines[-15:]:
-                parts = [p.strip() for p in line.split(" | ", 3)]
-                if len(parts) >= 3:
-                    recent_logs.append({
-                        "timestamp": parts[0],
-                        "tool_name": parts[1],
-                        "model_name": parts[2],
-                        "prompt": parts[3] if len(parts) > 3 else ""
-                    })
+                line_str = line.strip()
+                if not line_str:
+                    continue
+                if line_str.startswith("{"):
+                    try:
+                        recent_logs.append(json.loads(line_str))
+                    except Exception:
+                        pass
+                else:
+                    parts = [p.strip() for p in line_str.split(" | ", 3)]
+                    if len(parts) >= 3:
+                        recent_logs.append({
+                            "timestamp": parts[0],
+                            "tool_name": parts[1],
+                            "model_name": parts[2],
+                            "prompt": parts[3] if len(parts) > 3 else "",
+                            "prompt_tokens": 0,
+                            "completion_tokens": 0,
+                            "total_tokens": 0,
+                            "cost": 0.0,
+                            "provider": "unknown"
+                        })
             emit('initial_logs', recent_logs)
     except Exception as e:
         print(f"[GUI] Error al cargar logs iniciales: {e}")

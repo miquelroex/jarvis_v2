@@ -120,10 +120,35 @@ def process_command(command_to_execute, transcript_for_ui):
     update_state("speaking", response=content, model=model_display)
   else:
     logging.info("Sending command to agent...")
-    log_model_usage("main_model", default_model, command_to_execute)
-    response = get_executor().invoke({"input": command_to_execute})
-    content = response["output"]
+    prompt_tokens = 0
+    completion_tokens = 0
+    from langchain_community.callbacks import get_openai_callback
+    try:
+        with get_openai_callback() as cb:
+            response = get_executor().invoke({"input": command_to_execute})
+            prompt_tokens = cb.prompt_tokens
+            completion_tokens = cb.completion_tokens
+        content = response["output"]
+    except Exception as e:
+        log_model_usage(
+            tool_name="main_model",
+            model_name=default_model,
+            prompt=command_to_execute,
+            prompt_tokens=0,
+            completion_tokens=0,
+            provider="openrouter"
+        )
+        raise
+        
     logging.info(f"Agent responded: {content}")
+    log_model_usage(
+        tool_name="main_model",
+        model_name=default_model,
+        prompt=command_to_execute,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        provider="openrouter"
+    )
     update_state("speaking", response=content)
 
   print("Jarvis:", content)

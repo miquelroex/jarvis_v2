@@ -83,7 +83,8 @@ def ask_delegated_model(
       "Si no, di: cancela modelo."
     )
 
-  log_model_usage(tool_name, model, prompt)
+  prompt_tokens = 0
+  completion_tokens = 0
 
   try:
     if provider == "google_ai_studio":
@@ -96,15 +97,51 @@ def ask_delegated_model(
         model=model,
         contents=prompt,
       )
+      
+      if hasattr(response, 'usage_metadata') and response.usage_metadata:
+        prompt_tokens = response.usage_metadata.prompt_token_count or 0
+        completion_tokens = response.usage_metadata.candidates_token_count or 0
+
+      log_model_usage(
+        tool_name=tool_name,
+        model_name=model,
+        prompt=prompt,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        provider=provider
+      )
       return response.text
     else:
       api_key = os.getenv("OPENROUTER_API_KEY")
       if not api_key:
         return "No OPENROUTER_API_KEY found in .env"
+      
+      from langchain_community.callbacks import get_openai_callback
       llm = get_llm(model, temperature=0.2)
-      response = llm.invoke(prompt)
+      
+      with get_openai_callback() as cb:
+        response = llm.invoke(prompt)
+        prompt_tokens = cb.prompt_tokens
+        completion_tokens = cb.completion_tokens
+        
+      log_model_usage(
+        tool_name=tool_name,
+        model_name=model,
+        prompt=prompt,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        provider=provider
+      )
       return response.content
   except Exception as e:
+    log_model_usage(
+      tool_name=tool_name,
+      model_name=model,
+      prompt=prompt,
+      prompt_tokens=0,
+      completion_tokens=0,
+      provider=provider
+    )
     return f"Error al invocar {provider} ({model}): {str(e)}"
 
 # Alias compatible por si se sigue llamando ask_openrouter_model en otros archivos

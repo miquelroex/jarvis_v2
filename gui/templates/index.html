@@ -15,6 +15,23 @@
         <div id="model-logs-panel">
             <div class="panel-section">
                 <div id="logs-title">Logs de Acceso</div>
+                
+                <!-- Dashboard de Consumo Diario -->
+                <div id="daily-usage-dashboard" style="display: flex; gap: 8px; margin-bottom: 12px; font-size: 0.7rem; background: rgba(0, 212, 255, 0.04); border: 1px solid rgba(0, 212, 255, 0.15); padding: 8px; border-radius: 4px; font-family: monospace;">
+                    <div style="flex: 1; text-align: center; border-right: 1px solid rgba(0, 212, 255, 0.15);">
+                        <div style="color: #888888; font-size: 0.55rem; letter-spacing: 0.05rem;">CALLS</div>
+                        <div id="daily-calls-val" style="font-weight: bold; color: #ffffff; margin-top: 2px;">0</div>
+                    </div>
+                    <div style="flex: 1; text-align: center; border-right: 1px solid rgba(0, 212, 255, 0.15);">
+                        <div style="color: #888888; font-size: 0.55rem; letter-spacing: 0.05rem;">TOKENS</div>
+                        <div id="daily-tokens-val" style="font-weight: bold; color: #ffffff; margin-top: 2px;">0</div>
+                    </div>
+                    <div style="flex: 1; text-align: center;">
+                        <div style="color: #888888; font-size: 0.55rem; letter-spacing: 0.05rem;">COST (HOY)</div>
+                        <div id="daily-cost-val" style="font-weight: bold; color: #00ff88; margin-top: 2px;">$0.00000</div>
+                    </div>
+                </div>
+
                 <div id="model-usage-list">
                     <!-- Se llenará con llamadas en tiempo real -->
                 </div>
