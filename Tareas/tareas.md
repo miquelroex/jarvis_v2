@@ -78,6 +78,7 @@
 * [ ] **Mapa de Calor de Hardware 3D (Stark Thermal Telemetry)**: Una representación tridimensional interactiva y translúcida de la placa base de tu ordenador en la interfaz web de Jarvis, que cambia de color (de azul a rojo) en tiempo real según la temperatura de los núcleos de tu procesador, la velocidad de los ventiladores y el voltaje de la batería. *"Telemetría térmica activa. Disipadores nominales operando a 2100 RPM."*
 * [ ] **Modo "Sala de Hologramas" (Explorador Relacional 3D)**: En la interfaz web de Jarvis, puedes abrir una vista en 3D interactiva que proyecta tus bases de datos o la estructura de clases del proyecto como partículas y enlaces de luz flotantes. Puedes "agarrar" y arrastrar las tablas o clases para ver cómo se relacionan físicamente y explorar visualmente el diseño del sistema. *"Estructura relacional de la base de datos proyectada en el panel 3D, señor."*
 * [ ] **Modo "Stark HUD - Telemetría de Red" (Packet Map 3D)**: Una visualización de tráfico de red interactiva en la GUI que muestra todas las llamadas HTTP/WS entrantes y salientes de tus aplicaciones locales en forma de haces de luz de colores que ya viajan en un mapa tridimensional de nodos interconectados (estilo sala de control de Stark Industries). *"Mapa de paquetes activo. Monitoreando latencia del canal y flujo de payloads entrantes."*
+* [ ] **Dashboard de Salud de Jarvis (Self-Monitoring)**: widget en tiempo real en la GUI web que muestra tokens consumidos, coste estimado acumulado hoy, latencia media de las respuestas de IA y estado de los procesos/servicios en segundo plano.
 
 ### 👁️ Percepción Proactiva
 * [ ] **JARVIS Proactivo Visual — "Te estoy mirando, señor"**: Daemon que cada 2-3 minutos captura la pantalla, la analiza con Gemini Vision y, si detecta algo relevante (debuggeando un error, llevas mucho tiempo en la misma pestaña, hay un mensaje urgente sin leer), interrumpe con voz sin que se lo pidas. *"Señor, observo que lleva 40 minutos analizando ese stack trace. ¿Desea que elija evaluar el error?"*
@@ -91,6 +92,7 @@
 * [ ] Mejorar memoria con búsqueda semántica (Embeddings locales y base vectorial ligera).
 * [ ] RAG Local sobre recuerdos, conversaciones previas y archivos de código del proyecto.
 * [ ] Grafo de Conocimiento del Proyecto (Architectural Knowledge Graph) para analizar dependencias locales.
+* [ ] Cambio de Contexto por Proyecto (Project Awareness): detección dinámica del repositorio git activo para ajustar el contexto del prompt de Jarvis y responder con telemetría del repositorio (rama, commit, estado) de forma automática.
 
 ### 🎙️ Voz e Interfaz (UI/UX)
 * [x] Barge-in por tecla (interrupción manual).
@@ -135,6 +137,7 @@
 * [ ] Autenticación segura por Huella de Voz.
 * [ ] Modo "Simulador de Vuelo": ejecución de scripts desconocidos en contenedores Docker aislados.
 * [ ] Radar de Ciberdefensa Activa: vigilar puertos locales e intentos de escaneo externos (con mapa 3D).
+* [ ] Auditoría Proactiva de Dependencias (Dependency Health Check): análisis periódico de dependencias mediante pip list/PyPI metadata para advertir proactivamente sobre librerías desactualizadas o abandonadas antes de que supongan un problema.
 
 ### 📊 Informes y Diario
 * [x] Daily Digest manual.
@@ -146,12 +149,14 @@
 * [ ] Base de conocimiento de errores recurrentes.
 * [ ] Rastreador de Productividad por Proyecto: daemon que registra ventana activa y repo git asociado para medir tiempo real dedicado a cada proyecto.
 * [ ] Canal de Notificaciones Externas (Telegram/Discord): bot para enviar alertas configurables al móvil (test fallido, dispositivo en red, build completado).
+* [ ] Scheduler de Tareas Programadas (Cron de Jarvis): infraestructura centralizada basada en APScheduler para programar tareas con hora/frecuencia (Daily Digest, briefings, etc.) desde un JSON de configuración.
 
 ### 📂 Gestión de Archivos y Tareas (Jarvis Inbox)
 * [ ] Jarvis Inbox para notas rápidas, ideas y recordatorios por voz o texto.
 * [ ] Downloads Inbox (bandeja de descargas física monitoreada).
 * [ ] Clasificador de archivos inteligente con confirmación interactiva en la GUI.
 * [ ] Gestor de Entornos (.env Manager): escaneo de variables referenciadas en código vs. presentes en `.env`, detección de faltantes y vacías.
+* [ ] Biblioteca de Snippets y Plantillas (Code Pattern Library): almacenamiento SQLite de fragmentos de código repetitivos (decoradores Flask, setups de test, SQLite setup) y su inyección interactiva a través del portapapeles.
 
 ### 📱 Futuro Wow
 * [ ] Rostro Holográfico 3D reactivo por fonemas (Lip-Sync).
