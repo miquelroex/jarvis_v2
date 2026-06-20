@@ -90,6 +90,18 @@ def execute_pending_action() -> str:
             return "No se especificó ningún mensaje para el commit en la acción pendiente."
         return apply_git_commit(message)
         
+    elif action_type == "apply_docstrings":
+        from core.code_documenter import write_documenter_changes
+        file_path = data.get("file_path")
+        modified_code = data.get("modified_code")
+        if not file_path or not modified_code:
+            return "Datos insuficientes en la acción pendiente para aplicar la documentación."
+        success = write_documenter_changes(file_path, modified_code)
+        if success:
+            return f"Excelente, señor. He insertado los docstrings generados en el archivo '{Path(file_path).name}' con éxito."
+        else:
+            return f"Señor, hubo un inconveniente al intentar escribir los cambios en '{Path(file_path).name}'."
+            
     elif action_type == "tool_creation":
         from tools.dynamic_tool_creator import execute_create_tool
         name = data.get("name")

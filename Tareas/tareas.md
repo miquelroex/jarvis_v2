@@ -127,7 +127,7 @@
 * [ ] Mutation Testing: inyección de mutantes en memoria para validar la calidad de las pruebas.
 * [ ] Concurrency Stress Pilot: simulación de condiciones de carrera, hilos y deadlocks locales.
 * [x] Asistente Git Inteligente: generación automática de mensajes de commit (Conventional Commits), changelogs y resúmenes de branch por voz.
-* [ ] Auto-Documentador de Código: generación de docstrings PEP 257 y documentación de endpoints Flask con revisión interactiva antes de aplicar.
+* [x] Auto-Documentador de Código: generación de docstrings PEP 257 y documentación de endpoints Flask con revisión interactiva antes de aplicar.
 
 ### 🛡️ Seguridad y Autenticación
 * [x] Reparador Autónomo de dependencias vulnerables.
