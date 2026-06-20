@@ -132,6 +132,51 @@ def handle_mute_request():
     print("[GUI] Recibida solicitud de silencio (Barge-in).")
     stop_speak()
 
+def update_env_var(key: str, value: str) -> None:
+    """Updates a variable in the .env file and in the current os.environ."""
+    import os
+    from pathlib import Path
+    os.environ[key] = value
+    env_path = Path(".env")
+    
+    lines = []
+    found = False
+    if env_path.exists():
+        content = env_path.read_text(encoding="utf-8")
+        for line in content.splitlines():
+            if line.strip().startswith(f"{key}=") or line.strip().startswith(f"{key} ="):
+                lines.append(f"{key}={value}")
+                found = True
+            else:
+                lines.append(line)
+                
+    if not found:
+        lines.append(f"{key}={value}")
+        
+    env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+@socketio.on('get_whisper_config')
+def handle_get_whisper_config():
+    try:
+        from core.whisper_stt import get_model_info
+        emit('whisper_config_response', get_model_info())
+    except Exception as e:
+        print(f"[GUI] Error al obtener configuración de Whisper: {e}")
+
+@socketio.on('set_whisper_model')
+def handle_set_whisper_model(data):
+    model_name = data.get('model')
+    if model_name:
+        print(f"[GUI] Solicitud para cambiar modelo de Whisper a: {model_name}")
+        try:
+            update_env_var("JARVIS_WHISPER_MODEL", model_name)
+            from core.whisper_stt import unload_model, get_model_info
+            unload_model()
+            emit('whisper_config_response', get_model_info(), broadcast=True)
+            print(f"[GUI] Modelo de Whisper actualizado a {model_name} y descargado de memoria.")
+        except Exception as e:
+            print(f"[GUI] Error al cambiar modelo de Whisper: {e}")
+
 @socketio.on('run_code_request')
 def handle_run_code_request(data):
     language = data.get('language')

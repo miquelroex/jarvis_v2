@@ -53,7 +53,7 @@
 * [ ] **Panel de Configuración GUI:**
   - [ ] Activar/desactivar servicios pesados de fondo.
   - [ ] Cambiar modelo manualmente.
-  - [ ] Cambiar STT (small/medium/large).
+  - [x] Cambiar STT (small/medium/large).
   - [ ] Ver historial de llamadas a modelos.
   - [ ] Ver coste aproximado, tokens y proveedor usado.
 

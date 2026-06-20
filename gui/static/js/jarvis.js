@@ -36,6 +36,13 @@ const btnRun = document.getElementById('artifact-btn-run');
 const btnCopy = document.getElementById('artifact-btn-copy');
 const btnClose = document.getElementById('artifact-btn-close');
 
+// Elementos del Panel de Configuración
+const settingsPanelEl = document.getElementById('settings-panel');
+const settingsBtn = document.getElementById('settings-btn');
+const settingsBtnClose = document.getElementById('settings-btn-close');
+const whisperModelSelect = document.getElementById('whisper-model-select');
+const whisperStatusValue = document.getElementById('whisper-status-value');
+
 // --- COLORES Y PARÁMETROS SEGÚN ESTADO ---
 const stateColors = {
     idle:      { r: 0.0, g: 0.83, b: 1.0 },   // Azul cian (#00d4ff)
@@ -1415,5 +1422,56 @@ socket.on('plan_update', (data) => {
     
     // Auto-scroll
     thoughtConsoleContainerEl.scrollTop = thoughtConsoleContainerEl.scrollHeight;
+});
+
+// --- MANEJADORES DE CONFIGURACIÓN ---
+if (settingsBtn && settingsPanelEl) {
+    settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settingsPanelEl.classList.add('active');
+        socket.emit('get_whisper_config');
+    });
+}
+
+if (settingsBtnClose && settingsPanelEl) {
+    settingsBtnClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settingsPanelEl.classList.remove('active');
+    });
+}
+
+// Cerrar panel si se hace clic fuera del mismo
+document.addEventListener('click', (e) => {
+    if (settingsPanelEl && settingsPanelEl.classList.contains('active')) {
+        if (!settingsPanelEl.contains(e.target) && e.target !== settingsBtn) {
+            settingsPanelEl.classList.remove('active');
+        }
+    }
+});
+
+if (whisperModelSelect) {
+    whisperModelSelect.addEventListener('change', () => {
+        const selectedModel = whisperModelSelect.value;
+        if (whisperStatusValue) {
+            whisperStatusValue.textContent = 'Actualizando...';
+            whisperStatusValue.style.color = '#ffc800';
+        }
+        socket.emit('set_whisper_model', { model: selectedModel });
+    });
+}
+
+socket.on('whisper_config_response', (data) => {
+    if (whisperModelSelect) {
+        whisperModelSelect.value = data.configured_model;
+    }
+    if (whisperStatusValue) {
+        if (data.loaded) {
+            whisperStatusValue.textContent = `Cargado: ${data.model_name} (${data.device})`;
+            whisperStatusValue.style.color = '#00ff88';
+        } else {
+            whisperStatusValue.textContent = `No cargado (En espera | Config: ${data.configured_model})`;
+            whisperStatusValue.style.color = '#888888';
+        }
+    }
 });
 
