@@ -1569,4 +1569,319 @@ socket.on('services_config_response', (data) => {
         });
     });
 });
+
+// ==========================================
+// SUIT UP — Secuencia de Arranque Animada
+// ==========================================
+
+const suitupOverlayEl = document.getElementById('suitup-overlay');
+const suitupCounterEl = document.getElementById('suitup-counter');
+const suitupProgressBarEl = document.getElementById('suitup-progress-bar');
+const suitupProgressLabelEl = document.getElementById('suitup-progress-label');
+const suitupFinalEl = document.getElementById('suitup-final');
+const suitupFinalItemsEl = document.getElementById('suitup-final-items');
+const suitupFinalLevelEl = document.getElementById('suitup-final-level');
+const suitupSkipHintEl = document.getElementById('suitup-skip-hint');
+
+let suitupActive = false;
+let suitupCompleted = false;
+
+// Ocultar overlay al cargar si no hay secuencia activa (por ejemplo, al recargar)
+// El overlay se mantendrá visible esperando el primer evento suitup_start.
+// Si no llega en 8s, lo ocultamos automáticamente.
+let suitupAutoHideTimer = setTimeout(() => {
+    if (!suitupActive && suitupOverlayEl && !suitupCompleted) {
+        dismissSuitup();
+    }
+}, 8000);
+
+function dismissSuitup() {
+    if (suitupCompleted) return;
+    suitupCompleted = true;
+    suitupActive = false;
+
+    // Notificar al backend para que detenga la secuencia de telemetría
+    socket.emit('skip_suitup');
+
+    if (suitupOverlayEl) {
+        suitupOverlayEl.classList.add('hidden');
+        // Remover del DOM después de la transición
+        setTimeout(() => {
+            if (suitupOverlayEl.parentNode) {
+                suitupOverlayEl.style.display = 'none';
+            }
+        }, 1000);
+    }
+    console.log('[JARVIS GUI] Suit Up sequence dismissed.');
+}
+
+// Interrupción con ESC o clic
+if (suitupSkipHintEl) {
+    suitupSkipHintEl.addEventListener('click', dismissSuitup);
+}
+
+if (suitupOverlayEl) {
+    suitupOverlayEl.addEventListener('click', (e) => {
+        if (suitupActive && (e.target === suitupOverlayEl || e.target.id === 'suitup-scanlines' || e.target.id === 'suitup-skip-hint')) {
+            dismissSuitup();
+        }
+    });
+}
+
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && suitupActive) {
+        dismissSuitup();
+    }
+});
+
+// Handler: Inicio de secuencia
+socket.on('suitup_start', (data) => {
+    console.log('[JARVIS GUI] Suit Up sequence started.', data);
+    suitupActive = true;
+    suitupCompleted = false;
+
+    // Cancelar auto-hide
+    if (suitupAutoHideTimer) {
+        clearTimeout(suitupAutoHideTimer);
+        suitupAutoHideTimer = null;
+    }
+
+    // Asegurar visibilidad
+    if (suitupOverlayEl) {
+        suitupOverlayEl.style.display = 'flex';
+        suitupOverlayEl.classList.remove('hidden');
+    }
+
+    // Resetear estado visual
+    if (suitupCounterEl) {
+        suitupCounterEl.textContent = 'INITIALIZING...';
+        suitupCounterEl.classList.add('active-phase');
+    }
+
+    // Resetear cards
+    for (let i = 1; i <= 4; i++) {
+        const card = document.getElementById(`suitup-phase-${i}`);
+        if (card) {
+            card.classList.remove('active', 'completed');
+            const itemsContainer = card.querySelector('.phase-items');
+            if (itemsContainer) itemsContainer.innerHTML = '';
+        }
+    }
+
+    // Resetear barra de progreso
+    if (suitupProgressBarEl) suitupProgressBarEl.style.width = '0%';
+    if (suitupProgressLabelEl) suitupProgressLabelEl.textContent = '0%';
+
+    // Ocultar panel final
+    if (suitupFinalEl) suitupFinalEl.style.display = 'none';
+    if (suitupFinalItemsEl) suitupFinalItemsEl.innerHTML = '';
+    if (suitupFinalLevelEl) {
+        suitupFinalLevelEl.textContent = '';
+        suitupFinalLevelEl.className = '';
+    }
+});
+
+// Handler: Fase de telemetría
+socket.on('suitup_phase', (data) => {
+    if (suitupCompleted) return;
+
+    console.log(`[JARVIS GUI] Suit Up phase ${data.phase}: ${data.title}`);
+
+    const phaseNum = data.phase;
+    const progress = data.progress || 0;
+
+    // Actualizar contador
+    if (suitupCounterEl) {
+        suitupCounterEl.textContent = `PHASE ${phaseNum}/${data.total_phases}: ${data.title}`;
+        suitupCounterEl.classList.add('active-phase');
+    }
+
+    // Actualizar barra de progreso
+    if (suitupProgressBarEl) suitupProgressBarEl.style.width = `${progress}%`;
+    if (suitupProgressLabelEl) suitupProgressLabelEl.textContent = `${progress}%`;
+
+    // Fases 1-4 van al grid
+    if (phaseNum >= 1 && phaseNum <= 4) {
+        // Marcar fases anteriores como completadas
+        for (let i = 1; i < phaseNum; i++) {
+            const prevCard = document.getElementById(`suitup-phase-${i}`);
+            if (prevCard) {
+                prevCard.classList.remove('active');
+                prevCard.classList.add('completed');
+            }
+        }
+
+        // Activar card actual
+        const card = document.getElementById(`suitup-phase-${phaseNum}`);
+        if (card) {
+            card.classList.add('active');
+
+            // Actualizar icono y título
+            const iconEl = card.querySelector('.phase-icon');
+            const titleEl = card.querySelector('.phase-title');
+            if (iconEl && data.icon) iconEl.textContent = data.icon;
+            if (titleEl && data.title) titleEl.textContent = data.title;
+
+            // Renderizar items con stagger animation
+            const itemsContainer = card.querySelector('.phase-items');
+            if (itemsContainer && data.items) {
+                itemsContainer.innerHTML = '';
+                data.items.forEach((item, index) => {
+                    const itemEl = document.createElement('div');
+                    itemEl.classList.add('phase-item');
+                    itemEl.style.animationDelay = `${index * 0.15}s`;
+                    itemEl.innerHTML = `
+                        <span class="item-label">${item.label}</span>
+                        <span class="item-value status-${item.status || 'ok'}">${item.value}</span>
+                    `;
+                    itemsContainer.appendChild(itemEl);
+                });
+            }
+        }
+    }
+
+    // Fase 5: Final Status
+    if (phaseNum === 5) {
+        // Marcar todas las cards del grid como completadas
+        for (let i = 1; i <= 4; i++) {
+            const prevCard = document.getElementById(`suitup-phase-${i}`);
+            if (prevCard) {
+                prevCard.classList.remove('active');
+                prevCard.classList.add('completed');
+            }
+        }
+
+        // Mostrar panel final
+        if (suitupFinalEl) suitupFinalEl.style.display = 'block';
+        if (suitupFinalItemsEl && data.items) {
+            suitupFinalItemsEl.innerHTML = '';
+            data.items.forEach((item, index) => {
+                const itemEl = document.createElement('div');
+                itemEl.classList.add('phase-item');
+                itemEl.style.animationDelay = `${index * 0.2}s`;
+                itemEl.innerHTML = `
+                    <span class="item-label">${item.label}</span>
+                    <span class="item-value status-${item.status || 'ok'}">${item.value}</span>
+                `;
+                suitupFinalItemsEl.appendChild(itemEl);
+            });
+        }
+
+        // Nivel de estado
+        if (suitupFinalLevelEl && data.level) {
+            suitupFinalLevelEl.textContent = data.level;
+            const levelClass = data.level === 'NOMINAL' ? 'level-nominal' :
+                               data.level === 'ADVISORY' ? 'level-advisory' : 'level-critical';
+            suitupFinalLevelEl.className = levelClass;
+        }
+
+        // Actualizar contador final
+        if (suitupCounterEl) {
+            suitupCounterEl.textContent = 'ALL SYSTEMS ONLINE';
+            suitupCounterEl.classList.remove('active-phase');
+        }
+    }
+});
+
+// Handler: Secuencia completada
+socket.on('suitup_complete', (data) => {
+    console.log('[JARVIS GUI] Suit Up sequence complete!', data);
+
+    // Breve pausa para que el usuario vea el resultado final
+    setTimeout(() => {
+        dismissSuitup();
+    }, 1200);
+});
+
+// Handler: Secuencia cancelada
+socket.on('suitup_cancelled', (data) => {
+    console.log('[JARVIS GUI] Suit Up sequence cancelled!', data);
+    dismissSuitup();
+});
+
+// ==========================================
+// SMART CLIPBOARD — Notificación HUD Toast
+// ==========================================
+
+const clipboardToastEl = document.getElementById('clipboard-toast');
+const clipboardTypeLabelEl = document.getElementById('clipboard-type-label');
+const clipboardPreviewTextEl = document.getElementById('clipboard-preview-text');
+const clipboardActionBtn = document.getElementById('clipboard-action-btn');
+const clipboardIgnoreBtn = document.getElementById('clipboard-ignore-btn');
+const clipboardCloseBtn = document.getElementById('clipboard-close-btn');
+
+let clipboardToastTimeout = null;
+let currentClipboardType = null;
+
+function showClipboardToast(data) {
+    if (!clipboardToastEl) return;
+
+    currentClipboardType = data.type;
+
+    // Rellenar etiquetas según tipo
+    if (data.type === 'traceback') {
+        clipboardTypeLabelEl.textContent = '❌ EXCEPCIÓN DETECTADA';
+        clipboardActionBtn.textContent = 'Solucionar Error';
+        clipboardActionBtn.style.display = 'inline-block';
+    } else if (data.type === 'url') {
+        clipboardTypeLabelEl.textContent = '📡 ENLACE WEB DETECTADO';
+        clipboardActionBtn.textContent = 'Resumir Contenido';
+        clipboardActionBtn.style.display = 'inline-block';
+    } else if (data.type === 'code') {
+        clipboardTypeLabelEl.textContent = '💻 CÓDIGO DETECTADO';
+        clipboardActionBtn.textContent = 'Explicar Código';
+        clipboardActionBtn.style.display = 'none';
+    }
+
+    clipboardPreviewTextEl.textContent = data.preview;
+
+    // Mostrar el Toast removiendo 'hidden'
+    clipboardToastEl.classList.remove('hidden');
+
+    // Auto-ocultar tras 12 segundos
+    if (clipboardToastTimeout) {
+        clearTimeout(clipboardToastTimeout);
+    }
+    clipboardToastTimeout = setTimeout(hideClipboardToast, 12000);
+}
+
+function hideClipboardToast() {
+    if (clipboardToastEl) {
+        clipboardToastEl.classList.add('hidden');
+    }
+    if (clipboardToastTimeout) {
+        clearTimeout(clipboardToastTimeout);
+        clipboardToastTimeout = null;
+    }
+}
+
+// Escuchar evento del SocketIO
+socket.on('clipboard_detection', (data) => {
+    console.log('[JARVIS GUI] Clipboard content detected:', data);
+    showClipboardToast(data);
+});
+
+// Eventos de botones
+if (clipboardCloseBtn) {
+    clipboardCloseBtn.addEventListener('click', hideClipboardToast);
+}
+
+if (clipboardIgnoreBtn) {
+    clipboardIgnoreBtn.addEventListener('click', hideClipboardToast);
+}
+
+if (clipboardActionBtn) {
+    clipboardActionBtn.addEventListener('click', () => {
+        if (!currentClipboardType) return;
+        
+        if (currentClipboardType === 'traceback') {
+            socket.emit('solve_clipboard_error_request');
+        } else if (currentClipboardType === 'url') {
+            socket.emit('summarize_clipboard_url_request');
+        }
+        
+        hideClipboardToast();
+    });
+}
+
 

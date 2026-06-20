@@ -1154,4 +1154,470 @@ input:checked + .slider:before {
     transform: translateX(16px);
     background-color: #00ff88;
     box-shadow: 0 0 8px #00ff88;
+}
+
+/* ==========================================
+   SUIT UP — Secuencia de Arranque
+   ========================================== */
+
+#suitup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000000;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+    opacity: 1;
+}
+
+#suitup-overlay.hidden {
+    opacity: 0;
+    transform: scale(1.05);
+    pointer-events: none;
+}
+
+/* Scanlines CRT */
+#suitup-scanlines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 212, 255, 0.015) 0px,
+        rgba(0, 212, 255, 0.015) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    pointer-events: none;
+    z-index: 1;
+    animation: suitup-scanline-scroll 8s linear infinite;
+}
+
+@keyframes suitup-scanline-scroll {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(6px); }
+}
+
+#suitup-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    width: 90%;
+    max-width: 900px;
+}
+
+/* Header */
+#suitup-header {
+    text-align: center;
+    animation: suitup-fadeIn 1s ease-out;
+}
+
+#suitup-logo {
+    font-family: 'Courier New', monospace;
+    font-size: 3rem;
+    letter-spacing: 1.2rem;
+    color: #00d4ff;
+    text-shadow: 0 0 30px #00d4ff, 0 0 60px #0088aa, 0 0 100px rgba(0, 212, 255, 0.3);
+    animation: suitup-pulse-glow 2s ease-in-out infinite alternate;
+}
+
+#suitup-subtitle {
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.4rem;
+    color: rgba(0, 212, 255, 0.5);
+    margin-top: 0.8rem;
+    text-transform: uppercase;
+}
+
+@keyframes suitup-pulse-glow {
+    0% { text-shadow: 0 0 30px #00d4ff, 0 0 60px #0088aa; }
+    100% { text-shadow: 0 0 40px #00d4ff, 0 0 80px #0088aa, 0 0 120px rgba(0, 212, 255, 0.4); }
+}
+
+/* Counter */
+#suitup-counter {
+    font-family: 'Courier New', monospace;
+    font-size: 1.2rem;
+    letter-spacing: 0.35rem;
+    color: #00d4ff;
+    text-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
+    opacity: 0.8;
+    min-height: 1.5rem;
+}
+
+#suitup-counter.active-phase {
+    color: #ffc800;
+    text-shadow: 0 0 15px rgba(255, 200, 0, 0.6);
+    animation: suitup-blink 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes suitup-blink {
+    0% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+/* Grid de fases */
+#suitup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+}
+
+.suitup-phase-card {
+    background: rgba(0, 20, 35, 0.7);
+    border: 1px solid rgba(0, 212, 255, 0.1);
+    border-radius: 8px;
+    padding: 1rem;
+    font-family: 'Courier New', monospace;
+    opacity: 0.3;
+    transform: translateY(15px);
+    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    min-height: 100px;
+}
+
+.suitup-phase-card.active {
+    opacity: 1;
+    transform: translateY(0);
+    border-color: rgba(0, 212, 255, 0.4);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.1), inset 0 0 30px rgba(0, 212, 255, 0.03);
+}
+
+.suitup-phase-card.completed {
+    opacity: 0.7;
+    transform: translateY(0);
+    border-color: rgba(0, 255, 136, 0.25);
+}
+
+.phase-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0.7rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.12);
+}
+
+.phase-icon {
+    font-size: 1rem;
+}
+
+.phase-title {
+    font-size: 0.75rem;
+    letter-spacing: 0.15rem;
+    color: #00d4ff;
+    text-transform: uppercase;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(0, 212, 255, 0.4);
+}
+
+.suitup-phase-card.active .phase-title {
+    color: #ffc800;
+    text-shadow: 0 0 8px rgba(255, 200, 0, 0.4);
+}
+
+.suitup-phase-card.completed .phase-title {
+    color: #00ff88;
+    text-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
+}
+
+.phase-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.phase-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.68rem;
+    padding: 3px 0;
+    animation: suitup-item-appear 0.4s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes suitup-item-appear {
+    0% { opacity: 0; transform: translateX(-10px); }
+    100% { opacity: 1; transform: translateX(0); }
+}
+
+.phase-item .item-label {
+    color: #888888;
+    letter-spacing: 0.08rem;
+}
+
+.phase-item .item-value {
+    font-weight: bold;
+    text-align: right;
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.phase-item .item-value.status-ok {
+    color: #00ff88;
+    text-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
+}
+
+.phase-item .item-value.status-warning {
+    color: #ffc800;
+    text-shadow: 0 0 5px rgba(255, 200, 0, 0.3);
+}
+
+.phase-item .item-value.status-error {
+    color: #ff4444;
+    text-shadow: 0 0 5px rgba(255, 68, 68, 0.3);
+}
+
+/* Final Status */
+#suitup-final {
+    text-align: center;
+    animation: suitup-fadeIn 0.6s ease-out;
+}
+
+#suitup-final-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+#suitup-final-title {
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.2rem;
+    color: #00d4ff;
+    text-transform: uppercase;
+    font-weight: bold;
+    margin-bottom: 0.8rem;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+}
+
+#suitup-final-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+}
+
+#suitup-final-level {
+    font-family: 'Courier New', monospace;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-top: 1rem;
+    letter-spacing: 0.3rem;
+}
+
+#suitup-final-level.level-nominal {
+    color: #00ff88;
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.5), 0 0 40px rgba(0, 255, 136, 0.2);
+}
+
+#suitup-final-level.level-advisory {
+    color: #ffc800;
+    text-shadow: 0 0 20px rgba(255, 200, 0, 0.5), 0 0 40px rgba(255, 200, 0, 0.2);
+}
+
+#suitup-final-level.level-critical {
+    color: #ff4444;
+    text-shadow: 0 0 20px rgba(255, 68, 68, 0.5), 0 0 40px rgba(255, 68, 68, 0.2);
+    animation: suitup-blink 0.5s ease-in-out infinite alternate;
+}
+
+/* Progress Bar */
+#suitup-progress-container {
+    width: 100%;
+    height: 4px;
+    background: rgba(0, 212, 255, 0.08);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+#suitup-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #00d4ff, #00ff88);
+    border-radius: 2px;
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.5), 0 0 20px rgba(0, 255, 136, 0.3);
+}
+
+#suitup-progress-label {
+    position: absolute;
+    right: 0;
+    top: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.6rem;
+    color: rgba(0, 212, 255, 0.5);
+    letter-spacing: 0.1rem;
+}
+
+/* Skip hint */
+#suitup-skip-hint {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Courier New', monospace;
+    font-size: 0.7rem;
+    color: rgba(0, 212, 255, 0.3);
+    letter-spacing: 0.1rem;
+    z-index: 3;
+    animation: suitup-fadeIn 2s ease-out 1s both;
+    cursor: pointer;
+}
+
+#suitup-skip-hint:hover {
+    color: rgba(0, 212, 255, 0.6);
+}
+
+@keyframes suitup-fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* ==========================================
+   SMART CLIPBOARD — Notificación HUD Toast
+   ========================================== */
+
+#clipboard-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 320px;
+    background: rgba(10, 16, 26, 0.85);
+    border: 1px solid rgba(0, 212, 255, 0.4);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.25), inset 0 0 10px rgba(0, 212, 255, 0.1);
+    border-radius: 6px;
+    padding: 16px;
+    font-family: 'Courier New', monospace;
+    color: #ffffff;
+    z-index: 1000;
+    backdrop-filter: blur(8px);
+    transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#clipboard-toast.hidden {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    pointer-events: none;
+}
+
+#clipboard-toast-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    padding-bottom: 8px;
+}
+
+#clipboard-toast-header .clipboard-icon {
+    font-size: 1.1rem;
+    margin-right: 6px;
+    animation: clipboard-pulse-neon 2s infinite alternate;
+}
+
+#clipboard-type-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.1rem;
+    color: #00d4ff;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(0, 212, 255, 0.4);
+    flex: 1;
+}
+
+#clipboard-close-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.2rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+}
+
+#clipboard-close-btn:hover {
+    color: #ff4444;
+    text-shadow: 0 0 5px rgba(255, 68, 68, 0.5);
+}
+
+#clipboard-toast-body {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 212, 255, 0.1);
+    border-radius: 4px;
+    padding: 8px;
+    max-height: 80px;
+    overflow-y: auto;
+}
+
+#clipboard-preview-text {
+    font-size: 0.65rem;
+    color: #c0c8d0;
+    line-height: 1.4;
+    margin: 0;
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+#clipboard-toast-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.hud-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.05rem;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.hud-btn.primary {
+    background: rgba(0, 212, 255, 0.15);
+    border: 1px solid #00d4ff;
+    color: #00d4ff;
+    text-shadow: 0 0 5px rgba(0, 212, 255, 0.4);
+}
+
+.hud-btn.primary:hover {
+    background: #00d4ff;
+    color: #0a101a;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+}
+
+.hud-btn.secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.hud-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+@keyframes clipboard-pulse-neon {
+    0% { filter: drop-shadow(0 0 2px rgba(0, 212, 255, 0.3)); }
+    100% { filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.8)); }
 }

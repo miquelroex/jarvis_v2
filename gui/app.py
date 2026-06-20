@@ -149,10 +149,33 @@ def handle_connect():
     except Exception as e:
         print(f"[GUI] Error al cargar logs iniciales: {e}")
 
+    # Enviar última detección del portapapeles si es reciente (menos de 60 segundos)
+    try:
+        from core.clipboard_monitor import LAST_DETECTION
+        import time
+        if LAST_DETECTION and (time.time() - LAST_DETECTION["timestamp"] < 60):
+            preview = LAST_DETECTION["text"][:150] + ("..." if len(LAST_DETECTION["text"]) > 150 else "")
+            emit('clipboard_detection', {
+                "type": LAST_DETECTION["type"],
+                "preview": preview,
+                "length": len(LAST_DETECTION["text"])
+            })
+    except Exception as e:
+        print(f"[GUI] Error al enviar última detección de portapapeles inicial: {e}")
+
 @socketio.on('mute_request')
 def handle_mute_request():
     print("[GUI] Recibida solicitud de silencio (Barge-in).")
     stop_speak()
+
+@socketio.on('skip_suitup')
+def handle_skip_suitup():
+    print("[GUI] Recibida solicitud para omitir (skip) secuencia Suit Up.")
+    try:
+        from core.suit_up import cancel_suit_up
+        cancel_suit_up()
+    except Exception as e:
+        print(f"[GUI] Error al intentar cancelar la secuencia Suit Up: {e}")
 
 def update_env_var(key: str, value: str) -> None:
     """Updates a variable in the .env file and in the current os.environ."""
@@ -442,6 +465,82 @@ def handle_apply_patch(data):
             ).start()
         except Exception as e:
             print(f"[GUI] Error al aplicar el parche: {e}")
+
+@socketio.on('solve_clipboard_error_request')
+def handle_solve_clipboard_error():
+    print("[GUI] Recibida solicitud para solucionar error del portapapeles.")
+    from core.clipboard_monitor import LAST_DETECTION
+    if not LAST_DETECTION or LAST_DETECTION["type"] != "traceback":
+        emit('clipboard_action_response', {"status": "error", "message": "No hay traceback activo en el portapapeles."})
+        return
+
+    def solve_task():
+        try:
+            update_state("thinking", transcript="[Analizando traceback del portapapeles]")
+            error_text = LAST_DETECTION["text"]
+
+            # Invocar al modelo/agente de código para diagnosticar/solucionar
+            from tools.model_delegate import ask_delegated_model
+            prompt = (
+                "Se ha detectado el siguiente traceback/error en el portapapeles. "
+                "Diagnostica el problema y ofrece una explicación concisa y un código de solución o parche "
+                "con formato markdown de diff unificado si es aplicable.\n\n"
+                f"```\n{error_text}\n```"
+            )
+            response = ask_delegated_model("code", prompt)
+
+            # Actualizar la GUI con la respuesta e informar por voz
+            update_state("speaking", response=response)
+            from tools.voice import speak
+            speak("Señor, he completado el análisis del error. Aquí tiene el diagnóstico y la solución propuesta.")
+            update_state("idle")
+        except Exception as e:
+            print(f"[GUI] Error al solucionar traceback: {e}")
+            update_state("idle")
+
+    threading.Thread(target=solve_task, daemon=True).start()
+
+@socketio.on('summarize_clipboard_url_request')
+def handle_summarize_clipboard_url():
+    print("[GUI] Recibida solicitud para resumir URL del portapapeles.")
+    from core.clipboard_monitor import LAST_DETECTION
+    if not LAST_DETECTION or LAST_DETECTION["type"] != "url":
+        emit('clipboard_action_response', {"status": "error", "message": "No hay URL activa en el portapapeles."})
+        return
+
+    def summarize_task():
+        try:
+            url = LAST_DETECTION["text"].strip()
+            update_state("thinking", transcript=f"[Resumiendo URL: {url}]")
+
+            # Scrapear el contenido usando httpx (limitado a 1MB y timeout 5s)
+            import httpx
+            from tools.model_delegate import ask_delegated_model
+
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            with httpx.Client(follow_redirects=True, timeout=5.0) as client:
+                resp = client.get(url, headers=headers)
+                resp.raise_for_status()
+                # Limitar lectura a 1MB
+                html_content = resp.text[:1000 * 1024]
+
+            prompt = (
+                "Por favor, lee el siguiente contenido HTML extraído de una página web "
+                "y genera un resumen estructurado y conciso con los puntos clave.\n\n"
+                f"URL: {url}\n\n"
+                f"Contenido:\n{html_content[:5000]}" # Limitar para no saturar contexto
+            )
+            response = ask_delegated_model("default", prompt)
+
+            update_state("speaking", response=response)
+            from tools.voice import speak
+            speak("Señor, he terminado de resumir la página web solicitada.")
+            update_state("idle")
+        except Exception as e:
+            print(f"[GUI] Error al resumir URL: {e}")
+            update_state("idle")
+
+    threading.Thread(target=summarize_task, daemon=True).start()
 
 # Monitor de ventana activa en segundo plano
 _gui_stop_event = threading.Event()

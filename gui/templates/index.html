@@ -7,6 +7,47 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 </head>
 <body>
+    <!-- Suit Up Overlay (Secuencia de Arranque) -->
+    <div id="suitup-overlay">
+        <div id="suitup-scanlines"></div>
+        <div id="suitup-content">
+            <div id="suitup-header">
+                <div id="suitup-logo">J.A.R.V.I.S.</div>
+                <div id="suitup-subtitle">SYSTEMS INITIALIZATION PROTOCOL</div>
+            </div>
+            <div id="suitup-counter">STANDBY</div>
+            <div id="suitup-grid">
+                <div class="suitup-phase-card" id="suitup-phase-1" data-phase="1">
+                    <div class="phase-header"><span class="phase-icon">⚡</span> <span class="phase-title">CORE INIT</span></div>
+                    <div class="phase-items"></div>
+                </div>
+                <div class="suitup-phase-card" id="suitup-phase-2" data-phase="2">
+                    <div class="phase-header"><span class="phase-icon">🧠</span> <span class="phase-title">MEMORY SCAN</span></div>
+                    <div class="phase-items"></div>
+                </div>
+                <div class="suitup-phase-card" id="suitup-phase-3" data-phase="3">
+                    <div class="phase-header"><span class="phase-icon">🔧</span> <span class="phase-title">SERVICES CHECK</span></div>
+                    <div class="phase-items"></div>
+                </div>
+                <div class="suitup-phase-card" id="suitup-phase-4" data-phase="4">
+                    <div class="phase-header"><span class="phase-icon">📡</span> <span class="phase-title">NETWORK RECON</span></div>
+                    <div class="phase-items"></div>
+                </div>
+            </div>
+            <div id="suitup-final" style="display: none;">
+                <div id="suitup-final-icon">✅</div>
+                <div id="suitup-final-title">FINAL STATUS</div>
+                <div id="suitup-final-items"></div>
+                <div id="suitup-final-level"></div>
+            </div>
+            <div id="suitup-progress-container">
+                <div id="suitup-progress-bar"></div>
+                <div id="suitup-progress-label">0%</div>
+            </div>
+        </div>
+        <div id="suitup-skip-hint">Haz clic o presiona ESC para saltar</div>
+    </div>
+
     <!-- Canvas donde se dibujan las animaciones -->
     <canvas id="jarvis-canvas"></canvas>
 
@@ -182,6 +223,22 @@
             <div id="artifact-code-pane" class="pane">
                 <pre><code id="artifact-code-display" class="language-clike"></code></pre>
             </div>
+        </div>
+    </div>
+
+    <!-- Smart Clipboard HUD Toast -->
+    <div id="clipboard-toast" class="hidden">
+        <div id="clipboard-toast-header">
+            <span class="clipboard-icon">📋</span>
+            <span id="clipboard-type-label">TELEMETRÍA DE PORTAPAPELES</span>
+            <button id="clipboard-close-btn">&times;</button>
+        </div>
+        <div id="clipboard-toast-body">
+            <p id="clipboard-preview-text">Analizando...</p>
+        </div>
+        <div id="clipboard-toast-actions">
+            <button id="clipboard-action-btn" class="hud-btn primary">Procesar</button>
+            <button id="clipboard-ignore-btn" class="hud-btn secondary">Ignorar</button>
         </div>
     </div>
 

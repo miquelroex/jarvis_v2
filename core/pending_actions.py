@@ -46,9 +46,52 @@ def clear_pending_action() -> None:
 def execute_pending_action() -> str:
     """
     Ejecuta la acción pendiente cargada según su tipo y limpia el estado.
+    Si no hay acción guardada en archivo, comprueba si hay una detección
+    de portapapeles reciente y la procesa de forma autónoma.
     """
     action = load_pending_action()
     if not action:
+        # Intentar procesar última detección de portapapeles reciente
+        try:
+            import time
+            import core.clipboard_monitor as cb_monitor
+            detection = cb_monitor.LAST_DETECTION
+            if detection and (time.time() - detection["timestamp"] < 45.0):
+                action_type = detection["type"]
+                text = detection["text"]
+                # Limpiar la detección para evitar repetición
+                cb_monitor.LAST_DETECTION = None
+
+                if action_type == "traceback":
+                    from tools.model_delegate import ask_delegated_model
+                    prompt = (
+                        "Se ha detectado el siguiente traceback/error en el portapapeles. "
+                        "Diagnostica el problema y ofrece una explicación concisa y un código de solución o parche "
+                        "con formato markdown de diff unificado si es aplicable.\n\n"
+                        f"```\n{text}\n```"
+                    )
+                    return ask_delegated_model("code", prompt)
+
+                elif action_type == "url":
+                    import httpx
+                    from tools.model_delegate import ask_delegated_model
+                    url = text.strip()
+                    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+                    with httpx.Client(follow_redirects=True, timeout=5.0) as client:
+                        resp = client.get(url, headers=headers)
+                        resp.raise_for_status()
+                        html_content = resp.text[:1000 * 1024]
+
+                    prompt = (
+                        "Por favor, lee el siguiente contenido HTML extraído de una página web "
+                        "y genera un resumen estructurado y conciso con los puntos clave.\n\n"
+                        f"URL: {url}\n\n"
+                        f"Contenido:\n{html_content[:5000]}"
+                    )
+                    return ask_delegated_model("default", prompt)
+        except Exception as e:
+            return f"Hubo un inconveniente al intentar resolver el contenido del portapapeles: {e}"
+
         return "No hay ninguna acción pendiente de confirmar."
         
     action_type = action.get("action_type")

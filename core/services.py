@@ -13,6 +13,7 @@ import core.test_watcher as test_watcher
 import core.scheduler as scheduler
 import core.ram_guard as ram_guard
 import core.log_maintenance as log_maintenance
+import core.clipboard_monitor as clipboard_monitor
 
 def start_all_services():
     """
@@ -94,6 +95,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Mantenimiento de Logs: {e}")
 
+    # 11. Monitor de Portapapeles (Clipboard Monitor) — controlado por JARVIS_CLIPBOARD_MONITOR_ENABLED
+    try:
+        clipboard_monitor.start_clipboard_monitor()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Monitor de Portapapeles: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -108,6 +115,12 @@ def stop_all_services():
         log_maintenance.stop_log_maintenance()
     except Exception as e:
         logging.error(f"Error al detener Mantenimiento de Logs: {e}")
+
+    # 11. Monitor de Portapapeles (Clipboard Monitor)
+    try:
+        clipboard_monitor.stop_clipboard_monitor()
+    except Exception as e:
+        logging.error(f"Error al detener Monitor de Portapapeles: {e}")
 
     # 9. RAM Guard
     try:
@@ -263,5 +276,12 @@ def get_services_status() -> dict:
             status["privacy_monitor"] = "running" if privacy_alive else "stopped"
     except Exception:
         status["privacy_monitor"] = "stopped"
+
+    # 12. Clipboard Monitor
+    clipboard_enabled = os.getenv("JARVIS_CLIPBOARD_MONITOR_ENABLED", "true").lower() in ("true", "1", "yes")
+    if not clipboard_enabled:
+        status["clipboard_monitor"] = "disabled"
+    else:
+        status["clipboard_monitor"] = "running" if clipboard_monitor.is_clipboard_monitor_running() else "stopped"
 
     return status
