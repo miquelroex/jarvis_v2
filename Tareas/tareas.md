@@ -51,10 +51,9 @@
 ## Prioridad alta
 
 * [ ] **Panel de Configuración GUI:**
-  - [ ] Activar/desactivar servicios pesados de fondo.
-  - [ ] Cambiar modelo manualmente.
+  - [x] Activar/desactivar servicios pesados de fondo.
   - [x] Cambiar STT (small/medium/large).
-  - [ ] Ver historial de llamadas a modelos.
+  - [ ] Ver historial de llamadas a modelos.  
   - [ ] Ver coste aproximado, tokens y proveedor usado.
 
 * [ ] **Comandos Rápidos sin IA concretos:**

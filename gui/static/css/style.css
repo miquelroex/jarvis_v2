@@ -1055,4 +1055,103 @@ body {
     transform: rotate(45deg);
     color: #00d4ff !important;
     text-shadow: 0 0 15px #00d4ff;
+}
+
+/* Estilos para el switch (toggle slider) */
+.settings-service-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(0, 212, 255, 0.1);
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+.service-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.service-name-label {
+    font-weight: bold;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.service-status-badge {
+    font-size: 0.65rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.service-status-badge.running {
+    color: #00ff88;
+    text-shadow: 0 0 5px rgba(0, 255, 136, 0.4);
+}
+
+.service-status-badge.stopped {
+    color: #ffaa00;
+    text-shadow: 0 0 5px rgba(255, 170, 0, 0.4);
+}
+
+.service-status-badge.disabled {
+    color: #888888;
+}
+
+/* El interruptor (switch) */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    transition: .3s;
+    border-radius: 20px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 3px;
+    bottom: 3px;
+    background-color: rgba(0, 212, 255, 0.6);
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+}
+
+input:checked + .slider {
+    background-color: rgba(0, 255, 136, 0.1);
+    border-color: rgba(0, 255, 136, 0.5);
+}
+
+input:checked + .slider:before {
+    transform: translateX(16px);
+    background-color: #00ff88;
+    box-shadow: 0 0 8px #00ff88;
 }

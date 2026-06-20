@@ -177,6 +177,120 @@ def handle_set_whisper_model(data):
         except Exception as e:
             print(f"[GUI] Error al cambiar modelo de Whisper: {e}")
 
+@socketio.on('get_services_config')
+def handle_get_services_config():
+    try:
+        from core.services import get_services_status
+        emit('services_config_response', get_services_status())
+    except Exception as e:
+        print(f"[GUI] Error al obtener configuración de servicios: {e}")
+
+@socketio.on('toggle_service')
+def handle_toggle_service(data):
+    service_name = data.get('service')
+    enable = data.get('enable', False)
+    if not service_name:
+        return
+        
+    print(f"[GUI] Solicitud para {'activar' if enable else 'desactivar'} servicio: {service_name}")
+    try:
+        if service_name == "network_sentinel":
+            env_var = "JARVIS_SENTINEL_ENABLED"
+            val = "true" if enable else "false"
+            update_env_var(env_var, val)
+            import core.network_sentinel as net_sentinel
+            if enable:
+                net_sentinel.start_network_sentinel()
+            else:
+                net_sentinel.stop_network_sentinel()
+                
+        elif service_name == "api_sentinel":
+            env_var = "JARVIS_API_SENTINEL_ENABLED"
+            val = "true" if enable else "false"
+            update_env_var(env_var, val)
+            import core.api_sentinel as api_sentinel
+            if enable:
+                api_sentinel.start_api_sentinel()
+            else:
+                api_sentinel.stop_api_sentinel()
+                
+        elif service_name == "vulnerability_patcher":
+            env_var = "JARVIS_PATCHER_ENABLED"
+            val = "true" if enable else "false"
+            update_env_var(env_var, val)
+            update_env_var("JARVIS_VULNERABILITY_PATCHER_ENABLED", val)
+            import core.vulnerability_patcher as vuln_patcher
+            if enable:
+                vuln_patcher.start_vulnerability_patcher_daemon()
+            else:
+                vuln_patcher.stop_vulnerability_patcher_daemon()
+                
+        elif service_name == "integrity_sentinel":
+            env_var = "JARVIS_INTEGRITY_SENTINEL_ENABLED"
+            val = "true" if enable else "false"
+            update_env_var(env_var, val)
+            import core.jarvis_integrity as integrity
+            if enable:
+                integrity.start_integrity_sentinel_daemon()
+            else:
+                integrity.stop_integrity_sentinel_daemon()
+                
+        elif service_name == "test_watcher":
+            env_var = "JARVIS_TEST_WATCHER"
+            val = "true" if enable else "false"
+            update_env_var(env_var, val)
+            import core.test_watcher as test_watcher
+            if enable:
+                test_watcher.start_test_watcher()
+            else:
+                test_watcher.stop_test_watcher()
+                
+        elif service_name == "task_scheduler":
+            env_var = "JARVIS_SCHEDULER"
+            val = "true" if enable else "false"
+            update_env_var(env_var, val)
+            import core.scheduler as scheduler
+            if enable:
+                scheduler.start_scheduler()
+            else:
+                scheduler.stop_scheduler()
+                
+        elif service_name == "telegram_bot":
+            env_var = "JARVIS_TELEGRAM_ENABLED"
+            val = "true" if enable else "false"
+            update_env_var(env_var, val)
+            import core.telegram_bot as tg_bot
+            if enable:
+                tg_bot.start_telegram_bot()
+            else:
+                tg_bot.stop_telegram_bot()
+                
+        elif service_name == "log_maintenance":
+            env_var = "JARVIS_LOG_MAINTENANCE_ENABLED"
+            val = "true" if enable else "false"
+            update_env_var(env_var, val)
+            import core.log_maintenance as log_maintenance
+            if enable:
+                log_maintenance.start_log_maintenance()
+            else:
+                log_maintenance.stop_log_maintenance()
+                
+        elif service_name == "privacy_monitor":
+            env_var = "JARVIS_PRIVACY_SCAN_INTERVAL"
+            val = "900" if enable else "0"
+            update_env_var(env_var, val)
+            import core.privacy_sentinel as privacy
+            if enable:
+                privacy.start_privacy_monitor()
+            else:
+                privacy.stop_privacy_monitor()
+
+        from core.services import get_services_status
+        emit('services_config_response', get_services_status(), broadcast=True)
+        print(f"[GUI] Servicio '{service_name}' actualizado: enable={enable}")
+    except Exception as e:
+        print(f"[GUI] Error al cambiar estado del servicio '{service_name}': {e}")
+
 @socketio.on('run_code_request')
 def handle_run_code_request(data):
     language = data.get('language')

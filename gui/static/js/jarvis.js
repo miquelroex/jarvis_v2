@@ -1430,6 +1430,7 @@ if (settingsBtn && settingsPanelEl) {
         e.stopPropagation();
         settingsPanelEl.classList.add('active');
         socket.emit('get_whisper_config');
+        socket.emit('get_services_config');
     });
 }
 
@@ -1473,5 +1474,75 @@ socket.on('whisper_config_response', (data) => {
             whisperStatusValue.style.color = '#888888';
         }
     }
+});
+
+const serviceNames = {
+    network_sentinel: "Centinela de Red",
+    api_sentinel: "Centinela de APIs",
+    vulnerability_patcher: "Reparador de Dependencias",
+    integrity_sentinel: "Sentinel de Integridad",
+    test_watcher: "Centinela de Pruebas",
+    task_scheduler: "Planificador de Tareas",
+    telegram_bot: "Bot de Telegram",
+    log_maintenance: "Mantenimiento de Logs",
+    privacy_monitor: "Privacy Monitor"
+};
+
+socket.on('services_config_response', (data) => {
+    const listEl = document.getElementById('settings-services-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    
+    const order = [
+        "network_sentinel",
+        "api_sentinel",
+        "vulnerability_patcher",
+        "integrity_sentinel",
+        "test_watcher",
+        "task_scheduler",
+        "telegram_bot",
+        "log_maintenance",
+        "privacy_monitor"
+    ];
+    
+    order.forEach(service => {
+        if (!(service in data)) return;
+        const status = data[service];
+        const friendlyName = serviceNames[service] || service;
+        const isEnabled = status !== 'disabled';
+        
+        const itemEl = document.createElement('div');
+        itemEl.className = 'settings-service-item';
+        
+        let badgeClass = 'stopped';
+        let badgeText = 'DETENIDO';
+        if (status === 'running') {
+            badgeClass = 'running';
+            badgeText = 'ACTIVO';
+        } else if (status === 'disabled') {
+            badgeClass = 'disabled';
+            badgeText = 'DESACTIVADO';
+        }
+        
+        itemEl.innerHTML = `
+            <div class="service-meta">
+                <span class="service-name-label">${friendlyName}</span>
+                <span class="service-status-badge ${badgeClass}">${badgeText}</span>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="toggle-${service}" ${isEnabled ? 'checked' : ''}>
+                <span class="slider"></span>
+            </label>
+        `;
+        
+        listEl.appendChild(itemEl);
+        
+        const checkbox = itemEl.querySelector(`#toggle-${service}`);
+        checkbox.addEventListener('change', () => {
+            const isChecked = checkbox.checked;
+            checkbox.disabled = true;
+            socket.emit('toggle_service', { service: service, enable: isChecked });
+        });
+    });
 });
 
