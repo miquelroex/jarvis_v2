@@ -14,7 +14,7 @@ if project_root not in sys.path:
 from core.api_sandbox import (
     scan_project_endpoints,
     detect_active_dev_port,
-    test_local_endpoints,
+    test_local_endpoints as _test_local_endpoints,
     generate_sandbox_html,
     SANDBOX_FILE,
     LOGS_DIR
@@ -129,7 +129,7 @@ class TestApiSandbox(unittest.TestCase):
         mock_res_post.status_code = 201
         mock_post.return_value = mock_res_post
         
-        results = test_local_endpoints(endpoints, 5000)
+        results = _test_local_endpoints(endpoints, 5000)
         
         self.assertEqual(len(results), 3)
         self.assertEqual(results[0]["status"], 200)

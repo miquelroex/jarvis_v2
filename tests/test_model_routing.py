@@ -90,7 +90,10 @@ class TestModelRouting(unittest.TestCase):
         mock_get_llm.return_value = mock_llm_instance
 
         mock_client_instance = MagicMock()
-        mock_client_instance.models.generate_content.return_value = MagicMock(text="google_response")
+        mock_response = MagicMock()
+        mock_response.text = "google_response"
+        mock_response.usage_metadata = None
+        mock_client_instance.models.generate_content.return_value = mock_response
         mock_genai_client.return_value = mock_client_instance
 
         env_dict = {

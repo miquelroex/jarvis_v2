@@ -318,6 +318,44 @@ def handle_fast_command(command: str):
         res = get_date.invoke({})
         return f"Hoy es {res}."
 
+    # --- Comandos Rápidos del Asistente Git Inteligente ---
+    # 1. Resumen de rama / branch
+    branch_keywords = [
+        "resumen de rama", "como esta mi rama", "estado de la rama", 
+        "resumen de branch", "estado de branch", "resumen de git"
+    ]
+    if any(kw in text for kw in branch_keywords):
+        from core.git_assistant import generate_branch_summary
+        return generate_branch_summary()
+
+    # 2. Generar mensaje de commit / proponer commit
+    commit_keywords = [
+        "genera commit", "haz commit", "crea un mensaje de commit", 
+        "sugiere un commit", "genera un mensaje de commit", "crear commit",
+        "crea mensaje de commit"
+    ]
+    if any(kw in text for kw in commit_keywords):
+        from core.git_assistant import generate_commit_message
+        commit_msg = generate_commit_message(staged=True)
+        if commit_msg.startswith("No he detectado") or commit_msg.startswith("Error"):
+            return commit_msg
+        
+        # Guardar en acciones pendientes para confirmación directa
+        from core.pending_actions import save_pending_action
+        save_pending_action("git_commit", {"message": commit_msg})
+        
+        return (
+            f"Señor, he analizado los cambios en staging y le sugiero el siguiente mensaje de commit:\n\n"
+            f"`{commit_msg}`\n\n"
+            f"Para aplicarlo de inmediato, responda con 'confirma acción' o 'adelante'."
+        )
+
+    # 3. Generar changelog
+    changelog_keywords = ["crea un changelog", "generar changelog", "crear changelog", "changelog de la rama"]
+    if any(kw in text for kw in changelog_keywords):
+        from core.git_assistant import generate_branch_changelog
+        return generate_branch_changelog(compare_branch="main")
+
     # Resumen nocturno / diario (Daily Digest)
     if ("resumen del dia" in text or "resumen de hoy" in text
             or "resumen nocturno" in text or "como ha ido el dia" in text):

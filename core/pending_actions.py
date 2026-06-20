@@ -83,6 +83,13 @@ def execute_pending_action() -> str:
             return "No se especificó la ruta del archivo."
         return execute_write_file(relative_path, content, append)
         
+    elif action_type == "git_commit":
+        from core.git_assistant import apply_git_commit
+        message = data.get("message")
+        if not message:
+            return "No se especificó ningún mensaje para el commit en la acción pendiente."
+        return apply_git_commit(message)
+        
     elif action_type == "tool_creation":
         from tools.dynamic_tool_creator import execute_create_tool
         name = data.get("name")
