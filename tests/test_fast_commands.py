@@ -197,6 +197,35 @@ class TestFastCommands(unittest.TestCase):
             resp = handle_fast_command("vacia la bandeja")
         self.assertIn("3 nota", resp)
 
+    def test_game_mode_on_command(self):
+        fake_gm = types.SimpleNamespace(
+            enter_game_mode=lambda: {"already_active": False, "paused": ["test_watcher", "task_scheduler"]},
+            exit_game_mode=lambda: {"was_active": False, "resumed": []},
+        )
+        with patch.dict(sys.modules, {"core.game_mode": fake_gm}):
+            resp = handle_fast_command("activa modo gaming")
+        self.assertIn("activado", resp.lower())
+        self.assertIn("2 servicios", resp)
+
+    def test_game_mode_off_command(self):
+        fake_gm = types.SimpleNamespace(
+            enter_game_mode=lambda: {"already_active": False, "paused": []},
+            exit_game_mode=lambda: {"was_active": True, "resumed": ["test_watcher"]},
+        )
+        # "desactiva modo gaming" debe ir a exit, no a enter, pese a contener "modo gaming".
+        with patch.dict(sys.modules, {"core.game_mode": fake_gm}):
+            resp = handle_fast_command("desactiva modo gaming")
+        self.assertIn("desactivado", resp.lower())
+
+    def test_game_mode_normal_alias_deactivates(self):
+        fake_gm = types.SimpleNamespace(
+            enter_game_mode=lambda: {"already_active": False, "paused": []},
+            exit_game_mode=lambda: {"was_active": True, "resumed": []},
+        )
+        with patch.dict(sys.modules, {"core.game_mode": fake_gm}):
+            resp = handle_fast_command("modo normal")
+        self.assertIn("desactivado", resp.lower())
+
     def test_set_active_model_rebuilds_agent(self):
         # set_active_model recrea el LLM y reconstruye el agente. Import perezoso
         # para que la colección del archivo no arrastre langchain.

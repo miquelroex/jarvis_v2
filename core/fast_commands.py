@@ -255,6 +255,41 @@ def handle_fast_command(command: str):
         return "Su bandeja ya estaba vacía, señor."
 
 
+    # --- Comandos rápidos: Modo Gaming / Bajo Consumo ---
+    # Desactivar primero, para que no colisione con la keyword "modo gaming".
+    game_off_keywords = [
+        "desactiva modo gaming", "desactivar modo gaming", "desactiva el modo gaming",
+        "sal del modo gaming", "salir del modo gaming", "modo normal"
+    ]
+    if any(kw in text for kw in game_off_keywords):
+        from core.game_mode import exit_game_mode
+        result = exit_game_mode()
+        if not result["was_active"]:
+            return "Señor, el modo gaming no estaba activo."
+        resumed = result["resumed"]
+        if resumed:
+            return f"Modo gaming desactivado, señor. He reanudado {len(resumed)} servicios en segundo plano."
+        return "Modo gaming desactivado, señor."
+
+    game_on_keywords = [
+        "activa modo gaming", "activar modo gaming", "activa el modo gaming",
+        "entra en modo gaming", "modo gaming", "modo de bajo consumo"
+    ]
+    if any(kw in text for kw in game_on_keywords):
+        from core.game_mode import enter_game_mode
+        result = enter_game_mode()
+        if result["already_active"]:
+            return "Señor, el modo gaming ya estaba activo."
+        paused = result["paused"]
+        if paused:
+            pretty = ", ".join(p.replace("_", " ") for p in paused)
+            return (
+                f"Modo gaming activado, señor. He pausado {len(paused)} servicios "
+                f"para liberar recursos: {pretty}."
+            )
+        return "Modo gaming activado, señor. No había servicios pesados que pausar."
+
+
     # --- Comandos rápidos del Planificador de Tareas ---
     # 1. Crear recordatorio
     match_reminder = re.search(r"\b(en|cada)\s+(\d+)\s+(segundo|segundos|seg|s|minuto|minutos|min|m|hora|horas|h)\b", text)
