@@ -160,6 +160,19 @@ def handle_fast_command(command: str):
         return resp
 
 
+    # --- Comando rápido: resumen del día (Daily Digest) ---
+    digest_keywords = [
+        "resumen del dia", "resumen de hoy", "que he hecho hoy",
+        "dame el resumen del dia", "informe del dia", "resumen diario"
+    ]
+    if any(kw in text for kw in digest_keywords):
+        from core.daily_digest import generate_daily_digest
+        try:
+            return generate_daily_digest()
+        except Exception as e:
+            return f"Lo siento, señor, no pude generar el resumen del día: {e}"
+
+
     # --- Comandos rápidos del Planificador de Tareas ---
     # 1. Crear recordatorio
     match_reminder = re.search(r"\b(en|cada)\s+(\d+)\s+(segundo|segundos|seg|s|minuto|minutos|min|m|hora|horas|h)\b", text)

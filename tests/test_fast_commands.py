@@ -95,6 +95,17 @@ class TestFastCommands(unittest.TestCase):
         self.assertIsNotNone(resp)
         self.assertIn("1 activos", resp)
 
+    def test_daily_digest_command(self):
+        # Inyectamos un core.daily_digest falso para no arrastrar imports pesados.
+        fake_digest = types.SimpleNamespace(
+            generate_daily_digest=lambda: "Resumen del día, señor (test)."
+        )
+        with patch.dict(sys.modules, {"core.daily_digest": fake_digest}):
+            resp = handle_fast_command("dame el resumen del dia")
+            resp_alias = handle_fast_command("que he hecho hoy")
+        self.assertEqual(resp, "Resumen del día, señor (test).")
+        self.assertEqual(resp_alias, "Resumen del día, señor (test).")
+
     def test_memory_save_command(self):
         resp = handle_fast_command("recuerda que me gusta la lasaña")
         self.assertIsNotNone(resp)
