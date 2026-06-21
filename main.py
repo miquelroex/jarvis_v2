@@ -155,6 +155,37 @@ def process_command(command_to_execute, transcript_for_ui):
   speak(content)
   update_state("idle")
 
+def _run_startup_healthcheck():
+    """Ejecuta el healthcheck de arranque (resumen de estado: tools, servicios,
+    claves, SQLite). Nunca debe abortar el arranque, por eso va en try/except."""
+    try:
+        from core.healthcheck import run_healthcheck, summarize_healthcheck, persist_healthcheck
+        health_report = run_healthcheck()
+        logging.info(f"[Healthcheck] {summarize_healthcheck(health_report)}")
+        persist_healthcheck(health_report)
+        if health_report.get("status") != "healthy":
+            logging.warning(f"[Healthcheck] Estado de arranque no óptimo: {health_report.get('status')}")
+    except Exception as e:
+        logging.warning(f"[Healthcheck] No se pudo completar el healthcheck de arranque: {e}")
+
+def _bootstrap_core():
+    """Bootstrap secuencial: inicializa el agente central, arranca los servicios
+    de segundo plano y ejecuta el healthcheck de arranque."""
+    init_agent()
+    from core.services import start_all_services
+    start_all_services()
+    _run_startup_healthcheck()
+
+def _calibrate_microphone():
+    """Calibra el ruido ambiental del micrófono una sola vez al inicio."""
+    logging.info("🎤 Calibrando ruido de fondo del micrófono (1 segundo)...")
+    try:
+        with mic as source:
+            recognizer.adjust_for_ambient_noise(source, duration=1.0)
+        logging.info(f"✅ Calibración completada. Umbral de energía base: {recognizer.energy_threshold:.2f}")
+    except Exception as e:
+        logging.warning(f"⚠️ No se pudo realizar la calibración inicial de ruido: {e}")
+
 # Main interaction loop
 def write():
     conversation_mode = False
@@ -170,23 +201,8 @@ def write():
         sys.exit(1)
 
     try:
-        # Inicializar el agente central
-        init_agent()
-        # Arrancar servicios de segundo plano de forma centralizada
-        from core.services import start_all_services
-        start_all_services()
-
-        # Healthcheck de arranque: resumen de estado (tools, servicios, claves, SQLite).
-        # Nunca debe abortar el arranque, por eso va en try/except.
-        try:
-            from core.healthcheck import run_healthcheck, summarize_healthcheck, persist_healthcheck
-            health_report = run_healthcheck()
-            logging.info(f"[Healthcheck] {summarize_healthcheck(health_report)}")
-            persist_healthcheck(health_report)
-            if health_report.get("status") != "healthy":
-                logging.warning(f"[Healthcheck] Estado de arranque no óptimo: {health_report.get('status')}")
-        except Exception as e:
-            logging.warning(f"[Healthcheck] No se pudo completar el healthcheck de arranque: {e}")
+        # Bootstrap: agente central + servicios de segundo plano + healthcheck.
+        _bootstrap_core()
 
         if system_status == "AWAKE":
             print("Abriendo http://localhost:5000 en tu navegador...")
@@ -215,13 +231,7 @@ def write():
             print("Jarvis iniciado en modo VIGILANTE (Dormido). Di 'despierta' para activar.")
 
         # Calibrar ruido ambiental una sola vez al inicio si es posible
-        logging.info("🎤 Calibrando ruido de fondo del micrófono (1 segundo)...")
-        try:
-            with mic as source:
-                recognizer.adjust_for_ambient_noise(source, duration=1.0)
-            logging.info(f"✅ Calibración completada. Umbral de energía base: {recognizer.energy_threshold:.2f}")
-        except Exception as e:
-            logging.warning(f"⚠️ No se pudo realizar la calibración inicial de ruido: {e}")
+        _calibrate_microphone()
 
         while True:
             try:
