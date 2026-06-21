@@ -1328,6 +1328,100 @@ socket.on('jarvis_health_update', (data) => {
     findingsListEl.appendChild(testsItem);
 });
 
+// Healthcheck de arranque (generado por main.py al iniciar Jarvis)
+socket.on('startup_healthcheck', (data) => {
+    const listEl = document.getElementById('startup-health-list');
+    const statusEl = document.getElementById('startup-health-status');
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+
+    // Estado global: healthy | degraded | error
+    if (statusEl) {
+        const status = (data.status || '').toLowerCase();
+        if (status === 'error') {
+            statusEl.textContent = 'ERROR';
+            statusEl.style.color = '#ff3344';
+            statusEl.style.textShadow = '0 0 10px #ff3344';
+        } else if (status === 'degraded') {
+            statusEl.textContent = 'DEGRADADO';
+            statusEl.style.color = '#ffaa00';
+            statusEl.style.textShadow = '0 0 10px #ffaa00';
+        } else if (status === 'healthy') {
+            statusEl.textContent = 'OPERATIVO';
+            statusEl.style.color = '#00ff88';
+            statusEl.style.textShadow = '0 0 10px #00ff88';
+        } else {
+            statusEl.textContent = '—';
+            statusEl.style.color = '#888';
+            statusEl.style.textShadow = 'none';
+        }
+    }
+
+    const addItem = (name, badgeClass, badgeLabel, detail, isError) => {
+        const item = document.createElement('div');
+        item.className = 'health-item';
+        item.innerHTML = `
+            <div class="health-row">
+                <span class="health-name">${name}</span>
+                <span class="health-badge ${badgeClass}">${badgeLabel}</span>
+            </div>
+            <div class="health-detail ${isError ? 'error' : ''}">${detail}</div>
+        `;
+        listEl.appendChild(item);
+    };
+
+    // 1. Tools
+    const tools = data.tools || {};
+    const toolsFailed = tools.failed || [];
+    addItem(
+        'Herramientas',
+        toolsFailed.length === 0 ? 'ok' : 'critical',
+        toolsFailed.length === 0 ? 'OK' : 'FALLO',
+        toolsFailed.length === 0
+            ? `${tools.loaded || 0} herramientas cargadas`
+            : `${toolsFailed.length} fallida(s) de ${(tools.loaded || 0) + toolsFailed.length}`,
+        toolsFailed.length > 0
+    );
+
+    // 2. Servicios (disabled NO degrada)
+    const services = data.services || {};
+    const states = Object.values(services);
+    const running = states.filter(s => s === 'running').length;
+    const stopped = states.filter(s => s === 'stopped').length;
+    const disabled = states.filter(s => s === 'disabled').length;
+    addItem(
+        'Servicios',
+        stopped === 0 ? 'ok' : 'warning',
+        stopped === 0 ? 'OK' : 'PARCIAL',
+        `${running} activos · ${stopped} detenidos · ${disabled} desactivados`,
+        false
+    );
+
+    // 3. Claves API (solo presencia, nunca el valor)
+    const keys = data.api_keys || [];
+    const missing = keys.filter(k => !k.configured);
+    addItem(
+        'Claves API',
+        missing.length === 0 ? 'ok' : 'warning',
+        missing.length === 0 ? 'OK' : 'INCOMPLETO',
+        missing.length === 0
+            ? `${keys.length} clave(s) presentes`
+            : `Falta(n) ${missing.length} de ${keys.length}`,
+        false
+    );
+
+    // 4. SQLite / Memoria
+    const db = data.database || {};
+    addItem(
+        'SQLite / Memoria',
+        db.ok ? 'ok' : 'critical',
+        db.ok ? 'OK' : 'ERROR',
+        db.ok ? 'Base de datos accesible' : (db.error || 'Base de datos inaccesible'),
+        !db.ok
+    );
+});
+
 // Manejadores para la Consola de Pensamiento y Planificación
 socket.on('agent_thought', (data) => {
     if (!thoughtConsoleContainerEl || !thoughtLogEl || !thoughtConsoleIndicatorEl) return;

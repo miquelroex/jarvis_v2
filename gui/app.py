@@ -112,6 +112,17 @@ def handle_connect():
             emit('jarvis_health_update', health_data)
     except Exception as e:
         print(f"[GUI] Error al enviar reporte de integridad inicial: {e}")
+
+    # Enviar healthcheck de arranque al conectar (generado por main.py al iniciar)
+    try:
+        from core.healthcheck import DEFAULT_REPORT_PATH
+        import json
+        startup_health_path = Path(DEFAULT_REPORT_PATH)
+        if startup_health_path.exists():
+            startup_health_data = json.loads(startup_health_path.read_text(encoding="utf-8"))
+            emit('startup_healthcheck', startup_health_data)
+    except Exception as e:
+        print(f"[GUI] Error al enviar healthcheck de arranque inicial: {e}")
     
     # Cargar y enviar últimos 15 logs de modelos
     try:
