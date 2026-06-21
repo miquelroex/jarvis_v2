@@ -24,6 +24,9 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt pytest
 
+      - name: Instalar navegador Playwright (Chromium)
+        run: python -m playwright install chromium
+
       - name: Crear .env para tests
         run: copy .env.example .env
         shell: cmd

@@ -1,9 +1,15 @@
+import os
 import unittest
 from unittest.mock import patch, MagicMock
 import json
 
 # Import central module
 import core.jarvis_integrity as integrity
+from tools.filesystem import WORKSPACE_ROOT
+
+# Ruta de core dentro del proyecto real (varía según el entorno/CI), necesaria
+# para que Path.relative_to(WORKSPACE_ROOT) no lance ValueError.
+CORE_DIR = os.path.join(WORKSPACE_ROOT, "core")
 
 class TestJarvisIntegrity(unittest.TestCase):
 
@@ -12,7 +18,7 @@ class TestJarvisIntegrity(unittest.TestCase):
     def test_check_codebase_syntax_success(self, mock_read, mock_walk):
         # Simular archivos válidos para las 3 carpetas (core, tools, gui)
         mock_walk.side_effect = [
-            [("c:/Users/miquel/jarvis/core", [], ["module1.py"])],
+            [(CORE_DIR, [], ["module1.py"])],
             [],
             []
         ]
@@ -26,7 +32,7 @@ class TestJarvisIntegrity(unittest.TestCase):
     def test_check_codebase_syntax_failure(self, mock_read, mock_walk):
         # Simular un archivo con error de sintaxis en core, y carpetas vacías en tools/gui
         mock_walk.side_effect = [
-            [("c:/Users/miquel/jarvis/core", [], ["module1.py"])],
+            [(CORE_DIR, [], ["module1.py"])],
             [],
             []
         ]

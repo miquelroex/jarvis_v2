@@ -16,8 +16,13 @@ from tools.voice import stop_speak
 
 class TestBargeIn(unittest.TestCase):
     def setUp(self):
-        if not pygame.mixer.get_init():
-            pygame.mixer.init()
+        try:
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+        except pygame.error as e:
+            # En CI headless (sin tarjeta/endpoint de audio) WASAPI no encuentra
+            # dispositivo. El test es dependiente de hardware: lo saltamos.
+            self.skipTest(f"No hay dispositivo de audio disponible: {e}")
         self.dummy_wav = os.path.join(project_root, "tests", "dummy_test_sound.wav")
         self.create_silent_wav(self.dummy_wav)
 

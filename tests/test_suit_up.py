@@ -8,10 +8,6 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# Mockear psutil antes de que se importe en cualquier sitio
-mock_psutil = MagicMock()
-sys.modules['psutil'] = mock_psutil
-
 # Importar explícitamente los módulos de core para evitar AttributeErrors durante patch
 import core.services
 import core.privacy_sentinel
@@ -20,6 +16,21 @@ import core.suit_up as suit_up
 
 
 class TestSuitUp(unittest.TestCase):
+
+    def setUp(self):
+        # Mockear psutil SOLO durante estos tests y restaurar el módulo real
+        # después. Si se reemplaza sys.modules['psutil'] a nivel de módulo,
+        # la contaminación persiste durante toda la sesión de pytest y rompe
+        # otros tests que usan psutil real (ram_guard, active_window, system_health).
+        self._orig_psutil = sys.modules.get("psutil")
+        self.mock_psutil = MagicMock()
+        sys.modules["psutil"] = self.mock_psutil
+
+    def tearDown(self):
+        if self._orig_psutil is not None:
+            sys.modules["psutil"] = self._orig_psutil
+        else:
+            sys.modules.pop("psutil", None)
 
     def test_collect_core_init(self):
         """Prueba que la Fase 1 devuelva los campos básicos de CORE INIT."""
@@ -35,24 +46,24 @@ class TestSuitUp(unittest.TestCase):
         """Prueba la recopilación de datos de memoria cuando psutil está disponible."""
         mock_proc_inst = MagicMock()
         mock_proc_inst.memory_info.return_value.rss = 100 * 1024 * 1024  # 100MB
-        mock_psutil.Process.return_value = mock_proc_inst
+        self.mock_psutil.Process.return_value = mock_proc_inst
 
         mock_vmem_inst = MagicMock()
         mock_vmem_inst.percent = 45.0
         mock_vmem_inst.used = 8 * 1024**3
         mock_vmem_inst.total = 16 * 1024**3
-        mock_psutil.virtual_memory.return_value = mock_vmem_inst
+        self.mock_psutil.virtual_memory.return_value = mock_vmem_inst
 
         mock_swap_inst = MagicMock()
         mock_swap_inst.percent = 10.0
-        mock_psutil.swap_memory.return_value = mock_swap_inst
+        self.mock_psutil.swap_memory.return_value = mock_swap_inst
 
-        mock_psutil.cpu_percent.return_value = 15.0
+        self.mock_psutil.cpu_percent.return_value = 15.0
 
         data = suit_up._collect_memory_scan()
         self.assertEqual(data["phase"], 2)
         self.assertEqual(data["title"], "MEMORY SCAN")
-        
+
         # Validar items
         labels = {item["label"]: item for item in data["items"]}
         self.assertEqual(labels["JARVIS PROCESS"]["value"], "100.0 MB")
@@ -62,14 +73,11 @@ class TestSuitUp(unittest.TestCase):
 
     def test_collect_memory_scan_error(self):
         """Prueba de robustez ante fallos en psutil durante MEMORY SCAN."""
-        mock_psutil.Process.side_effect = Exception("psutil error")
-        try:
-            data = suit_up._collect_memory_scan()
-            self.assertEqual(data["phase"], 2)
-            self.assertEqual(data["items"][0]["label"], "MEMORY")
-            self.assertEqual(data["items"][0]["status"], "error")
-        finally:
-            mock_psutil.Process.side_effect = None
+        self.mock_psutil.Process.side_effect = Exception("psutil error")
+        data = suit_up._collect_memory_scan()
+        self.assertEqual(data["phase"], 2)
+        self.assertEqual(data["items"][0]["label"], "MEMORY")
+        self.assertEqual(data["items"][0]["status"], "error")
 
     @patch("core.services.get_services_status")
     def test_collect_services_check(self, mock_get_status):
@@ -101,8 +109,8 @@ class TestSuitUp(unittest.TestCase):
         self.assertEqual(labels["UNKNOWN DEVICES"]["value"], "1")
         self.assertEqual(labels["UNKNOWN DEVICES"]["status"], "warning")
 
-    @patch("core.vulnerability_patcher.REPORT_FILE.exists")
-    @patch("core.vulnerability_patcher.REPORT_FILE.read_text")
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.read_text")
     @patch("core.privacy_sentinel.get_privacy_status")
     def test_collect_final_status_nominal(self, mock_privacy_status, mock_read_text, mock_exists):
         """Prueba la Fase 5 con estado NOMINAL."""
@@ -117,8 +125,8 @@ class TestSuitUp(unittest.TestCase):
         self.assertEqual(labels["SYSTEM STATUS"]["value"], "NOMINAL")
         self.assertEqual(labels["SYSTEM STATUS"]["status"], "ok")
 
-    @patch("core.vulnerability_patcher.REPORT_FILE.exists")
-    @patch("core.vulnerability_patcher.REPORT_FILE.read_text")
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.read_text")
     @patch("core.privacy_sentinel.get_privacy_status")
     def test_collect_final_status_warning(self, mock_privacy_status, mock_read_text, mock_exists):
         """Prueba la Fase 5 con estado ADVISORY."""
@@ -136,25 +144,25 @@ class TestSuitUp(unittest.TestCase):
     def test_run_suit_up_sequence_complete(self):
         """Prueba que run_suit_up_sequence emita todas las fases e inicio/fin."""
         mock_socketio = MagicMock()
-        
+
         # Ejecutamos con delay_multiplier muy bajo para que no tarde en los tests
         suit_up.run_suit_up_sequence(mock_socketio, delay_multiplier=0.001)
 
         # Verificar llamadas
         calls = mock_socketio.emit.mock_calls
         self.assertEqual(calls[0], call("suitup_start", {"total_phases": 5}))
-        
+
         # Debe haber 5 fases
         phases = [c[1][1]["phase"] for c in calls if c[1][0] == "suitup_phase"]
         self.assertEqual(phases, [1, 2, 3, 4, 5])
-        
+
         # Última llamada debe ser suitup_complete
         self.assertEqual(calls[-1], call("suitup_complete", {"status": "ready"}))
 
     def test_run_suit_up_sequence_cancel(self):
         """Prueba que cancel_suit_up aborte la secuencia en curso de forma inmediata."""
         mock_socketio = MagicMock()
-        
+
         # Simulamos que cancelamos a mitad de la secuencia llamando a cancel_suit_up
         # en la segunda emisión del socket
         def side_effect(event, data=None):
@@ -169,7 +177,7 @@ class TestSuitUp(unittest.TestCase):
         calls = mock_socketio.emit.mock_calls
         phases = [c[1][1]["phase"] for c in calls if c[1][0] == "suitup_phase"]
         self.assertNotIn(5, phases)
-        
+
         # Debe haberse emitido el evento suitup_cancelled
         cancelled_events = [c for c in calls if c[1][0] == "suitup_cancelled"]
         self.assertTrue(len(cancelled_events) > 0)
