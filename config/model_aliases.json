@@ -1,0 +1,17 @@
+{
+  "predeterminado": "JARVIS_MODEL_DEFAULT",
+  "por defecto": "JARVIS_MODEL_DEFAULT",
+  "deepseek": "JARVIS_MODEL_DEFAULT",
+  "gemini": "JARVIS_MODEL_GEMINI",
+  "google": "JARVIS_MODEL_GEMINI",
+  "codigo": "JARVIS_MODEL_CODE",
+  "code": "JARVIS_MODEL_CODE",
+  "razonamiento": "JARVIS_MODEL_THINK",
+  "pensamiento": "JARVIS_MODEL_THINK",
+  "pro": "JARVIS_MODEL_PRO",
+  "kimi": "JARVIS_MODEL_PRO",
+  "gpt": "JARVIS_MODEL_GPT",
+  "chatgpt": "JARVIS_MODEL_GPT",
+  "ultra": "JARVIS_MODEL_ULTRA",
+  "agente": "JARVIS_MODEL_AGENT"
+}

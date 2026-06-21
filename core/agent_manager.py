@@ -147,3 +147,34 @@ def get_executor() -> AgentExecutor:
     if executor is None:
         init_agent()
     return executor
+
+def get_active_model() -> str:
+    """Devuelve el ID del modelo actualmente activo para el agente principal."""
+    return os.getenv("JARVIS_MODEL_DEFAULT", "deepseek/deepseek-v4-pro")
+
+def set_active_model(model_id: str) -> str:
+    """Cambia en caliente el modelo del agente principal.
+
+    Recrea el LLM con el nuevo modelo y reconstruye el executor (conservando la
+    memoria de conversación). El cambio es solo para la sesión actual (actualiza
+    JARVIS_MODEL_DEFAULT en el entorno del proceso). Si algo falla, restaura el
+    LLM anterior y relanza la excepción para no dejar el agente en mal estado.
+
+    Returns:
+        str: el model_id aplicado.
+    """
+    global llm
+    if not model_id:
+        raise ValueError("model_id vacío")
+
+    prev_llm = llm
+    try:
+        llm = get_llm(model_id)
+        reload_agent()
+        os.environ["JARVIS_MODEL_DEFAULT"] = model_id
+        logging.info(f"Modelo activo cambiado a: {model_id}")
+        return model_id
+    except Exception as e:
+        llm = prev_llm
+        logging.error(f"No se pudo cambiar el modelo activo a {model_id}: {e}")
+        raise

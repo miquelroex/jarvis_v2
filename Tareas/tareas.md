@@ -57,11 +57,11 @@
   - [x] Ver coste aproximado, tokens y proveedor usado.
 
 * [ ] **Comandos Rápidos sin IA concretos:**
-  - [ ] Comando rápido: resumen del día.
+  - [x] Comando rápido: resumen del día.
   - [ ] Comando rápido: activar modo gaming.
   - [ ] Comando rápido: apuntar tarea en bandeja de entrada (Inbox).
-  - [ ] Comando rápido: estado de servicios locales.
-  - [ ] Comando rápido: cambiar de modelo activo.
+  - [x] Comando rápido: estado de servicios locales.
+  - [x] Comando rápido: cambiar de modelo activo.
 
 ## Camino hacia un Jarvis Real (Módulos de Futuro)
 

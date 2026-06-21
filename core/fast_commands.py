@@ -173,6 +173,43 @@ def handle_fast_command(command: str):
             return f"Lo siento, señor, no pude generar el resumen del día: {e}"
 
 
+    # --- Comando rápido: consultar el modelo activo ---
+    current_model_keywords = [
+        "que modelo estas usando", "que modelo usas", "modelo activo",
+        "cual es el modelo actual", "que modelo tienes activo"
+    ]
+    if any(kw in text for kw in current_model_keywords):
+        from core.agent_manager import get_active_model
+        return f"Señor, el modelo activo actualmente es {get_active_model()}."
+
+    # --- Comando rápido: cambiar de modelo activo ---
+    change_model_prefixes = [
+        "cambia al modelo ", "cambia a modelo ", "cambia de modelo a ",
+        "usa el modelo ", "activa el modelo "
+    ]
+    match_model_pref = None
+    for pref in change_model_prefixes:
+        if text.startswith(normalize_text(pref)):
+            match_model_pref = pref
+            break
+    if match_model_pref is not None:
+        alias = text[len(normalize_text(match_model_pref)):].strip()
+        from core.model_config import resolve_model_alias, available_aliases
+        model_id = resolve_model_alias(alias)
+        if not model_id:
+            opciones = ", ".join(available_aliases())
+            return (
+                f"Señor, no reconozco el modelo '{alias}'. "
+                f"Puede elegir entre: {opciones}."
+            )
+        try:
+            from core.agent_manager import set_active_model
+            set_active_model(model_id)
+            return f"Entendido, señor. Modelo activo cambiado a {model_id}."
+        except Exception as e:
+            return f"Lo siento, señor, no pude cambiar el modelo: {e}"
+
+
     # --- Comandos rápidos del Planificador de Tareas ---
     # 1. Crear recordatorio
     match_reminder = re.search(r"\b(en|cada)\s+(\d+)\s+(segundo|segundos|seg|s|minuto|minutos|min|m|hora|horas|h)\b", text)

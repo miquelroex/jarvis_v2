@@ -106,6 +106,56 @@ class TestFastCommands(unittest.TestCase):
         self.assertEqual(resp, "Resumen del día, señor (test).")
         self.assertEqual(resp_alias, "Resumen del día, señor (test).")
 
+    def test_current_model_command(self):
+        fake_am = types.SimpleNamespace(get_active_model=lambda: "deepseek/deepseek-v4-pro")
+        with patch.dict(sys.modules, {"core.agent_manager": fake_am}):
+            resp = handle_fast_command("que modelo estas usando")
+        self.assertIsNotNone(resp)
+        self.assertIn("deepseek/deepseek-v4-pro", resp)
+
+    def test_change_model_command_success(self):
+        applied = {}
+
+        def fake_set(model_id):
+            applied["id"] = model_id
+            return model_id
+
+        fake_mc = types.SimpleNamespace(
+            resolve_model_alias=lambda a: "qwen/qwen3-coder" if a == "codigo" else None,
+            available_aliases=lambda: ["codigo", "gemini"],
+        )
+        fake_am = types.SimpleNamespace(set_active_model=fake_set)
+        with patch.dict(sys.modules, {"core.model_config": fake_mc, "core.agent_manager": fake_am}):
+            resp = handle_fast_command("cambia al modelo codigo")
+        self.assertEqual(applied["id"], "qwen/qwen3-coder")
+        self.assertIn("qwen/qwen3-coder", resp)
+
+    def test_change_model_command_unknown(self):
+        fake_mc = types.SimpleNamespace(
+            resolve_model_alias=lambda a: None,
+            available_aliases=lambda: ["codigo", "gemini"],
+        )
+        with patch.dict(sys.modules, {"core.model_config": fake_mc}):
+            resp = handle_fast_command("cambia al modelo inventado")
+        self.assertIn("no reconozco", resp.lower())
+
+    def test_set_active_model_rebuilds_agent(self):
+        # set_active_model recrea el LLM y reconstruye el agente. Import perezoso
+        # para que la colección del archivo no arrastre langchain.
+        import core.agent_manager as am
+        prev_llm = am.llm
+        try:
+            with patch.object(am, "get_llm", return_value="FAKE_LLM"), \
+                 patch.object(am, "reload_agent") as mock_reload, \
+                 patch.dict(os.environ, {}, clear=False):
+                result = am.set_active_model("test/model-x")
+                self.assertEqual(result, "test/model-x")
+                self.assertEqual(am.llm, "FAKE_LLM")
+                mock_reload.assert_called_once()
+                self.assertEqual(os.environ.get("JARVIS_MODEL_DEFAULT"), "test/model-x")
+        finally:
+            am.llm = prev_llm
+
     def test_memory_save_command(self):
         resp = handle_fast_command("recuerda que me gusta la lasaña")
         self.assertIsNotNone(resp)
