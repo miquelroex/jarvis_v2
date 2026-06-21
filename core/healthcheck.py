@@ -14,6 +14,8 @@ Garantías de diseño (Fase 1):
   * NO vuelca valores de claves API (solo un booleano de presencia).
   * Este módulo no está conectado todavía al arranque ni a la GUI.
 """
+import os
+import json
 import sqlite3
 import logging
 from datetime import datetime, timezone
@@ -22,6 +24,9 @@ logger = logging.getLogger(__name__)
 
 # Tablas que deben existir en la base de datos de memoria para considerarla sana.
 _EXPECTED_TABLES = {"memories", "scheduled_tasks"}
+
+# Ruta por defecto donde se persiste el último reporte de arranque.
+DEFAULT_REPORT_PATH = os.path.join("logs", "startup_health.json")
 
 
 def _check_tools() -> dict:
@@ -140,3 +145,49 @@ def run_healthcheck() -> dict:
         "api_keys": api_keys,
         "database": database,
     }
+
+
+def summarize_healthcheck(report: dict) -> str:
+    """Resumen de una sola línea del reporte, pensado para logging.
+
+    No expone valores de claves: solo cuenta cuántas están presentes.
+    """
+    status = report.get("status", "unknown")
+
+    tools = report.get("tools", {})
+    loaded = tools.get("loaded", 0)
+    failed = len(tools.get("failed", []))
+
+    services = report.get("services", {})
+    running = sum(1 for s in services.values() if s == "running")
+    stopped = sum(1 for s in services.values() if s == "stopped")
+    disabled = sum(1 for s in services.values() if s == "disabled")
+
+    keys = report.get("api_keys", [])
+    keys_ok = sum(1 for k in keys if k.get("configured"))
+
+    db_ok = report.get("database", {}).get("ok", False)
+
+    return (
+        f"status={status} | tools={loaded} ok/{failed} fallidas | "
+        f"servicios={running} activos/{stopped} detenidos/{disabled} desactivados | "
+        f"api_keys={keys_ok}/{len(keys)} presentes | sqlite={'ok' if db_ok else 'ERROR'}"
+    )
+
+
+def persist_healthcheck(report: dict, path: str = DEFAULT_REPORT_PATH) -> bool:
+    """Persiste el reporte a un fichero JSON (crea el directorio si hace falta).
+
+    Returns:
+        bool: True si se escribió correctamente, False en caso de error.
+    """
+    try:
+        dir_name = os.path.dirname(path)
+        if dir_name and not os.path.exists(dir_name):
+            os.makedirs(dir_name, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(report, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"[Healthcheck] No se pudo persistir el reporte en {path}: {e}")
+        return False

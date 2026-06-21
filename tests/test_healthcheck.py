@@ -5,6 +5,7 @@ la suite de tests y no se depende de servicios reales.
 """
 import os
 import sys
+import json
 import types
 import sqlite3
 import tempfile
@@ -184,6 +185,68 @@ class TestRunHealthcheck(unittest.TestCase):
         for entry in report["api_keys"]:
             self.assertNotIn("value", entry)
             self.assertEqual(set(entry.keys()), {"name", "configured"})
+
+
+class TestSummarizeHealthcheck(unittest.TestCase):
+    """Resumen de una línea para logging."""
+
+    def test_summary_contains_status_and_counts(self):
+        report = {
+            "status": "degraded",
+            "tools": {"loaded": 30, "failed": [{"file": "tools/x.py", "error": "boom"}]},
+            "services": {"a": "running", "b": "stopped", "c": "disabled"},
+            "api_keys": [
+                {"name": "OPENROUTER_API_KEY", "configured": True},
+                {"name": "TAVILY_API_KEY", "configured": False},
+            ],
+            "database": {"ok": True},
+        }
+        summary = healthcheck.summarize_healthcheck(report)
+        self.assertIn("status=degraded", summary)
+        self.assertIn("30 ok/1 fallidas", summary)
+        self.assertIn("1 activos/1 detenidos/1 desactivados", summary)
+        self.assertIn("api_keys=1/2", summary)
+        self.assertIn("sqlite=ok", summary)
+
+    def test_summary_never_leaks_key_values(self):
+        report = {
+            "status": "healthy",
+            "tools": {"loaded": 1, "failed": []},
+            "services": {},
+            "api_keys": [{"name": "OPENROUTER_API_KEY", "configured": True}],
+            "database": {"ok": True},
+        }
+        summary = healthcheck.summarize_healthcheck(report)
+        # Solo cuenta presencia; el nombre de la clave no aparece como valor.
+        self.assertIn("api_keys=1/1", summary)
+
+    def test_summary_handles_missing_sections(self):
+        # No debe lanzar aunque falten secciones.
+        summary = healthcheck.summarize_healthcheck({"status": "error"})
+        self.assertIn("status=error", summary)
+        self.assertIn("sqlite=ERROR", summary)
+
+
+class TestPersistHealthcheck(unittest.TestCase):
+    """Persistencia del reporte a JSON."""
+
+    def test_persist_writes_valid_json(self):
+        report = {"status": "healthy", "tools": {"loaded": 3, "failed": []}}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "sub", "startup_health.json")  # subdir aún no existe
+            ok = healthcheck.persist_healthcheck(report, path=path)
+            self.assertTrue(ok)
+            self.assertTrue(os.path.exists(path))
+            with open(path, encoding="utf-8") as f:
+                loaded = json.load(f)
+        self.assertEqual(loaded, report)
+
+    def test_persist_returns_false_on_error(self):
+        report = {"status": "healthy"}
+        # Forzar fallo de escritura.
+        with patch("builtins.open", side_effect=OSError("disk full")):
+            ok = healthcheck.persist_healthcheck(report, path="whatever.json")
+        self.assertFalse(ok)
 
 
 if __name__ == "__main__":

@@ -175,7 +175,19 @@ def write():
         # Arrancar servicios de segundo plano de forma centralizada
         from core.services import start_all_services
         start_all_services()
-        
+
+        # Healthcheck de arranque: resumen de estado (tools, servicios, claves, SQLite).
+        # Nunca debe abortar el arranque, por eso va en try/except.
+        try:
+            from core.healthcheck import run_healthcheck, summarize_healthcheck, persist_healthcheck
+            health_report = run_healthcheck()
+            logging.info(f"[Healthcheck] {summarize_healthcheck(health_report)}")
+            persist_healthcheck(health_report)
+            if health_report.get("status") != "healthy":
+                logging.warning(f"[Healthcheck] Estado de arranque no óptimo: {health_report.get('status')}")
+        except Exception as e:
+            logging.warning(f"[Healthcheck] No se pudo completar el healthcheck de arranque: {e}")
+
         if system_status == "AWAKE":
             print("Abriendo http://localhost:5000 en tu navegador...")
             time.sleep(2)  # Dar tiempo a que Flask arranque
