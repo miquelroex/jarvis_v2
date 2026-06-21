@@ -133,6 +133,33 @@ def handle_fast_command(command: str):
         return resp
 
 
+    # --- Comando rápido: estado de los servicios locales ---
+    services_status_keywords = [
+        "estado de los servicios", "estado de servicios",
+        "estado de los servicios locales", "como estan los servicios",
+        "que servicios estan activos", "informe de servicios"
+    ]
+    if any(kw in text for kw in services_status_keywords):
+        from core.services import get_services_status
+        status = get_services_status()
+        running = [name for name, st in status.items() if st == "running"]
+        stopped = [name for name, st in status.items() if st == "stopped"]
+        disabled = [name for name, st in status.items() if st == "disabled"]
+
+        def _pretty(name):
+            return name.replace("_", " ")
+
+        resp = (
+            f"Señor, informe de servicios: {len(running)} activos, "
+            f"{len(stopped)} detenidos y {len(disabled)} desactivados."
+        )
+        if running:
+            resp += "\nActivos: " + ", ".join(_pretty(s) for s in running) + "."
+        if stopped:
+            resp += "\nDetenidos: " + ", ".join(_pretty(s) for s in stopped) + "."
+        return resp
+
+
     # --- Comandos rápidos del Planificador de Tareas ---
     # 1. Crear recordatorio
     match_reminder = re.search(r"\b(en|cada)\s+(\d+)\s+(segundo|segundos|seg|s|minuto|minutos|min|m|hora|horas|h)\b", text)

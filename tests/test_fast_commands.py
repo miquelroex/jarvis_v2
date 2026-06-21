@@ -1,5 +1,6 @@
 import sys
 import os
+import types
 import unittest
 import tempfile
 from unittest.mock import patch
@@ -62,6 +63,37 @@ class TestFastCommands(unittest.TestCase):
     def test_no_match(self):
         resp = handle_fast_command("cual es el sentido de la vida")
         self.assertIsNone(resp)
+
+    def _services_status_with(self, status_dict, phrase="estado de los servicios"):
+        # Inyectamos un core.services falso para no importar el real (que arrastra
+        # gui.app -> tools.voice y, en local, el crash de OpenSSL).
+        fake_services = types.SimpleNamespace(get_services_status=lambda: status_dict)
+        with patch.dict(sys.modules, {"core.services": fake_services}):
+            return handle_fast_command(phrase)
+
+    def test_services_status_command(self):
+        status = {
+            "web_gui": "running",
+            "telegram_bot": "disabled",
+            "ram_guard": "running",
+            "network_sentinel": "stopped",
+        }
+        resp = self._services_status_with(status)
+        self.assertIsNotNone(resp)
+        # Conteo: 2 activos, 1 detenido, 1 desactivado.
+        self.assertIn("2 activos", resp)
+        self.assertIn("1 detenidos", resp)
+        self.assertIn("1 desactivados", resp)
+        # Lista los activos y detenidos con nombres legibles (sin guiones bajos).
+        self.assertIn("web gui", resp)
+        self.assertIn("ram guard", resp)
+        self.assertIn("network sentinel", resp)
+
+    def test_services_status_command_alias(self):
+        # Otra de las frases disparadoras debe funcionar igual.
+        resp = self._services_status_with({"web_gui": "running"}, phrase="informe de servicios")
+        self.assertIsNotNone(resp)
+        self.assertIn("1 activos", resp)
 
     def test_memory_save_command(self):
         resp = handle_fast_command("recuerda que me gusta la lasaña")
