@@ -123,6 +123,16 @@ def handle_connect():
             emit('startup_healthcheck', startup_health_data)
     except Exception as e:
         print(f"[GUI] Error al enviar healthcheck de arranque inicial: {e}")
+
+    # Enviar informe de salud de dependencias al conectar (generado por su daemon)
+    try:
+        from core.dependency_health import REPORT_FILE as DEP_HEALTH_FILE
+        import json
+        if DEP_HEALTH_FILE.exists():
+            dep_health_data = json.loads(DEP_HEALTH_FILE.read_text(encoding="utf-8"))
+            emit('dependency_health_update', dep_health_data)
+    except Exception as e:
+        print(f"[GUI] Error al enviar informe de dependencias inicial: {e}")
     
     # Cargar y enviar últimos 15 logs de modelos
     try:

@@ -5,6 +5,8 @@ Sin red real: se mockea la consulta a PyPI. Módulo ligero, ejecutable en local.
 import os
 import sys
 import json
+import types
+import threading
 import tempfile
 import unittest
 from datetime import datetime, timezone, timedelta
@@ -156,6 +158,95 @@ class TestPersist(unittest.TestCase):
             self.assertTrue(dh.persist_report(report, path=path))
             with open(path, encoding="utf-8") as f:
                 self.assertEqual(json.load(f), report)
+
+
+class TestRunAndReport(unittest.TestCase):
+    """run_and_report: persiste, emite a GUI y avisa por voz solo en transición."""
+
+    def setUp(self):
+        dh.LAST_STATUS = "unknown"
+
+    def _fakes(self, spoken):
+        # Inyectamos gui.app y tools.voice falsos para no importar los reales
+        # (que arrastran el crash local de OpenSSL).
+        fake_gui = types.SimpleNamespace(
+            socketio=types.SimpleNamespace(emit=lambda *a, **k: None)
+        )
+        fake_voice = types.SimpleNamespace(speak=lambda msg, **k: spoken.append(msg))
+        return {"gui.app": fake_gui, "tools.voice": fake_voice}
+
+    def test_healthy_does_not_speak(self):
+        spoken = []
+        report = {"status": "healthy", "outdated": [], "stale": []}
+        with patch.object(dh, "run_dependency_health_check", return_value=report), \
+             patch.object(dh, "persist_report", return_value=True), \
+             patch.dict(sys.modules, self._fakes(spoken)):
+            result = dh.run_and_report()
+        self.assertEqual(result["status"], "healthy")
+        self.assertEqual(dh.LAST_STATUS, "healthy")
+        self.assertEqual(spoken, [])
+
+    def test_advisory_speaks_on_transition(self):
+        spoken = []
+        report = {"status": "advisory", "outdated": [{"name": "x"}], "stale": []}
+        dh.LAST_STATUS = "healthy"
+        with patch.object(dh, "run_dependency_health_check", return_value=report), \
+             patch.object(dh, "persist_report", return_value=True), \
+             patch.dict(sys.modules, self._fakes(spoken)):
+            dh.run_and_report()
+        self.assertEqual(len(spoken), 1)
+        self.assertEqual(dh.LAST_STATUS, "advisory")
+
+    def test_advisory_does_not_repeat(self):
+        spoken = []
+        report = {"status": "advisory", "outdated": [{"name": "x"}], "stale": []}
+        dh.LAST_STATUS = "advisory"  # ya estaba en advisory
+        with patch.object(dh, "run_dependency_health_check", return_value=report), \
+             patch.object(dh, "persist_report", return_value=True), \
+             patch.dict(sys.modules, self._fakes(spoken)):
+            dh.run_and_report()
+        self.assertEqual(spoken, [])
+
+
+class TestDaemon(unittest.TestCase):
+    """Arranque/parada del daemon (con el bucle mockeado)."""
+
+    def setUp(self):
+        dh.HEALTH_THREAD = None
+        dh.stop_event.clear()
+
+    def tearDown(self):
+        dh.stop_event.set()
+        dh.HEALTH_THREAD = None
+
+    def test_disabled_by_env(self):
+        with patch.dict(os.environ, {"JARVIS_DEP_HEALTH_ENABLED": "false"}):
+            dh.start_dependency_health_daemon()
+        self.assertIsNone(dh.HEALTH_THREAD)
+
+    def test_start_stop_idempotent(self):
+        keep_alive = threading.Event()
+
+        def fake_loop():
+            keep_alive.wait(timeout=5)
+
+        with patch.dict(os.environ, {"JARVIS_DEP_HEALTH_ENABLED": "true"}), \
+             patch.object(dh, "_health_loop", side_effect=fake_loop):
+            dh.start_dependency_health_daemon()
+            self.assertIsNotNone(dh.HEALTH_THREAD)
+            first = dh.HEALTH_THREAD
+            self.assertTrue(first.is_alive())
+
+            # Segundo arranque es no-op (hilo aún vivo)
+            dh.start_dependency_health_daemon()
+            self.assertIs(dh.HEALTH_THREAD, first)
+
+            dh.stop_dependency_health_daemon()
+            self.assertTrue(dh.stop_event.is_set())
+
+            keep_alive.set()
+            first.join(timeout=2)
+            self.assertFalse(first.is_alive())
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ Fase 1: solo lógica y persistencia. Aún no conectado a daemon/servicios/GUI.
 import os
 import json
 import logging
+import threading
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -165,3 +166,78 @@ def persist_report(report: dict, path: Path = None) -> bool:
     except Exception as e:
         logger.error(f"[DepHealth] Error al persistir el reporte en {path}: {e}")
         return False
+
+
+# --- Daemon periódico ---
+HEALTH_THREAD = None
+stop_event = threading.Event()
+LAST_STATUS = "unknown"
+
+
+def run_and_report() -> dict:
+    """Ejecuta la auditoría, persiste el reporte, lo emite a la GUI y avisa por voz
+    de forma proactiva SOLO en la transición a 'advisory' (para no resultar pesado)."""
+    global LAST_STATUS
+    report = run_dependency_health_check()
+    persist_report(report)
+
+    # Emitir a la GUI (best-effort)
+    try:
+        from gui.app import socketio
+        socketio.emit("dependency_health_update", report)
+    except Exception:
+        pass
+
+    # Aviso proactivo por voz solo al pasar de no-advisory a advisory
+    try:
+        if report["status"] == "advisory" and LAST_STATUS != "advisory":
+            n_out = len(report["outdated"])
+            n_stale = len(report["stale"])
+            from tools.voice import speak
+            speak(
+                f"Señor, informe de dependencias: {n_out} desactualizadas y "
+                f"{n_stale} sin mantenimiento reciente. Le sugiero revisarlas.",
+                disable_vad=True,
+            )
+    except Exception:
+        pass
+
+    LAST_STATUS = report["status"]
+    return report
+
+
+def _health_loop():
+    """Bucle periódico del daemon de salud de dependencias."""
+    # Espera inicial para no interferir con el arranque.
+    if stop_event.wait(timeout=30):
+        return
+    while not stop_event.is_set():
+        try:
+            run_and_report()
+        except Exception as e:
+            logger.error(f"[DepHealth] Error en el bucle periódico: {e}")
+        interval = int(os.getenv("JARVIS_DEP_HEALTH_INTERVAL", "86400"))  # diario por defecto
+        if stop_event.wait(timeout=interval):
+            break
+
+
+def start_dependency_health_daemon():
+    """Lanza el daemon de auditoría de dependencias. Idempotente. Controlado por
+    JARVIS_DEP_HEALTH_ENABLED (desactivado por defecto, es una tarea de red)."""
+    global HEALTH_THREAD
+    if os.getenv("JARVIS_DEP_HEALTH_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        logger.info("[DepHealth] Desactivado en .env.")
+        return
+    if HEALTH_THREAD is not None and HEALTH_THREAD.is_alive():
+        logger.info("[DepHealth] Ya está en ejecución.")
+        return
+    stop_event.clear()
+    HEALTH_THREAD = threading.Thread(target=_health_loop, name="DependencyHealthDaemon", daemon=True)
+    HEALTH_THREAD.start()
+    logger.info("[DepHealth] Daemon de salud de dependencias iniciado en segundo plano.")
+
+
+def stop_dependency_health_daemon():
+    """Detiene el daemon de salud de dependencias de forma limpia."""
+    logger.info("[DepHealth] Deteniendo daemon de salud de dependencias...")
+    stop_event.set()

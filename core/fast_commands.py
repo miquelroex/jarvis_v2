@@ -160,6 +160,31 @@ def handle_fast_command(command: str):
         return resp
 
 
+    # --- Comando rápido: salud de las dependencias ---
+    dep_health_keywords = [
+        "salud de las dependencias", "salud de dependencias",
+        "estado de las dependencias", "estado de dependencias",
+        "dependencias desactualizadas"
+    ]
+    if any(kw in text for kw in dep_health_keywords):
+        import json as _json
+        from core.dependency_health import REPORT_FILE
+        if not REPORT_FILE.exists():
+            return "Señor, aún no he realizado la auditoría de salud de dependencias."
+        try:
+            report = _json.loads(REPORT_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            return "Señor, no pude leer el informe de dependencias."
+        n_out = len(report.get("outdated", []))
+        n_stale = len(report.get("stale", []))
+        if n_out == 0 and n_stale == 0:
+            return "Señor, todas las dependencias están al día y con mantenimiento reciente."
+        return (
+            f"Señor, informe de dependencias: {n_out} desactualizada(s) y "
+            f"{n_stale} sin mantenimiento reciente. Le sugiero revisarlas en el panel."
+        )
+
+
     # --- Comando rápido: resumen del día (Daily Digest) ---
     digest_keywords = [
         "resumen del dia", "resumen de hoy", "que he hecho hoy",
