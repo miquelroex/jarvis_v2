@@ -208,6 +208,16 @@ def _handle_awake_startup() -> bool:
     # Saludo de arranque dinámico con telemetría
     from core.startup import generate_startup_greeting
     speak(generate_startup_greeting(), disable_vad=True)
+
+    # Briefing matutino al arrancar (clima, git, recordatorios), si está activado.
+    # Se entrega por voz; va detrás del saludo en la cola de voz (no se solapan).
+    try:
+        if os.getenv("JARVIS_MORNING_BRIEFING_ON_STARTUP", "false").lower() in ("true", "1", "yes"):
+            from core.morning_briefing import deliver_briefing
+            deliver_briefing(channel="voice")
+    except Exception as e:
+        logging.warning(f"[Main] Error al entregar el briefing de arranque: {e}")
+
     return True
 
 def _handle_sleeping_startup() -> None:
