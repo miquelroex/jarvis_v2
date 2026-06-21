@@ -17,11 +17,15 @@ memory = None
 llm = None
 prompt = None
 tools = []
+# Herramientas que fallaron al cargarse en la última ejecución de load_all_tools().
+# Cada entrada: {"file": "tools/<nombre>.py", "error": "<mensaje>"}
+failed_tools = []
 
 def load_all_tools() -> list:
     """Escanea el directorio tools/ y carga/recarga dinámicamente las herramientas de LangChain."""
-    global tools
+    global tools, failed_tools
     new_tools = []
+    failures = []
     
     # Encontrar la carpeta de herramientas relativa a este archivo
     tools_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tools"))
@@ -46,9 +50,25 @@ def load_all_tools() -> list:
                         new_tools.append(obj)
             except Exception as e:
                 logging.error(f"❌ Error al cargar/recargar herramienta {filename}: {e}")
-                
+                failures.append({"file": f"tools/{filename}", "error": str(e)})
+
     tools = new_tools
+    failed_tools = failures
     return tools
+
+def get_tools_load_report() -> dict:
+    """Reporte seguro del estado de carga de tools, sin reimportar ni recargar nada.
+
+    Lee el resultado de la última ejecución de load_all_tools() ya almacenado en
+    los globales del módulo. Pensado para consumidores como el healthcheck.
+
+    Returns:
+        dict: {"loaded": <int>, "failed": [{"file", "error"}, ...]}
+    """
+    return {
+        "loaded": len(tools),
+        "failed": list(failed_tools),
+    }
 
 def reload_agent() -> None:
     """Recarga las herramientas en caliente y recrea el AgentExecutor manteniendo el historial de conversación."""
