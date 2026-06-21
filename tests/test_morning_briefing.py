@@ -17,8 +17,26 @@ import core.morning_briefing as mb
 
 class TestWeather(unittest.TestCase):
     def test_skipped_without_config(self):
-        with patch.dict(os.environ, {"OPENWEATHER_API_KEY": "", "JARVIS_WEATHER_CITY": ""}):
+        with patch.dict(os.environ, {"OPENWEATHER_API_KEY": "", "OPENWEATHERMAP_API_KEY": "",
+                                     "JARVIS_WEATHER_CITY": ""}):
             self.assertIsNone(mb._get_weather())
+
+    def test_accepts_openweathermap_var_name(self):
+        # La clave también se reconoce bajo OPENWEATHERMAP_API_KEY (con 'MAP').
+        payload = json.dumps({
+            "weather": [{"description": "nubes"}],
+            "main": {"temp": 15.0, "feels_like": 14.0},
+        }).encode("utf-8")
+        fake_resp = MagicMock()
+        fake_resp.read.return_value = payload
+        fake_cm = MagicMock()
+        fake_cm.__enter__.return_value = fake_resp
+        with patch.dict(os.environ, {"OPENWEATHER_API_KEY": "", "OPENWEATHERMAP_API_KEY": "k",
+                                     "JARVIS_WEATHER_CITY": "Barcelona,ES"}), \
+             patch("core.morning_briefing.urllib.request.urlopen", return_value=fake_cm):
+            line = mb._get_weather()
+        self.assertIsNotNone(line)
+        self.assertIn("Barcelona", line)
 
     def test_formats_weather_line(self):
         payload = json.dumps({

@@ -25,7 +25,8 @@ def _get_weather() -> str:
 
     Requiere OPENWEATHER_API_KEY y JARVIS_WEATHER_CITY (p.ej. "Madrid,ES").
     """
-    api_key = os.getenv("OPENWEATHER_API_KEY")
+    # Aceptamos ambos nombres habituales de la variable.
+    api_key = os.getenv("OPENWEATHER_API_KEY") or os.getenv("OPENWEATHERMAP_API_KEY")
     city = os.getenv("JARVIS_WEATHER_CITY")
     if not api_key or not city:
         return None
