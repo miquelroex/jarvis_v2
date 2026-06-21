@@ -1,5 +1,6 @@
 import os
 import uuid
+import queue
 import asyncio
 import threading
 import time
@@ -16,15 +17,20 @@ from elevenlabs.client import ElevenLabs
 TEMP_DIR = Path("logs/audio_temp")
 
 _speaking_active = False
+# Cola de locuciones pendientes. Un único worker la consume en orden, de modo
+# que varias llamadas concurrentes a speak() (saludo de arranque + daemons de
+# fondo) se reproducen una tras otra y nunca se solapan.
+_speech_queue = queue.Queue()
 
 def is_speaking() -> bool:
-    """Retorna True si Jarvis está reproduciendo voz o sintetizándola."""
+    """Retorna True si Jarvis está reproduciendo voz, sintetizándola o tiene
+    locuciones pendientes en la cola."""
     global _speaking_active
     try:
         mixer_busy = pygame.mixer.get_init() and pygame.mixer.music.get_busy()
     except Exception:
         mixer_busy = False
-    return _speaking_active or mixer_busy
+    return _speaking_active or mixer_busy or not _speech_queue.empty()
 
 def wait_while_speaking() -> None:
     """Bloquea el hilo actual hasta que Jarvis termine de hablar."""
@@ -168,51 +174,79 @@ async def _generate_edge_tts(text: str, file_path: str):
     communicate = edge_tts.Communicate(text, voice)
     await communicate.save(file_path)
 
-def _speak_thread(text: str, disable_vad: bool = False):
-    """Bucle de ejecución asíncrono para la síntesis y reproducción de voz."""
-    global _speaking_active
-    _speaking_active = True
-    try:
-        TEMP_DIR.mkdir(parents=True, exist_ok=True)
-        temp_file = str(TEMP_DIR / f"speech_{uuid.uuid4().hex}.mp3")
+def _synthesize_and_play(text: str, disable_vad: bool = False):
+    """Sintetiza y reproduce una locución (bloquea hasta terminar).
 
-        eleven_key = os.getenv("ELEVENLABS_API_KEY")
-        eleven_voice_id = os.getenv("ELEVENLABS_VOICE_ID", "LlZr3QuzbW4WrPjgATHG")
+    Orden de prioridad de motores: ElevenLabs -> Edge-TTS -> pyttsx3.
+    Lo invoca el worker de voz; no gestiona _speaking_active (lo hace el worker).
+    """
+    TEMP_DIR.mkdir(parents=True, exist_ok=True)
+    temp_file = str(TEMP_DIR / f"speech_{uuid.uuid4().hex}.mp3")
 
-        # CAPA 1: ElevenLabs (Voz Premium)
-        if eleven_key:
-            try:
-                client = ElevenLabs(api_key=eleven_key)
-                audio_gen = client.text_to_speech.convert(
-                    text=text,
-                    voice_id=eleven_voice_id,
-                    model_id="eleven_multilingual_v2"
-                )
-                with open(temp_file, "wb") as f:
-                    for chunk in audio_gen:
-                        if chunk:
-                            f.write(chunk)
-                
-                if _play_audio(temp_file, disable_vad):
-                    return
-            except Exception as e:
-                logging.warning(f"⚠️ ElevenLabs falló ({e}). Usando Capa 2 (Edge-TTS)...")
+    eleven_key = os.getenv("ELEVENLABS_API_KEY")
+    eleven_voice_id = os.getenv("ELEVENLABS_VOICE_ID", "LlZr3QuzbW4WrPjgATHG")
 
-        # CAPA 2: Edge-TTS (Voz Neural Gratuita)
+    # CAPA 1: ElevenLabs (Voz Premium)
+    if eleven_key:
         try:
-            asyncio.run(_generate_edge_tts(text, temp_file))
+            client = ElevenLabs(api_key=eleven_key)
+            audio_gen = client.text_to_speech.convert(
+                text=text,
+                voice_id=eleven_voice_id,
+                model_id="eleven_multilingual_v2"
+            )
+            with open(temp_file, "wb") as f:
+                for chunk in audio_gen:
+                    if chunk:
+                        f.write(chunk)
+
             if _play_audio(temp_file, disable_vad):
                 return
         except Exception as e:
-            logging.warning(f"⚠️ Edge-TTS falló ({e}). Usando Capa 3 (pyttsx3 Offline)...")
+            logging.warning(f"⚠️ ElevenLabs falló ({e}). Usando Capa 2 (Edge-TTS)...")
 
-        # CAPA 3: Fallback Offline pyttsx3
-        _speak_backup(text)
-    finally:
-        _speaking_active = False
+    # CAPA 2: Edge-TTS (Voz Neural Gratuita)
+    try:
+        asyncio.run(_generate_edge_tts(text, temp_file))
+        if _play_audio(temp_file, disable_vad):
+            return
+    except Exception as e:
+        logging.warning(f"⚠️ Edge-TTS falló ({e}). Usando Capa 3 (pyttsx3 Offline)...")
+
+    # CAPA 3: Fallback Offline pyttsx3
+    _speak_backup(text)
+
+
+def _speech_worker():
+    """Hilo único que consume la cola de locuciones y las reproduce en orden,
+    una tras otra, garantizando que nunca se solapen."""
+    global _speaking_active
+    while True:
+        text, disable_vad = _speech_queue.get()
+        _speaking_active = True
+        try:
+            _synthesize_and_play(text, disable_vad)
+        except Exception as e:
+            logging.error(f"⚠️ Error en el worker de voz: {e}")
+        finally:
+            _speaking_active = False
+            _speech_queue.task_done()
 
 def stop_speak() -> None:
-    """Detiene la reproducción actual de voz de manera inmediata."""
+    """Detiene la voz actual y descarta las locuciones pendientes en la cola.
+
+    Pensado para el barge-in (VAD/ESC/mute): si el usuario interrumpe, Jarvis se
+    calla del todo en vez de seguir con lo que tuviera encolado.
+    """
+    # 1. Vaciar la cola de locuciones pendientes
+    while True:
+        try:
+            _speech_queue.get_nowait()
+            _speech_queue.task_done()
+        except queue.Empty:
+            break
+
+    # 2. Cortar la reproducción en curso
     try:
         if pygame.mixer.get_init() and pygame.mixer.music.get_busy():
             pygame.mixer.music.stop()
@@ -236,13 +270,19 @@ def _global_key_listener():
 # Arrancar el hilo de escucha global de teclado en Windows
 threading.Thread(target=_global_key_listener, daemon=True).start()
 
+# Arrancar el worker único que serializa la reproducción de voz
+threading.Thread(target=_speech_worker, daemon=True).start()
+
 def speak(text: str, disable_vad: bool = False) -> None:
     """
-    Sintetiza y reproduce el texto por voz de forma no bloqueante (asíncrona).
-    Orden de prioridad: ElevenLabs -> Edge-TTS -> pyttsx3
+    Encola el texto para reproducirlo por voz de forma no bloqueante.
+
+    Las locuciones se reproducen una tras otra mediante un worker único, de modo
+    que nunca se solapan aunque varias partes del sistema llamen a speak() a la vez.
+    Orden de prioridad de motores: ElevenLabs -> Edge-TTS -> pyttsx3.
     """
     # Evitar llamadas vacías
     if not text or not text.strip():
         return
-        
-    threading.Thread(target=_speak_thread, args=(text, disable_vad), daemon=True).start()
+
+    _speech_queue.put((text, disable_vad))
