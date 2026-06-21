@@ -139,6 +139,64 @@ class TestFastCommands(unittest.TestCase):
             resp = handle_fast_command("cambia al modelo inventado")
         self.assertIn("no reconozco", resp.lower())
 
+    def test_inbox_add_command(self):
+        added = []
+        fake_inbox = types.SimpleNamespace(
+            add_inbox_item=lambda c: (added.append(c) or True),
+            get_inbox_items=lambda include_done=False: [],
+            clear_inbox=lambda only_done=False: 0,
+        )
+        with patch.dict(sys.modules, {"core.inbox": fake_inbox}):
+            resp = handle_fast_command("apunta en la bandeja comprar leche")
+        self.assertEqual(added, ["comprar leche"])
+        self.assertIn("comprar leche", resp)
+
+    def test_inbox_add_preserves_original_case(self):
+        added = []
+        fake_inbox = types.SimpleNamespace(
+            add_inbox_item=lambda c: (added.append(c) or True),
+            get_inbox_items=lambda include_done=False: [],
+            clear_inbox=lambda only_done=False: 0,
+        )
+        with patch.dict(sys.modules, {"core.inbox": fake_inbox}):
+            handle_fast_command("Apunta en la bandeja Llamar a Mamá")
+        self.assertEqual(added, ["Llamar a Mamá"])
+
+    def test_inbox_list_command(self):
+        fake_inbox = types.SimpleNamespace(
+            add_inbox_item=lambda c: True,
+            get_inbox_items=lambda include_done=False: [
+                {"id": 1, "content": "comprar pan", "created_at": "", "done": False},
+                {"id": 2, "content": "llamar al banco", "created_at": "", "done": False},
+            ],
+            clear_inbox=lambda only_done=False: 0,
+        )
+        with patch.dict(sys.modules, {"core.inbox": fake_inbox}):
+            resp = handle_fast_command("que hay en mi bandeja")
+        self.assertIn("2 nota", resp)
+        self.assertIn("comprar pan", resp)
+        self.assertIn("llamar al banco", resp)
+
+    def test_inbox_list_empty(self):
+        fake_inbox = types.SimpleNamespace(
+            add_inbox_item=lambda c: True,
+            get_inbox_items=lambda include_done=False: [],
+            clear_inbox=lambda only_done=False: 0,
+        )
+        with patch.dict(sys.modules, {"core.inbox": fake_inbox}):
+            resp = handle_fast_command("lista la bandeja")
+        self.assertIn("vacía", resp.lower())
+
+    def test_inbox_clear_command(self):
+        fake_inbox = types.SimpleNamespace(
+            add_inbox_item=lambda c: True,
+            get_inbox_items=lambda include_done=False: [],
+            clear_inbox=lambda only_done=False: 3,
+        )
+        with patch.dict(sys.modules, {"core.inbox": fake_inbox}):
+            resp = handle_fast_command("vacia la bandeja")
+        self.assertIn("3 nota", resp)
+
     def test_set_active_model_rebuilds_agent(self):
         # set_active_model recrea el LLM y reconstruye el agente. Import perezoso
         # para que la colección del archivo no arrastre langchain.

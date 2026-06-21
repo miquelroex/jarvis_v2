@@ -210,6 +210,51 @@ def handle_fast_command(command: str):
             return f"Lo siento, señor, no pude cambiar el modelo: {e}"
 
 
+    # --- Comandos rápidos: Bandeja de entrada (Inbox) ---
+    # 1. Apuntar una nota
+    inbox_add_prefixes = [
+        "apunta en la bandeja ", "apunta en mi bandeja ", "anade a la bandeja ",
+        "anota en la bandeja ", "guarda en la bandeja ", "apunta en bandeja de entrada "
+    ]
+    match_inbox_pref = None
+    for pref in inbox_add_prefixes:
+        if text.startswith(normalize_text(pref)):
+            match_inbox_pref = pref
+            break
+    if match_inbox_pref is not None:
+        note = command[len(match_inbox_pref):].strip()
+        if not note:
+            return "Señor, ¿qué desea que apunte en la bandeja?"
+        from core.inbox import add_inbox_item
+        if add_inbox_item(note):
+            return f"Anotado en la bandeja, señor: {note}."
+        return "Lo siento, señor, no pude guardar la nota en la bandeja."
+
+    # 2. Consultar la bandeja
+    inbox_list_keywords = [
+        "que hay en mi bandeja", "que hay en la bandeja", "muestra mi bandeja",
+        "muestrame la bandeja", "lista la bandeja", "que tengo en la bandeja"
+    ]
+    if any(kw in text for kw in inbox_list_keywords):
+        from core.inbox import get_inbox_items
+        items = get_inbox_items()
+        if not items:
+            return "Su bandeja de entrada está vacía, señor."
+        formatted = "\n".join(f"  {idx}. {it['content']}" for idx, it in enumerate(items, 1))
+        return f"Señor, tiene {len(items)} nota(s) en la bandeja:\n{formatted}"
+
+    # 3. Vaciar la bandeja
+    inbox_clear_keywords = [
+        "vacia la bandeja", "limpia la bandeja", "vacia mi bandeja", "borra la bandeja"
+    ]
+    if any(kw in text for kw in inbox_clear_keywords):
+        from core.inbox import clear_inbox
+        removed = clear_inbox()
+        if removed > 0:
+            return f"Entendido, señor. He vaciado la bandeja ({removed} nota(s) eliminada(s))."
+        return "Su bandeja ya estaba vacía, señor."
+
+
     # --- Comandos rápidos del Planificador de Tareas ---
     # 1. Crear recordatorio
     match_reminder = re.search(r"\b(en|cada)\s+(\d+)\s+(segundo|segundos|seg|s|minuto|minutos|min|m|hora|horas|h)\b", text)
