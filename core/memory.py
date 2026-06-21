@@ -18,22 +18,14 @@ def get_db_path() -> str:
     """Retorna la ruta actual de la base de datos."""
     return _db_path
 
-def init_db(db_path: str = None):
-    """Inicializa la base de datos SQLite y la tabla de memorias."""
-    global _db_path
-    if db_path is not None:
-        _db_path = db_path
-    
-    # Crear directorio si no es una base de datos en memoria y no existe
-    if _db_path != ":memory:":
-        dir_name = os.path.dirname(_db_path)
-        if dir_name and not os.path.exists(dir_name):
-            os.makedirs(dir_name, exist_ok=True)
-            logging.info(f"Creada la carpeta para la base de datos: {dir_name}")
+# Versión actual del esquema de la base de datos. Incrementar al añadir una
+# nueva migración en _MIGRATIONS.
+SCHEMA_VERSION = 1
 
-    conn = sqlite3.connect(_db_path)
-    cursor = conn.cursor()
-    cursor.execute("""
+
+def _migration_v1(conn: sqlite3.Connection):
+    """Esquema base (v1): tablas de memorias y de tareas programadas."""
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS memories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             category TEXT,
@@ -42,7 +34,7 @@ def init_db(db_path: str = None):
             created_at TEXT
         )
     """)
-    cursor.execute("""
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS scheduled_tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE,
@@ -58,8 +50,70 @@ def init_db(db_path: str = None):
             created_at TEXT
         )
     """)
-    conn.commit()
-    conn.close()
+
+
+# Registro ordenado de migraciones: versión_destino -> función(conn).
+# Para evolucionar el esquema: subir SCHEMA_VERSION y añadir aquí la migración
+# correspondiente (p.ej. 2: _migration_v2 con ALTER TABLE / CREATE TABLE).
+_MIGRATIONS = {
+    1: _migration_v1,
+}
+
+
+def get_schema_version(conn: sqlite3.Connection) -> int:
+    """Retorna la versión del esquema almacenada en la base de datos (PRAGMA user_version)."""
+    return conn.execute("PRAGMA user_version").fetchone()[0]
+
+
+def current_schema_version() -> int:
+    """Retorna la versión del esquema de la base de datos activa."""
+    conn = sqlite3.connect(_db_path)
+    try:
+        return get_schema_version(conn)
+    finally:
+        conn.close()
+
+
+def _apply_migrations(conn: sqlite3.Connection) -> int:
+    """Aplica las migraciones pendientes en orden y actualiza user_version.
+
+    Solo ejecuta las migraciones cuya versión sea mayor que la actual, por lo
+    que es idempotente y seguro de llamar en cada init_db().
+    """
+    current = get_schema_version(conn)
+    if current >= SCHEMA_VERSION:
+        return current
+
+    for version in range(current + 1, SCHEMA_VERSION + 1):
+        migration = _MIGRATIONS.get(version)
+        if migration is not None:
+            migration(conn)
+        # PRAGMA no admite parámetros; version es un int controlado (seguro).
+        conn.execute(f"PRAGMA user_version = {version}")
+        conn.commit()
+        logging.info(f"[Memory] Esquema de base de datos migrado a la versión {version}.")
+
+    return SCHEMA_VERSION
+
+
+def init_db(db_path: str = None):
+    """Inicializa la base de datos SQLite y aplica las migraciones de esquema pendientes."""
+    global _db_path
+    if db_path is not None:
+        _db_path = db_path
+
+    # Crear directorio si no es una base de datos en memoria y no existe
+    if _db_path != ":memory:":
+        dir_name = os.path.dirname(_db_path)
+        if dir_name and not os.path.exists(dir_name):
+            os.makedirs(dir_name, exist_ok=True)
+            logging.info(f"Creada la carpeta para la base de datos: {dir_name}")
+
+    conn = sqlite3.connect(_db_path)
+    try:
+        _apply_migrations(conn)
+    finally:
+        conn.close()
     logging.info(f"Base de datos de memoria inicializada en: {_db_path}")
 
 def save_memory(content: str, category: str = "general", source: str = "user") -> bool:
