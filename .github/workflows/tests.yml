@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  tests:
+    name: Test Suite (Python 3.13, Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt pytest
+
+      - name: Crear .env para tests
+        run: copy .env.example .env
+        shell: cmd
+
+      - name: Ejecutar tests
+        run: python -m pytest tests/ -v --tb=short
+        env:
+          OPENROUTER_API_KEY: sk-or-test-dummy
+          GOOGLE_API_KEY: AIzaSy-test-dummy
+          TAVILY_API_KEY: tvly-test-dummy
+          ELEVENLABS_API_KEY: test-dummy
+          TELEGRAM_BOT_TOKEN: "123456789:test-dummy"
+          TELEGRAM_USER_ID: "0"
+          JARVIS_SECRET_KEY: test-secret-key-for-ci-only-32chars
+          JARVIS_GUI_ENABLED: "false"
+          JARVIS_TELEGRAM_ENABLED: "false"
+          JARVIS_SCHEDULER: "false"
+          JARVIS_SENTINEL_ENABLED: "false"
+          JARVIS_VULNERABILITY_PATCHER_ENABLED: "false"
+          JARVIS_INTEGRITY_SENTINEL_ENABLED: "false"
