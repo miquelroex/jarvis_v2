@@ -186,6 +186,36 @@ def _calibrate_microphone():
     except Exception as e:
         logging.warning(f"⚠️ No se pudo realizar la calibración inicial de ruido: {e}")
 
+def _handle_awake_startup() -> bool:
+    """Arranque en modo AWAKE: abre el navegador, ejecuta la secuencia Suit Up y
+    da el saludo de arranque dinámico. Devuelve True (navegador abierto)."""
+    print("Abriendo http://localhost:5000 en tu navegador...")
+    time.sleep(2)  # Dar tiempo a que Flask arranque
+    webbrowser.open("http://localhost:5000")
+
+    # Secuencia de arranque "Suit Up" con telemetría animada
+    skip_suitup = "--skip-suitup" in sys.argv or os.getenv("JARVIS_SKIP_SUITUP", "false").lower() in ("true", "1", "yes")
+    if not skip_suitup:
+        try:
+            from gui.app import socketio as gui_socketio
+            from core.suit_up import run_suit_up_sequence
+            time.sleep(1.5)  # Dar tiempo extra al navegador para conectar al socket
+            run_suit_up_sequence(gui_socketio, delay_multiplier=1.0)
+        except Exception as e:
+            logging.warning(f"[Main] Error en secuencia Suit Up, continuando: {e}")
+
+    update_state("idle")
+    # Saludo de arranque dinámico con telemetría
+    from core.startup import generate_startup_greeting
+    speak(generate_startup_greeting(), disable_vad=True)
+    return True
+
+def _handle_sleeping_startup() -> None:
+    """Arranque en modo SLEEPING (vigilante): estado offline y aviso por consola."""
+    time.sleep(2)
+    update_state("offline")
+    print("Jarvis iniciado en modo VIGILANTE (Dormido). Di 'despierta' para activar.")
+
 # Main interaction loop
 def write():
     conversation_mode = False
@@ -205,30 +235,9 @@ def write():
         _bootstrap_core()
 
         if system_status == "AWAKE":
-            print("Abriendo http://localhost:5000 en tu navegador...")
-            time.sleep(2)  # Dar tiempo a que Flask arranque
-            webbrowser.open("http://localhost:5000")
-            browser_opened = True
-
-            # Secuencia de arranque "Suit Up" con telemetría animada
-            skip_suitup = "--skip-suitup" in sys.argv or os.getenv("JARVIS_SKIP_SUITUP", "false").lower() in ("true", "1", "yes")
-            if not skip_suitup:
-                try:
-                    from gui.app import socketio as gui_socketio
-                    from core.suit_up import run_suit_up_sequence
-                    time.sleep(1.5)  # Dar tiempo extra al navegador para conectar al socket
-                    run_suit_up_sequence(gui_socketio, delay_multiplier=1.0)
-                except Exception as e:
-                    logging.warning(f"[Main] Error en secuencia Suit Up, continuando: {e}")
-
-            update_state("idle")
-            # Saludo de arranque dinámico con telemetría
-            from core.startup import generate_startup_greeting
-            speak(generate_startup_greeting(), disable_vad=True)
+            browser_opened = _handle_awake_startup()
         else:
-            time.sleep(2)
-            update_state("offline")
-            print("Jarvis iniciado en modo VIGILANTE (Dormido). Di 'despierta' para activar.")
+            _handle_sleeping_startup()
 
         # Calibrar ruido ambiental una sola vez al inicio si es posible
         _calibrate_microphone()
