@@ -5,6 +5,8 @@ Sin red/git reales: se mockean clima, git y recordatorios.
 import os
 import sys
 import json
+import types
+import threading
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -79,6 +81,69 @@ class TestGenerateBriefing(unittest.TestCase):
         text = self._run(weather=None, pending=1, reminders=[])
         self.assertIn("1 archivo con cambios", text)
         self.assertNotIn("El tiempo en", text)
+
+
+class TestDeliverBriefing(unittest.TestCase):
+    def _fake_voice(self, spoken):
+        return {"tools.voice": types.SimpleNamespace(speak=lambda msg, **k: spoken.append(msg))}
+
+    def test_voice_only(self):
+        spoken = []
+        with patch.object(mb, "generate_morning_briefing", return_value="BRIEF"), \
+             patch.dict(sys.modules, self._fake_voice(spoken)):
+            res = mb.deliver_briefing(channel="voice")
+        self.assertTrue(res["voice"])
+        self.assertFalse(res["telegram"])
+        self.assertEqual(spoken, ["BRIEF"])
+
+    def test_telegram_only(self):
+        with patch.object(mb, "generate_morning_briefing", return_value="BRIEF"), \
+             patch.object(mb, "_send_to_telegram", return_value=True):
+            res = mb.deliver_briefing(channel="telegram")
+        self.assertTrue(res["telegram"])
+        self.assertFalse(res["voice"])
+
+    def test_telegram_skipped_without_config(self):
+        with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_USER_ID": ""}):
+            self.assertFalse(mb._send_to_telegram("hola"))
+
+
+class TestBriefingDaemon(unittest.TestCase):
+    def setUp(self):
+        mb.BRIEFING_THREAD = None
+        mb.stop_event.clear()
+
+    def tearDown(self):
+        mb.stop_event.set()
+        mb.BRIEFING_THREAD = None
+
+    def test_disabled_by_env(self):
+        with patch.dict(os.environ, {"JARVIS_MORNING_BRIEFING_ENABLED": "false"}):
+            mb.start_morning_briefing_daemon()
+        self.assertIsNone(mb.BRIEFING_THREAD)
+
+    def test_start_stop_idempotent(self):
+        keep_alive = threading.Event()
+
+        def fake_loop():
+            keep_alive.wait(timeout=5)
+
+        with patch.dict(os.environ, {"JARVIS_MORNING_BRIEFING_ENABLED": "true"}), \
+             patch.object(mb, "_briefing_loop", side_effect=fake_loop):
+            mb.start_morning_briefing_daemon()
+            self.assertIsNotNone(mb.BRIEFING_THREAD)
+            first = mb.BRIEFING_THREAD
+            self.assertTrue(first.is_alive())
+
+            mb.start_morning_briefing_daemon()  # no-op
+            self.assertIs(mb.BRIEFING_THREAD, first)
+
+            mb.stop_morning_briefing_daemon()
+            self.assertTrue(mb.stop_event.is_set())
+
+            keep_alive.set()
+            first.join(timeout=2)
+            self.assertFalse(first.is_alive())
 
 
 if __name__ == "__main__":

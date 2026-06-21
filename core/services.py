@@ -16,6 +16,7 @@ import core.log_maintenance as log_maintenance
 import core.clipboard_monitor as clipboard_monitor
 import core.dependency_health as dep_health
 import core.daily_digest as daily_digest
+import core.morning_briefing as morning_briefing
 
 def start_all_services():
     """
@@ -115,6 +116,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Resumen Diario: {e}")
 
+    # 14. Briefing Matutino programado — controlado por JARVIS_MORNING_BRIEFING_ENABLED
+    try:
+        morning_briefing.start_morning_briefing_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Briefing Matutino: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -123,6 +130,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 14. Briefing Matutino programado
+    try:
+        morning_briefing.stop_morning_briefing_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Briefing Matutino: {e}")
 
     # 13. Resumen Diario programado (Daily Digest)
     try:
@@ -323,5 +336,12 @@ def get_services_status() -> dict:
     else:
         digest_alive = daily_digest.DIGEST_THREAD is not None and daily_digest.DIGEST_THREAD.is_alive()
         status["daily_digest"] = "running" if digest_alive else "stopped"
+
+    # 15. Briefing Matutino programado
+    if os.getenv("JARVIS_MORNING_BRIEFING_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["morning_briefing"] = "disabled"
+    else:
+        briefing_alive = morning_briefing.BRIEFING_THREAD is not None and morning_briefing.BRIEFING_THREAD.is_alive()
+        status["morning_briefing"] = "running" if briefing_alive else "stopped"
 
     return status

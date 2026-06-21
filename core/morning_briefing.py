@@ -10,6 +10,7 @@ Módulo ligero (stdlib): los imports de voz/servicios/memoria son perezosos.
 import os
 import json
 import logging
+import threading
 import subprocess
 import urllib.parse
 import urllib.request
@@ -118,3 +119,92 @@ def generate_morning_briefing() -> str:
 
     parts.append("Que tenga un día productivo, señor.")
     return "\n".join(parts)
+
+
+def _send_to_telegram(text: str) -> bool:
+    """Envía el briefing por Telegram si el bot está configurado. Best-effort."""
+    try:
+        import telebot
+        token = os.getenv("TELEGRAM_BOT_TOKEN")
+        chat_id = os.getenv("TELEGRAM_USER_ID")
+        if not token or not chat_id or not token.strip() or not chat_id.strip():
+            return False
+        telebot.TeleBot(token).send_message(chat_id.strip(), f"☀️ {text}")
+        return True
+    except Exception as e:
+        logging.warning(f"[Briefing] No se pudo enviar por Telegram: {e}")
+        return False
+
+
+def deliver_briefing(channel: str = None, briefing: str = None) -> dict:
+    """Genera (si hace falta) y entrega el briefing por los canales configurados.
+
+    channel: 'voice' | 'telegram' | 'both' (def. JARVIS_MORNING_CHANNEL o 'both').
+    """
+    if briefing is None:
+        briefing = generate_morning_briefing()
+    channel = (channel or os.getenv("JARVIS_MORNING_CHANNEL", "both")).lower()
+    results = {"voice": False, "telegram": False}
+
+    if channel in ("voice", "both"):
+        try:
+            from tools.voice import speak
+            speak(briefing, disable_vad=True)
+            results["voice"] = True
+        except Exception as e:
+            logging.warning(f"[Briefing] No se pudo entregar por voz: {e}")
+
+    if channel in ("telegram", "both"):
+        results["telegram"] = _send_to_telegram(briefing)
+
+    logging.info(f"[Briefing] Briefing entregado: {results}")
+    return results
+
+
+# --- Daemon programado ---
+BRIEFING_THREAD = None
+stop_event = threading.Event()
+_last_briefing_date = None
+
+
+def _briefing_loop():
+    """Bucle del daemon: entrega el briefing una vez al día a la hora objetivo."""
+    global _last_briefing_date
+    # Reutiliza la comprobación de "toca entregar" del resumen diario.
+    from core.daily_digest import _should_deliver_now
+    if stop_event.wait(timeout=20):
+        return
+    while not stop_event.is_set():
+        try:
+            now = datetime.now()
+            target_hour = int(os.getenv("JARVIS_MORNING_BRIEFING_HOUR", "8"))
+            if _should_deliver_now(now, target_hour, _last_briefing_date):
+                deliver_briefing()
+                _last_briefing_date = now.date()
+        except Exception as e:
+            logging.error(f"[Briefing] Error en el bucle del daemon: {e}")
+        check_interval = int(os.getenv("JARVIS_MORNING_CHECK_INTERVAL", "300"))
+        if stop_event.wait(timeout=check_interval):
+            break
+
+
+def start_morning_briefing_daemon():
+    """Lanza el daemon del briefing matutino. Idempotente. Controlado por
+    JARVIS_MORNING_BRIEFING_ENABLED (desactivado por defecto)."""
+    global BRIEFING_THREAD
+    if os.getenv("JARVIS_MORNING_BRIEFING_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        logging.info("[Briefing] Desactivado en .env.")
+        return
+    if BRIEFING_THREAD is not None and BRIEFING_THREAD.is_alive():
+        logging.info("[Briefing] Ya está en ejecución.")
+        return
+    stop_event.clear()
+    BRIEFING_THREAD = threading.Thread(target=_briefing_loop, name="MorningBriefingDaemon", daemon=True)
+    BRIEFING_THREAD.start()
+    logging.info("[Briefing] Daemon del briefing matutino iniciado en segundo plano.")
+
+
+def stop_morning_briefing_daemon():
+    """Detiene el daemon del briefing matutino de forma limpia."""
+    logging.info("[Briefing] Deteniendo daemon del briefing matutino...")
+    stop_event.set()
