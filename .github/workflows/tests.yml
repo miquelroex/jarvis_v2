@@ -8,17 +8,17 @@ on:
 
 jobs:
   tests:
-    name: Test Suite (Python 3.12, Windows)
+    name: Test Suite (Python 3.13, Windows)
     runs-on: windows-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configurar Python 3.12
+      - name: Configurar Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache: "pip"
 
       - name: Instalar dependencias
