@@ -15,6 +15,7 @@ import core.ram_guard as ram_guard
 import core.log_maintenance as log_maintenance
 import core.clipboard_monitor as clipboard_monitor
 import core.dependency_health as dep_health
+import core.daily_digest as daily_digest
 
 def start_all_services():
     """
@@ -108,6 +109,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Auditoría de Dependencias: {e}")
 
+    # 13. Resumen Diario programado (Daily Digest) — controlado por JARVIS_DAILY_DIGEST_ENABLED
+    try:
+        daily_digest.start_daily_digest_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Resumen Diario: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -116,6 +123,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 13. Resumen Diario programado (Daily Digest)
+    try:
+        daily_digest.stop_daily_digest_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Resumen Diario: {e}")
 
     # 12. Auditoría de Salud de Dependencias
     try:
@@ -303,5 +316,12 @@ def get_services_status() -> dict:
     else:
         dep_alive = dep_health.HEALTH_THREAD is not None and dep_health.HEALTH_THREAD.is_alive()
         status["dependency_health"] = "running" if dep_alive else "stopped"
+
+    # 14. Resumen Diario programado (Daily Digest)
+    if os.getenv("JARVIS_DAILY_DIGEST_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["daily_digest"] = "disabled"
+    else:
+        digest_alive = daily_digest.DIGEST_THREAD is not None and daily_digest.DIGEST_THREAD.is_alive()
+        status["daily_digest"] = "running" if digest_alive else "stopped"
 
     return status
