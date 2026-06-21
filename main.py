@@ -216,12 +216,72 @@ def _handle_sleeping_startup() -> None:
     update_state("offline")
     print("Jarvis iniciado en modo VIGILANTE (Dormido). Di 'despierta' para activar.")
 
+class _LoopState:
+    """Estado mutable del bucle de interacción principal."""
+    def __init__(self):
+        self.conversation_mode = False
+        self.last_interaction_time = None
+        self.system_status = "AWAKE" if "--awake" in sys.argv else "SLEEPING"
+        self.browser_opened = False
+
+def _handle_sleep_mode(state: "_LoopState", source) -> None:
+    """Modo vigilante (dormido): escucha la palabra 'despierta' y reactiva Jarvis."""
+    logging.info("💤 Jarvis is sleeping. Listening for 'despierta'...")
+    from tools.voice import wait_while_speaking
+    wait_while_speaking()
+    audio = recognizer.listen(source, timeout=10, phrase_time_limit=10)
+    transcript = recognizer.recognize_google(audio, language="es-ES").lower()
+    logging.info(f"🗣 Heard in sleep: {transcript}")
+
+    if "despierta" in transcript:
+        logging.info("🌞 Waking up!")
+        state.system_status = "AWAKE"
+        if not state.browser_opened:
+            print("Abriendo http://localhost:5000 en tu navegador...")
+            webbrowser.open("http://localhost:5000")
+            state.browser_opened = True
+        update_state("idle")
+        from core.startup import generate_wake_greeting
+        speak(generate_wake_greeting(), disable_vad=True)
+
+def _handle_exit_phrases(state: "_LoopState", command_to_execute: str) -> bool:
+    """Gestiona las frases de reposo/salida (apágate, gracias, adiós...).
+
+    Devuelve True si manejó una frase de salida (el bucle debe continuar).
+    """
+    lower_cmd = command_to_execute.lower()
+    exit_words = ("apágate", "apagate", "vete a dormir", "desactívate",
+                  "adiós", "adios", "gracias", "salir")
+    if not any(w in lower_cmd for w in exit_words):
+        return False
+
+    sleep_words = ("apágate", "apagate", "vete a dormir", "desactívate")
+    if any(w in lower_cmd for w in sleep_words):
+        speak("Protocolo de reposo activado. Cerrando sistemas.")
+        update_state("offline")
+        state.system_status = "SLEEPING"
+    else:
+        if "gracias" in lower_cmd:
+            speak("De nada, señor. Siempre a su servicio.")
+        else:
+            speak("Entendido. Saliendo del modo conversación.")
+        update_state("idle")
+    state.conversation_mode = False
+    time.sleep(1)
+    return True
+
+def _handle_conversation_timeout(state: "_LoopState", reason: str) -> None:
+    """Si en modo conversación se supera el timeout sin entrada válida, vuelve al
+    modo de palabra de activación (wake word)."""
+    if state.conversation_mode and time.time() - state.last_interaction_time > CONVERSATION_TIMEOUT:
+        logging.info(f"⌛ {reason}. Returning to wake word mode.")
+        state.conversation_mode = False
+        clear_conversation_memory()
+        update_state("idle")
+
 # Main interaction loop
 def write():
-    conversation_mode = False
-    last_interaction_time = None
-    system_status = "AWAKE" if "--awake" in sys.argv else "SLEEPING"
-    browser_opened = False
+    state = _LoopState()
 
     # Adquirir lock de instancia única
     from core.instance_lock import acquire_instance_lock, release_instance_lock
@@ -234,8 +294,8 @@ def write():
         # Bootstrap: agente central + servicios de segundo plano + healthcheck.
         _bootstrap_core()
 
-        if system_status == "AWAKE":
-            browser_opened = _handle_awake_startup()
+        if state.system_status == "AWAKE":
+            state.browser_opened = _handle_awake_startup()
         else:
             _handle_sleeping_startup()
 
@@ -249,33 +309,17 @@ def write():
                         try:
                             command_to_execute = None
                             transcript_for_ui = None
-                            
-                            if system_status == "SLEEPING":
-                                logging.info("💤 Jarvis is sleeping. Listening for 'despierta'...")
-                                from tools.voice import wait_while_speaking
-                                wait_while_speaking()
-                                audio = recognizer.listen(source, timeout=10, phrase_time_limit=10)
-                                transcript = recognizer.recognize_google(audio, language="es-ES").lower()
-                                logging.info(f"🗣 Heard in sleep: {transcript}")
-                                
-                                if "despierta" in transcript:
-                                    logging.info("🌞 Waking up!")
-                                    system_status = "AWAKE"
-                                    if not browser_opened:
-                                        print("Abriendo http://localhost:5000 en tu navegador...")
-                                        webbrowser.open("http://localhost:5000")
-                                        browser_opened = True
-                                    update_state("idle")
-                                    from core.startup import generate_wake_greeting
-                                    speak(generate_wake_greeting(), disable_vad=True)
+
+                            if state.system_status == "SLEEPING":
+                                _handle_sleep_mode(state, source)
                                 continue
 
-                            if not conversation_mode:
+                            if not state.conversation_mode:
                                 cmd, trans, needs_conversation = listen_for_wake_word(source)
                                 if needs_conversation:
                                     speak("Sí señor?")
-                                    conversation_mode = True
-                                    last_interaction_time = time.time()
+                                    state.conversation_mode = True
+                                    state.last_interaction_time = time.time()
                                     update_state("listening", model="")
                                 elif cmd:
                                     command_to_execute = cmd
@@ -285,48 +329,18 @@ def write():
                                 command_to_execute, transcript_for_ui = listen_for_next_command(source)
 
                             if command_to_execute:
-                                lower_cmd = command_to_execute.lower()
-                                if "apágate" in lower_cmd or "apagate" in lower_cmd or "vete a dormir" in lower_cmd or "desactívate" in lower_cmd or "adiós" in lower_cmd or "adios" in lower_cmd or "gracias" in lower_cmd or "salir" in lower_cmd:
-                                    if "apágate" in lower_cmd or "apagate" in lower_cmd or "vete a dormir" in lower_cmd or "desactívate" in lower_cmd:
-                                        speak("Protocolo de reposo activado. Cerrando sistemas.")
-                                        update_state("offline")
-                                        system_status = "SLEEPING"
-                                    else:
-                                        if "gracias" in lower_cmd:
-                                            speak("De nada, señor. Siempre a su servicio.")
-                                        else:
-                                            speak("Entendido. Saliendo del modo conversación.")
-                                        update_state("idle")
-                                    conversation_mode = False
-                                    time.sleep(1)
+                                if _handle_exit_phrases(state, command_to_execute):
                                     continue
-
                                 process_command(command_to_execute, transcript_for_ui)
-                                last_interaction_time = time.time()
-                                if not conversation_mode:
-                                    conversation_mode = False
-                                
+                                state.last_interaction_time = time.time()
+
                         except sr.WaitTimeoutError:
                             logging.warning("⚠️ Timeout waiting for audio.")
-                            if (
-                                conversation_mode
-                                and time.time() - last_interaction_time > CONVERSATION_TIMEOUT
-                            ):
-                                logging.info("⌛ No input. Returning to wake word mode.")
-                                conversation_mode = False
-                                clear_conversation_memory()
-                                update_state("idle")
+                            _handle_conversation_timeout(state, "No input")
 
                         except sr.UnknownValueError:
                             logging.warning("⚠️ Could not understand audio.")
-                            if (
-                                conversation_mode
-                                and time.time() - last_interaction_time > CONVERSATION_TIMEOUT
-                            ):
-                                logging.info("⌛ Noise but no valid words. Returning to wake word mode.")
-                                conversation_mode = False
-                                clear_conversation_memory()
-                                update_state("idle")
+                            _handle_conversation_timeout(state, "Noise but no valid words")
 
                         except Exception as e:
                             logging.error(f"❌ Error: {e}")
