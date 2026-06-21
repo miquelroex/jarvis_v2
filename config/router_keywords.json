@@ -1,0 +1,17 @@
+{
+  "gemini": ["gemini", "google ai", "googleai"],
+  "ultra": ["modo ultra", "gpt pro", "gpt-pro", "ultra"],
+  "pro": ["modo pro", "kimi"],
+  "gpt": ["gpt", "chatgpt"],
+  "code": [
+    "escribe un script", "escribe una funcion", "crea una clase",
+    "codigo", "bug", "error de python", "refactorizar", "refactoriza",
+    "explicame este codigo", "git", "github", "crea un archivo",
+    "scripts", "tools", "arquitectura"
+  ],
+  "reasoning": [
+    "razona", "piensa despacio", "deduce", "analiza logicamente",
+    "pensamiento profundo", "resuelve el acertijo", "piensa paso a paso",
+    "analisis largo", "razonamiento general"
+  ]
+}
