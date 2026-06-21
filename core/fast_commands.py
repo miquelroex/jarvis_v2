@@ -185,10 +185,11 @@ def handle_fast_command(command: str):
         )
 
 
-    # --- Comando rápido: resumen del día (Daily Digest) ---
+    # --- Comando rápido: resumen del día / nocturno (Daily Digest) ---
     digest_keywords = [
         "resumen del dia", "resumen de hoy", "que he hecho hoy",
-        "dame el resumen del dia", "informe del dia", "resumen diario"
+        "dame el resumen del dia", "informe del dia", "resumen diario",
+        "resumen nocturno", "como ha ido el dia"
     ]
     if any(kw in text for kw in digest_keywords):
         from core.daily_digest import generate_daily_digest
@@ -537,11 +538,5 @@ def handle_fast_command(command: str):
     if any(kw in text for kw in changelog_keywords):
         from core.git_assistant import generate_branch_changelog
         return generate_branch_changelog(compare_branch="main")
-
-    # Resumen nocturno / diario (Daily Digest)
-    if ("resumen del dia" in text or "resumen de hoy" in text
-            or "resumen nocturno" in text or "como ha ido el dia" in text):
-        from core.daily_digest import generate_daily_digest
-        return generate_daily_digest()
 
     return None

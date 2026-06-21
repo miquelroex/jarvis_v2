@@ -14,6 +14,7 @@ Secciones:
 """
 import os
 import logging
+import threading
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -164,3 +165,85 @@ def send_digest_to_telegram(digest: str = None) -> bool:
     except Exception as e:
         logging.warning(f"[DailyDigest] No se pudo enviar por Telegram: {e}")
         return False
+
+
+def deliver_digest(channel: str = None, digest: str = None) -> dict:
+    """Genera (si hace falta) y entrega el resumen por los canales configurados.
+
+    channel: 'voice' | 'telegram' | 'both' (def. JARVIS_DAILY_DIGEST_CHANNEL o 'both').
+    Devuelve {"voice": bool, "telegram": bool} indicando qué canales tuvieron éxito.
+    """
+    if digest is None:
+        digest = generate_daily_digest()
+    channel = (channel or os.getenv("JARVIS_DAILY_DIGEST_CHANNEL", "both")).lower()
+    results = {"voice": False, "telegram": False}
+
+    if channel in ("voice", "both"):
+        try:
+            from tools.voice import speak
+            speak(digest, disable_vad=True)
+            results["voice"] = True
+        except Exception as e:
+            logging.warning(f"[DailyDigest] No se pudo entregar por voz: {e}")
+
+    if channel in ("telegram", "both"):
+        try:
+            results["telegram"] = send_digest_to_telegram(digest)
+        except Exception as e:
+            logging.warning(f"[DailyDigest] No se pudo entregar por Telegram: {e}")
+
+    logging.info(f"[DailyDigest] Resumen entregado: {results}")
+    return results
+
+
+# --- Daemon programado ---
+DIGEST_THREAD = None
+stop_event = threading.Event()
+_last_digest_date = None
+
+
+def _should_deliver_now(now: datetime, target_hour: int, last_date) -> bool:
+    """True si toca entregar: estamos en la hora objetivo y aún no se entregó hoy."""
+    return now.hour == target_hour and last_date != now.date()
+
+
+def _digest_loop():
+    """Bucle del daemon: cada cierto intervalo comprueba si toca entregar el resumen."""
+    global _last_digest_date
+    if stop_event.wait(timeout=20):
+        return
+    while not stop_event.is_set():
+        try:
+            now = datetime.now()
+            target_hour = int(os.getenv("JARVIS_DAILY_DIGEST_HOUR", "22"))
+            if _should_deliver_now(now, target_hour, _last_digest_date):
+                deliver_digest()
+                _last_digest_date = now.date()
+        except Exception as e:
+            logging.error(f"[DailyDigest] Error en el bucle del daemon: {e}")
+        # Comprobación periódica (def. cada 5 minutos)
+        check_interval = int(os.getenv("JARVIS_DAILY_DIGEST_CHECK_INTERVAL", "300"))
+        if stop_event.wait(timeout=check_interval):
+            break
+
+
+def start_daily_digest_daemon():
+    """Lanza el daemon del resumen diario. Idempotente. Controlado por
+    JARVIS_DAILY_DIGEST_ENABLED (desactivado por defecto)."""
+    global DIGEST_THREAD
+    if os.getenv("JARVIS_DAILY_DIGEST_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        logging.info("[DailyDigest] Desactivado en .env.")
+        return
+    if DIGEST_THREAD is not None and DIGEST_THREAD.is_alive():
+        logging.info("[DailyDigest] Ya está en ejecución.")
+        return
+    stop_event.clear()
+    DIGEST_THREAD = threading.Thread(target=_digest_loop, name="DailyDigestDaemon", daemon=True)
+    DIGEST_THREAD.start()
+    logging.info("[DailyDigest] Daemon del resumen diario iniciado en segundo plano.")
+
+
+def stop_daily_digest_daemon():
+    """Detiene el daemon del resumen diario de forma limpia."""
+    logging.info("[DailyDigest] Deteniendo daemon del resumen diario...")
+    stop_event.set()

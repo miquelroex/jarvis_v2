@@ -1,7 +1,10 @@
 """Tests para el resumen nocturno (core/daily_digest.py)."""
 import os
 import sys
+import types
+import threading
 import unittest
+from datetime import datetime
 from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -102,6 +105,94 @@ class TestDailyDigest(unittest.TestCase):
         from core.fast_commands import handle_fast_command
         res = handle_fast_command("resumen nocturno por favor")
         self.assertEqual(res, "RESUMEN_TEST")
+
+
+class TestShouldDeliverNow(unittest.TestCase):
+    def test_fires_at_target_hour(self):
+        now = datetime(2026, 6, 21, 22, 0, 0)
+        self.assertTrue(dd._should_deliver_now(now, 22, None))
+
+    def test_skips_wrong_hour(self):
+        now = datetime(2026, 6, 21, 21, 0, 0)
+        self.assertFalse(dd._should_deliver_now(now, 22, None))
+
+    def test_skips_if_already_delivered_today(self):
+        now = datetime(2026, 6, 21, 22, 0, 0)
+        self.assertFalse(dd._should_deliver_now(now, 22, now.date()))
+
+    def test_fires_again_next_day(self):
+        now = datetime(2026, 6, 22, 22, 0, 0)
+        yesterday = datetime(2026, 6, 21, 22, 0, 0).date()
+        self.assertTrue(dd._should_deliver_now(now, 22, yesterday))
+
+
+class TestDeliverDigest(unittest.TestCase):
+    def _fake_voice(self, spoken):
+        # Inyectamos tools.voice falso para no importar el real (crash local OpenSSL).
+        return {"tools.voice": types.SimpleNamespace(speak=lambda msg, **k: spoken.append(msg))}
+
+    def test_voice_only(self):
+        spoken = []
+        with patch.object(dd, "generate_daily_digest", return_value="RESUMEN"), \
+             patch.dict(sys.modules, self._fake_voice(spoken)):
+            res = dd.deliver_digest(channel="voice")
+        self.assertTrue(res["voice"])
+        self.assertFalse(res["telegram"])
+        self.assertEqual(spoken, ["RESUMEN"])
+
+    def test_telegram_only(self):
+        with patch.object(dd, "generate_daily_digest", return_value="RESUMEN"), \
+             patch.object(dd, "send_digest_to_telegram", return_value=True):
+            res = dd.deliver_digest(channel="telegram")
+        self.assertTrue(res["telegram"])
+        self.assertFalse(res["voice"])
+
+    def test_both_channels(self):
+        spoken = []
+        with patch.object(dd, "generate_daily_digest", return_value="RESUMEN"), \
+             patch.object(dd, "send_digest_to_telegram", return_value=True), \
+             patch.dict(sys.modules, self._fake_voice(spoken)):
+            res = dd.deliver_digest(channel="both")
+        self.assertTrue(res["voice"])
+        self.assertTrue(res["telegram"])
+
+
+class TestDigestDaemon(unittest.TestCase):
+    def setUp(self):
+        dd.DIGEST_THREAD = None
+        dd.stop_event.clear()
+
+    def tearDown(self):
+        dd.stop_event.set()
+        dd.DIGEST_THREAD = None
+
+    def test_disabled_by_env(self):
+        with patch.dict(os.environ, {"JARVIS_DAILY_DIGEST_ENABLED": "false"}):
+            dd.start_daily_digest_daemon()
+        self.assertIsNone(dd.DIGEST_THREAD)
+
+    def test_start_stop_idempotent(self):
+        keep_alive = threading.Event()
+
+        def fake_loop():
+            keep_alive.wait(timeout=5)
+
+        with patch.dict(os.environ, {"JARVIS_DAILY_DIGEST_ENABLED": "true"}), \
+             patch.object(dd, "_digest_loop", side_effect=fake_loop):
+            dd.start_daily_digest_daemon()
+            self.assertIsNotNone(dd.DIGEST_THREAD)
+            first = dd.DIGEST_THREAD
+            self.assertTrue(first.is_alive())
+
+            dd.start_daily_digest_daemon()  # no-op
+            self.assertIs(dd.DIGEST_THREAD, first)
+
+            dd.stop_daily_digest_daemon()
+            self.assertTrue(dd.stop_event.is_set())
+
+            keep_alive.set()
+            first.join(timeout=2)
+            self.assertFalse(first.is_alive())
 
 
 if __name__ == "__main__":
