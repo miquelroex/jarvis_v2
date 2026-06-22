@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>JARVIS</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=9">
+    <link rel="stylesheet" href="/static/css/style.css?v=10">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 </head>
 <body>
@@ -86,49 +86,6 @@
             </div>
             
             <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
-                <div id="sentinel-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
-                    <span>Centinela de Red</span>
-                    <span id="sentinel-status" style="font-size: 0.65rem; color: #888888; letter-spacing: 0;">ESCUCHANDO</span>
-                </div>
-                <div id="network-radar-wrap">
-                    <canvas id="network-radar" width="260" height="260"></canvas>
-                </div>
-                <div id="network-device-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
-                    <!-- Se llenará con los dispositivos detectados en la red -->
-                </div>
-            </div>
-
-            <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
-                <div id="privacy-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
-                    <span>Privacy Guard</span>
-                    <span id="privacy-status" style="font-size: 0.65rem; color: #00ff88; letter-spacing: 0;">PROTEGIDO</span>
-                </div>
-                <div id="privacy-findings-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
-                    <!-- Se llenará con alertas de llaves o credenciales expuestas -->
-                </div>
-            </div>
-
-            <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
-                <div id="vulnerability-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
-                    <span>Dependency Patcher</span>
-                    <span id="vulnerability-status" style="font-size: 0.65rem; color: #00ff88; letter-spacing: 0;">SEGURO</span>
-                </div>
-                <div id="vulnerability-findings-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
-                    <!-- Se llenará con dependencias vulnerables -->
-                </div>
-            </div>
-
-            <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
-                <div id="integrity-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
-                    <span>Jarvis Integrity</span>
-                    <span id="integrity-status" style="font-size: 0.65rem; color: #00ff88; letter-spacing: 0;">SEGURO</span>
-                </div>
-                <div id="integrity-findings-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
-                    <!-- Se llenará con el diagnóstico de integridad del sistema -->
-                </div>
-            </div>
-
-            <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
                 <div id="startup-health-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
                     <span>Arranque</span>
                     <span id="startup-health-status" style="font-size: 0.65rem; color: #00ff88; letter-spacing: 0;">—</span>
@@ -191,9 +148,57 @@
             <div id="barge-in-hint">Haz clic o presiona ESC para silenciar</div>
         </div>
         
-        <!-- Panel Lateral Derecho (Historial) -->
-        <div id="chat-history">
-            <!-- Los mensajes se llenarán aquí -->
+        <!-- Panel Lateral Derecho: telemetría de Red/Defensa + Historial de chat -->
+        <div id="right-panel">
+            <div id="right-status-panel">
+                <div class="panel-section">
+                    <div id="sentinel-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
+                        <span>Centinela de Red</span>
+                        <span id="sentinel-status" style="font-size: 0.65rem; color: #888888; letter-spacing: 0;">ESCUCHANDO</span>
+                    </div>
+                    <div id="network-radar-wrap">
+                        <canvas id="network-radar" width="260" height="260"></canvas>
+                    </div>
+                    <div id="network-device-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
+                        <!-- Se llenará con los dispositivos detectados en la red -->
+                    </div>
+                </div>
+
+                <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
+                    <div id="privacy-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
+                        <span>Privacy Guard</span>
+                        <span id="privacy-status" style="font-size: 0.65rem; color: #00ff88; letter-spacing: 0;">PROTEGIDO</span>
+                    </div>
+                    <div id="privacy-findings-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
+                        <!-- Se llenará con alertas de llaves o credenciales expuestas -->
+                    </div>
+                </div>
+
+                <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
+                    <div id="vulnerability-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
+                        <span>Dependency Patcher</span>
+                        <span id="vulnerability-status" style="font-size: 0.65rem; color: #00ff88; letter-spacing: 0;">SEGURO</span>
+                    </div>
+                    <div id="vulnerability-findings-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
+                        <!-- Se llenará con dependencias vulnerables -->
+                    </div>
+                </div>
+
+                <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
+                    <div id="integrity-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
+                        <span>Jarvis Integrity</span>
+                        <span id="integrity-status" style="font-size: 0.65rem; color: #00ff88; letter-spacing: 0;">SEGURO</span>
+                    </div>
+                    <div id="integrity-findings-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
+                        <!-- Se llenará con el diagnóstico de integridad del sistema -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historial de chat -->
+            <div id="chat-history">
+                <!-- Los mensajes se llenarán aquí -->
+            </div>
         </div>
     </div>
 
