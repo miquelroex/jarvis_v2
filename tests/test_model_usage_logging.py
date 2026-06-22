@@ -142,5 +142,31 @@ class TestModelUsageLogging(unittest.TestCase):
         # total: 0.07042
         self.assertAlmostEqual(usage["cost"], 0.07042, places=6)
 
+    def test_get_daily_usage_computes_avg_latency(self):
+        # Escribimos el log directamente (sin log_model_usage) para evitar el
+        # import de gui.app durante los tests.
+        today = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        entries = [
+            {"timestamp": today, "total_tokens": 20, "cost": 0.0, "latency_ms": 200},
+            {"timestamp": today, "total_tokens": 20, "cost": 0.0, "latency_ms": 400},
+            {"timestamp": today, "total_tokens": 20, "cost": 0.0, "latency_ms": None},
+        ]
+        with open(self.log_path, "w", encoding="utf-8") as f:
+            for e in entries:
+                f.write(json.dumps(e) + "\n")
+
+        usage = get_daily_usage()
+        self.assertEqual(usage["calls"], 3)
+        # Media solo de las que tienen latencia: (200 + 400) / 2 = 300
+        self.assertEqual(usage["avg_latency_ms"], 300)
+
+    def test_get_daily_usage_avg_latency_none_when_absent(self):
+        today = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(self.log_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"timestamp": today, "total_tokens": 10, "cost": 0.0}) + "\n")
+        usage = get_daily_usage()
+        self.assertIsNone(usage["avg_latency_ms"])
+
+
 if __name__ == "__main__":
     unittest.main()

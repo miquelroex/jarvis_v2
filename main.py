@@ -123,6 +123,7 @@ def process_command(command_to_execute, transcript_for_ui):
     prompt_tokens = 0
     completion_tokens = 0
     from langchain_community.callbacks import get_openai_callback
+    _agent_start = time.time()
     try:
         with get_openai_callback() as cb:
             response = get_executor().invoke({"input": command_to_execute})
@@ -136,10 +137,11 @@ def process_command(command_to_execute, transcript_for_ui):
             prompt=command_to_execute,
             prompt_tokens=0,
             completion_tokens=0,
-            provider="openrouter"
+            provider="openrouter",
+            latency_ms=int((time.time() - _agent_start) * 1000)
         )
         raise
-        
+
     logging.info(f"Agent responded: {content}")
     log_model_usage(
         tool_name="main_model",
@@ -147,7 +149,8 @@ def process_command(command_to_execute, transcript_for_ui):
         prompt=command_to_execute,
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
-        provider="openrouter"
+        provider="openrouter",
+        latency_ms=int((time.time() - _agent_start) * 1000)
     )
     update_state("speaking", response=content)
 

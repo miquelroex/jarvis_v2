@@ -570,6 +570,7 @@ socket.on('health_dashboard_update', (data) => {
     setText('sm-ram-sys', (sys.system_ram_percent != null ? sys.system_ram_percent : '—') + '%');
     setText('sm-ram-proc', (sys.process_ram_mb != null ? Math.round(sys.process_ram_mb) : '—') + ' MB');
     setText('sm-services', (svc.running || 0) + ' on · ' + (svc.stopped || 0) + ' off');
+    setText('sm-latency', usage.avg_latency_ms != null ? usage.avg_latency_ms + ' ms' : 'N/A');
     setText('sm-calls', usage.calls != null ? usage.calls : '—');
     setText('sm-tokens', usage.tokens != null ? usage.tokens.toLocaleString() : '—');
     setText('sm-cost', usage.cost != null ? '$' + Number(usage.cost).toFixed(4) : '—');

@@ -52,9 +52,11 @@ def get_daily_usage() -> dict:
     total_calls = 0
     total_tokens = 0
     total_cost = 0.0
-    
+    total_latency = 0
+    latency_count = 0
+
     today_str = datetime.now().strftime("%Y-%m-%d")
-    
+
     if log_path.exists():
         try:
             with open(log_path, "r", encoding="utf-8") as f:
@@ -69,6 +71,12 @@ def get_daily_usage() -> dict:
                                 total_calls += 1
                                 total_tokens += data.get("total_tokens", 0)
                                 total_cost += data.get("cost", 0.0)
+                                if data.get("latency_ms") is not None:
+                                    try:
+                                        total_latency += int(data["latency_ms"])
+                                        latency_count += 1
+                                    except (ValueError, TypeError):
+                                        pass
                         except Exception:
                             pass
                     else:
@@ -78,11 +86,13 @@ def get_daily_usage() -> dict:
                                 total_calls += 1
         except Exception as e:
             print(f"[Model Logging] Error al calcular uso diario: {e}")
-            
+
+    avg_latency_ms = round(total_latency / latency_count) if latency_count else None
     return {
         "calls": total_calls,
         "tokens": total_tokens,
-        "cost": total_cost
+        "cost": total_cost,
+        "avg_latency_ms": avg_latency_ms
     }
 
 def log_model_usage(
@@ -92,7 +102,8 @@ def log_model_usage(
     prompt_tokens: int = 0,
     completion_tokens: int = 0,
     cost: float = 0.0,
-    provider: str = "openrouter"
+    provider: str = "openrouter",
+    latency_ms: int = None
 ) -> None:
     """
     Registra el uso de modelos en el archivo logs/model_usage.log.
@@ -118,7 +129,8 @@ def log_model_usage(
         "completion_tokens": completion_tokens,
         "total_tokens": prompt_tokens + completion_tokens,
         "cost": cost,
-        "provider": provider
+        "provider": provider,
+        "latency_ms": latency_ms
     }
 
     # Escribir en formato JSON Line (un JSON por línea)
