@@ -261,6 +261,27 @@ def handle_fast_command(command: str):
         return "Mapa cerrado, señor."
 
 
+    # --- Comando rápido: conciencia del proyecto activo ---
+    if any(kw in text for kw in ["en que proyecto estoy", "estado del proyecto", "estado del repositorio",
+                                 "estado de git", "en que rama estoy", "que rama es", "que proyecto es este"]):
+        from core.project_awareness import get_active_project
+        s = get_active_project()
+        if not s["is_repo"]:
+            return "Señor, no detecto ningún repositorio git activo."
+        resp = f"Está en el proyecto {s['repo_name']}, señor"
+        if s["branch"]:
+            resp += f", rama {s['branch']}"
+        resp += ". "
+        if s["dirty_count"]:
+            plural = "s" if s["dirty_count"] != 1 else ""
+            resp += f"Tiene {s['dirty_count']} archivo{plural} con cambios sin confirmar."
+        else:
+            resp += "El repositorio está limpio."
+        if s["last_commit"]:
+            resp += f" Último commit: {s['last_commit']}."
+        return resp
+
+
     # --- Comando rápido: salud de las dependencias ---
     dep_health_keywords = [
         "salud de las dependencias", "salud de dependencias",

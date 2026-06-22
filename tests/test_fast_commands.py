@@ -309,6 +309,17 @@ class TestFastCommands(unittest.TestCase):
         self.assertEqual(flew["place"], "Tokio")
         self.assertIn("Tokio", resp)
 
+    def test_project_status_command(self):
+        fake = types.SimpleNamespace(get_active_project=lambda: {
+            "is_repo": True, "repo_name": "jarvis", "branch": "main",
+            "last_commit": "abc feat", "dirty_count": 3,
+        })
+        with patch.dict(sys.modules, {"core.project_awareness": fake}):
+            resp = handle_fast_command("estado del proyecto")
+        self.assertIn("jarvis", resp)
+        self.assertIn("main", resp)
+        self.assertIn("3 archivo", resp)
+
     def test_set_active_model_rebuilds_agent(self):
         # set_active_model recrea el LLM y reconstruye el agente. Import perezoso
         # para que la colección del archivo no arrastre langchain.
