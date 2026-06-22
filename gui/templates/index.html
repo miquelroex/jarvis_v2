@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>JARVIS</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=11">
+    <link rel="stylesheet" href="/static/css/style.css?v=12">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <!-- Mapbox GL JS (globo 3D del mundo) -->
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.js"></script>
+    <script>window.MAPBOX_TOKEN = "{{ mapbox_token }}";</script>
 </head>
 <body>
     <!-- Suit Up Overlay (Secuencia de Arranque) -->
@@ -56,6 +60,17 @@
     <div id="defcon-badge">
         <span id="defcon-level">DEFCON</span>
         <span id="defcon-reason"></span>
+    </div>
+
+    <!-- Globo 3D del mundo (Mapbox) -->
+    <div id="map-overlay">
+        <div id="map-globe"></div>
+        <div id="map-hud-top">
+            <span id="map-title">◎ JARVIS · ATLAS GLOBAL</span>
+            <span id="map-label"></span>
+            <button id="map-close-btn" title="Cerrar mapa">✕ CERRAR</button>
+        </div>
+        <div id="map-scanlines"></div>
     </div>
 
     <div id="overlay">

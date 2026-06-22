@@ -36,7 +36,7 @@ jarvis_state = {
 # Ruta principal: sirve la página HTML
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', mapbox_token=os.getenv('MAPBOX_TOKEN', ''))
 
 # Función para actualizar el estado desde Jarvis
 def update_state(status, transcript="", response="", model=None, socratic_mode=None):

@@ -626,6 +626,96 @@ socket.on('health_dashboard_update', (data) => {
     setText('sm-uptime', h > 0 ? (h + 'h ' + m + 'm') : (m + 'm'));
 });
 
+// ===== Globo 3D del mundo (Mapbox) =====
+const worldMap = (() => {
+    const overlay = document.getElementById('map-overlay');
+    const labelEl = document.getElementById('map-label');
+    let map = null;
+    let spinEnabled = true;
+    let userInteracting = false;
+    const SECONDS_PER_REV = 140;
+
+    function spinGlobe() {
+        if (!map) return;
+        if (spinEnabled && !userInteracting && map.getZoom() < 5) {
+            const center = map.getCenter();
+            center.lng -= 360 / SECONDS_PER_REV;
+            map.easeTo({ center, duration: 1000, easing: (n) => n });
+        }
+    }
+
+    function ensureMap() {
+        if (map) return map;
+        if (!window.MAPBOX_TOKEN || !window.mapboxgl) {
+            console.warn('[Map] Falta MAPBOX_TOKEN o Mapbox GL no cargó.');
+            return null;
+        }
+        mapboxgl.accessToken = window.MAPBOX_TOKEN;
+        map = new mapboxgl.Map({
+            container: 'map-globe',
+            style: 'mapbox://styles/mapbox/dark-v11',
+            projection: 'globe',
+            center: [0, 20],
+            zoom: 1.4,
+            attributionControl: false
+        });
+        map.on('style.load', () => {
+            map.setFog({
+                'color': 'rgb(8, 16, 26)',
+                'high-color': 'rgb(0, 130, 180)',
+                'horizon-blend': 0.25,
+                'space-color': 'rgb(2, 5, 11)',
+                'star-intensity': 0.55
+            });
+        });
+        map.on('mousedown', () => userInteracting = true);
+        map.on('dragstart', () => userInteracting = true);
+        map.on('mouseup', () => { userInteracting = false; spinGlobe(); });
+        map.on('touchend', () => { userInteracting = false; spinGlobe(); });
+        map.on('moveend', () => spinGlobe());
+        map.on('load', () => spinGlobe());
+        return map;
+    }
+
+    function show() {
+        overlay.classList.add('active');
+        const m = ensureMap();
+        if (m) setTimeout(() => m.resize(), 60);  // el contenedor estaba oculto
+        return m;
+    }
+    function open() {
+        const m = show();
+        spinEnabled = true; userInteracting = false;
+        if (labelEl) labelEl.textContent = '';
+        if (m) {
+            const reset = () => m.easeTo({ center: [0, 20], zoom: 1.4, duration: 2200 });
+            m.loaded() ? reset() : m.once('load', reset);
+        }
+    }
+    function close() {
+        overlay.classList.remove('active');
+        spinEnabled = true; userInteracting = false;
+    }
+    function flyTo(loc) {
+        const m = show();
+        if (!m || !loc) return;
+        spinEnabled = false;
+        if (labelEl) labelEl.textContent = loc.name || '';
+        const go = () => m.flyTo({ center: [loc.lng, loc.lat], zoom: loc.zoom || 9, duration: 4500, essential: true });
+        m.loaded() ? go() : m.once('load', go);
+    }
+    return { open, close, flyTo };
+})();
+
+socket.on('map_open', () => worldMap.open());
+socket.on('map_close', () => worldMap.close());
+socket.on('map_flyto', (loc) => worldMap.flyTo(loc));
+
+(() => {
+    const btn = document.getElementById('map-close-btn');
+    if (btn) btn.addEventListener('click', () => worldMap.close());
+})();
+
 // DEFCON — nivel de amenaza: tiñe la interfaz y la esfera según el nivel
 socket.on('threat_level_update', (data) => {
     const level = (data && data.level) || 'green';
