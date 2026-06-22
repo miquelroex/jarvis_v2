@@ -231,6 +231,36 @@ def handle_fast_command(command: str):
         return "Hecho, señor."
 
 
+    # --- Comandos rápidos: Mapa / Globo 3D del mundo ---
+    # Volar a un lugar (comprobar prefijos antes que abrir/cerrar)
+    map_fly_prefixes = [
+        "llevame a ", "llevame al ", "llevame hasta ", "vuela a ", "vuela hasta ",
+        "viaja a ", "muestrame en el mapa ", "ensename en el mapa "
+    ]
+    match_map_pref = None
+    for pref in map_fly_prefixes:
+        if text.startswith(normalize_text(pref)):
+            match_map_pref = pref
+            break
+    if match_map_pref is not None:
+        place = command[len(match_map_pref):].strip()
+        if not place:
+            return "Señor, ¿a qué lugar desea que le lleve?"
+        from core.world_map import fly_to
+        loc = fly_to(place)
+        if loc:
+            return f"Volando a {loc['name']}, señor."
+        return f"Señor, no he podido localizar '{place}' en el mapa."
+    if any(kw in text for kw in ["abre el mapa", "abre el globo", "muestra el mapa", "abrir el mapa", "abre el mundo"]):
+        from core.world_map import open_map
+        open_map()
+        return "Abriendo el mapa mundial, señor."
+    if any(kw in text for kw in ["cierra el mapa", "cierra el globo", "oculta el mapa", "cerrar el mapa", "cierra el mundo"]):
+        from core.world_map import close_map
+        close_map()
+        return "Mapa cerrado, señor."
+
+
     # --- Comando rápido: salud de las dependencias ---
     dep_health_keywords = [
         "salud de las dependencias", "salud de dependencias",

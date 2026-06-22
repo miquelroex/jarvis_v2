@@ -287,6 +287,28 @@ class TestFastCommands(unittest.TestCase):
             handle_fast_command("siguiente cancion")
         self.assertEqual(sink["media"], ["next"])
 
+    def test_map_open_command(self):
+        called = []
+        fake = types.SimpleNamespace(
+            open_map=lambda: (called.append("open") or True),
+            close_map=lambda: True, fly_to=lambda p: None,
+        )
+        with patch.dict(sys.modules, {"core.world_map": fake}):
+            resp = handle_fast_command("abre el mapa")
+        self.assertEqual(called, ["open"])
+        self.assertIn("mapa", resp.lower())
+
+    def test_map_flyto_command(self):
+        flew = {}
+        fake = types.SimpleNamespace(
+            open_map=lambda: True, close_map=lambda: True,
+            fly_to=lambda p: (flew.update(place=p) or {"name": "Tokio, Japón", "lng": 1, "lat": 2, "zoom": 9}),
+        )
+        with patch.dict(sys.modules, {"core.world_map": fake}):
+            resp = handle_fast_command("llevame a Tokio")
+        self.assertEqual(flew["place"], "Tokio")
+        self.assertIn("Tokio", resp)
+
     def test_set_active_model_rebuilds_agent(self):
         # set_active_model recrea el LLM y reconstruye el agente. Import perezoso
         # para que la colección del archivo no arrastre langchain.
