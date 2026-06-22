@@ -226,6 +226,26 @@ class TestFastCommands(unittest.TestCase):
             resp = handle_fast_command("modo normal")
         self.assertIn("desactivado", resp.lower())
 
+    def test_env_audit_command_advisory(self):
+        fake_em = types.SimpleNamespace(audit_env=lambda: {
+            "status": "advisory",
+            "missing_required": ["OPENWEATHER_API_KEY"],
+            "empty": [],
+            "unused": ["VIEJA_VAR"],
+        })
+        with patch.dict(sys.modules, {"core.env_manager": fake_em}):
+            resp = handle_fast_command("audita el entorno")
+        self.assertIn("OPENWEATHER_API_KEY", resp)
+        self.assertIn("VIEJA_VAR", resp)
+
+    def test_env_audit_command_healthy(self):
+        fake_em = types.SimpleNamespace(audit_env=lambda: {
+            "status": "healthy", "missing_required": [], "empty": [], "unused": [],
+        })
+        with patch.dict(sys.modules, {"core.env_manager": fake_em}):
+            resp = handle_fast_command("revisa las variables de entorno")
+        self.assertIn("orden", resp.lower())
+
     def test_set_active_model_rebuilds_agent(self):
         # set_active_model recrea el LLM y reconstruye el agente. Import perezoso
         # para que la colección del archivo no arrastre langchain.

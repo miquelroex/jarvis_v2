@@ -185,6 +185,37 @@ def handle_fast_command(command: str):
         )
 
 
+    # --- Comando rápido: auditoría del entorno (.env Manager) ---
+    env_audit_keywords = [
+        "audita el entorno", "auditoria del entorno", "auditoria de entorno",
+        "revisa el entorno", "revisa las variables de entorno",
+        "audita las variables de entorno", "revisa la configuracion del entorno"
+    ]
+    if any(kw in text for kw in env_audit_keywords):
+        from core.env_manager import audit_env
+        try:
+            r = audit_env()
+        except Exception as e:
+            return f"Lo siento, señor, no pude auditar el entorno: {e}"
+        if r["status"] == "healthy":
+            return "El entorno está en orden, señor. Todas las variables requeridas están configuradas."
+        parts = ["Señor, auditoría del entorno:"]
+        if r["missing_required"]:
+            parts.append(
+                f"Faltan {len(r['missing_required'])} variable(s) requerida(s): "
+                f"{', '.join(r['missing_required'])}."
+            )
+        if r["empty"]:
+            parts.append(
+                f"{len(r['empty'])} referenciada(s) están vacías: {', '.join(r['empty'])}."
+            )
+        if r["unused"]:
+            parts.append(
+                f"{len(r['unused'])} en el punto env sin usar: {', '.join(r['unused'])}."
+            )
+        return " ".join(parts)
+
+
     # --- Comando rápido: resumen del día / nocturno (Daily Digest) ---
     digest_keywords = [
         "resumen del dia", "resumen de hoy", "que he hecho hoy",
