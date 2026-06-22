@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>JARVIS</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=10">
+    <link rel="stylesheet" href="/static/css/style.css?v=11">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 </head>
 <body>
@@ -62,26 +62,13 @@
         <!-- Panel Lateral Izquierdo (Logs de Modelos + Centinela de Red) -->
         <div id="model-logs-panel">
             <div class="panel-section">
-                <div id="logs-title">Logs de Acceso</div>
-                
-                <!-- Dashboard de Consumo Diario -->
-                <div id="daily-usage-dashboard" style="display: flex; gap: 8px; margin-bottom: 12px; font-size: 0.7rem; background: rgba(0, 212, 255, 0.04); border: 1px solid rgba(0, 212, 255, 0.15); padding: 8px; border-radius: 4px; font-family: monospace;">
-                    <div style="flex: 1; text-align: center; border-right: 1px solid rgba(0, 212, 255, 0.15);">
-                        <div style="color: #888888; font-size: 0.55rem; letter-spacing: 0.05rem;">CALLS</div>
-                        <div id="daily-calls-val" style="font-weight: bold; color: #ffffff; margin-top: 2px;">0</div>
-                    </div>
-                    <div style="flex: 1; text-align: center; border-right: 1px solid rgba(0, 212, 255, 0.15);">
-                        <div style="color: #888888; font-size: 0.55rem; letter-spacing: 0.05rem;">TOKENS</div>
-                        <div id="daily-tokens-val" style="font-weight: bold; color: #ffffff; margin-top: 2px;">0</div>
-                    </div>
-                    <div style="flex: 1; text-align: center;">
-                        <div style="color: #888888; font-size: 0.55rem; letter-spacing: 0.05rem;">COST (HOY)</div>
-                        <div id="daily-cost-val" style="font-weight: bold; color: #00ff88; margin-top: 2px;">$0.00000</div>
-                    </div>
+                <div style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
+                    <span>Jarvis Inbox</span>
+                    <span id="inbox-clear-btn" title="Vaciar la bandeja" style="cursor: pointer; font-size: 0.6rem; color: #888888; letter-spacing: 0.05rem; pointer-events: auto;">VACIAR</span>
                 </div>
-
-                <div id="model-usage-list">
-                    <!-- Se llenará con llamadas en tiempo real -->
+                <input id="inbox-input" type="text" placeholder="Apunta una nota y pulsa Enter..." />
+                <div id="inbox-list">
+                    <!-- Se llenará con las notas de la bandeja -->
                 </div>
             </div>
             

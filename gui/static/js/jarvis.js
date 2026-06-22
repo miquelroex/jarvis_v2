@@ -534,6 +534,7 @@ function renderLogItem(log) {
 }
 
 socket.on('initial_logs', (logs) => {
+    if (!modelUsageListEl) return;   // panel de logs retirado de la GUI
     modelUsageListEl.innerHTML = '';
     // Renderizar de más nuevo a más viejo (los últimos arriba)
     logs.slice().reverse().forEach(log => {
@@ -542,6 +543,7 @@ socket.on('initial_logs', (logs) => {
 });
 
 socket.on('new_model_log', (log) => {
+    if (!modelUsageListEl) return;   // panel de logs retirado de la GUI
     // Prepend (añadir al principio)
     modelUsageListEl.insertBefore(renderLogItem(log), modelUsageListEl.firstChild);
     // Limitar a 15 elementos
@@ -557,6 +559,50 @@ socket.on('daily_usage_update', (data) => {
         dailyCostVal.textContent = data.cost ? '$' + parseFloat(data.cost).toFixed(5) : '$0.00000';
     }
 });
+
+// Jarvis Inbox — bandeja de entrada interactiva
+socket.on('inbox_update', (items) => {
+    const listEl = document.getElementById('inbox-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    if (!items || items.length === 0) {
+        listEl.innerHTML = '<div class="inbox-empty">Bandeja vacía. Escribe arriba o di "apunta en la bandeja...".</div>';
+        return;
+    }
+    items.forEach(it => {
+        const row = document.createElement('div');
+        row.className = 'inbox-item';
+        const txt = document.createElement('span');
+        txt.className = 'inbox-text';
+        txt.textContent = it.content;
+        const btn = document.createElement('button');
+        btn.className = 'inbox-done-btn';
+        btn.textContent = '✓';
+        btn.title = 'Marcar como hecha';
+        btn.addEventListener('click', () => socket.emit('mark_inbox_done', { id: it.id }));
+        row.appendChild(txt);
+        row.appendChild(btn);
+        listEl.appendChild(row);
+    });
+});
+
+(() => {
+    const input = document.getElementById('inbox-input');
+    if (input) {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && input.value.trim()) {
+                socket.emit('add_inbox_item', { content: input.value.trim() });
+                input.value = '';
+            }
+        });
+    }
+    const clearBtn = document.getElementById('inbox-clear-btn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            if (confirm('¿Vaciar toda la bandeja de entrada?')) socket.emit('clear_inbox', {});
+        });
+    }
+})();
 
 // Self-Monitoring — dashboard de salud en vivo
 socket.on('health_dashboard_update', (data) => {

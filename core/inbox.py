@@ -7,11 +7,26 @@ misma base de datos SQLite que la memoria (tabla propia `inbox_items`).
 Módulo ligero (sqlite3 + core.memory para la ruta de la BD): no importa
 langchain ni tools, por lo que es testeable de forma aislada.
 """
+import sys
 import sqlite3
 import logging
 from datetime import datetime, timezone
 
 from core.memory import get_db_path, init_db
+
+
+def _emit_update():
+    """Emite la bandeja actual a la GUI, SOLO si gui.app ya está cargado.
+
+    Evita importar gui.app (que arrastra dependencias pesadas) cuando no hay GUI
+    en marcha, así los tests no se ven afectados."""
+    mod = sys.modules.get("gui.app")
+    if mod is None:
+        return
+    try:
+        mod.socketio.emit("inbox_update", get_inbox_items())
+    except Exception:
+        pass
 
 
 def _connect() -> sqlite3.Connection:
@@ -42,6 +57,7 @@ def add_inbox_item(content: str) -> bool:
         )
         conn.commit()
         logging.info(f"[Inbox] Nota añadida: '{content}'")
+        _emit_update()
         return True
     except Exception as e:
         logging.error(f"[Inbox] Error al añadir nota: {e}")
@@ -76,6 +92,8 @@ def mark_inbox_done(item_id: int) -> bool:
     try:
         cur = conn.execute("UPDATE inbox_items SET done = 1 WHERE id = ?", (item_id,))
         conn.commit()
+        if cur.rowcount > 0:
+            _emit_update()
         return cur.rowcount > 0
     except Exception as e:
         logging.error(f"[Inbox] Error al marcar nota como hecha: {e}")
@@ -96,6 +114,7 @@ def clear_inbox(only_done: bool = False) -> int:
         else:
             cur = conn.execute("DELETE FROM inbox_items")
         conn.commit()
+        _emit_update()
         return cur.rowcount
     except Exception as e:
         logging.error(f"[Inbox] Error al vaciar la bandeja: {e}")

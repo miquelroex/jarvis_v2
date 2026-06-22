@@ -147,6 +147,13 @@ def handle_connect():
         emit('health_dashboard_update', get_health_dashboard())
     except Exception as e:
         print(f"[GUI] Error al enviar dashboard de salud inicial: {e}")
+
+    # Enviar la bandeja de entrada (Inbox) actual al conectar
+    try:
+        from core.inbox import get_inbox_items
+        emit('inbox_update', get_inbox_items())
+    except Exception as e:
+        print(f"[GUI] Error al enviar la bandeja de entrada inicial: {e}")
     
     # Cargar y enviar últimos 15 logs de modelos
     try:
@@ -455,6 +462,37 @@ def handle_run_code_request(data):
         "stderr": stderr,
         "image_base64": image_base64
     })
+
+@socketio.on('add_inbox_item')
+def handle_add_inbox_item(data):
+    content = (data or {}).get('content', '').strip()
+    if content:
+        try:
+            from core.inbox import add_inbox_item, get_inbox_items
+            add_inbox_item(content)
+            emit('inbox_update', get_inbox_items(), broadcast=True)
+        except Exception as e:
+            print(f"[GUI] Error al añadir nota a la bandeja: {e}")
+
+@socketio.on('mark_inbox_done')
+def handle_mark_inbox_done(data):
+    item_id = (data or {}).get('id')
+    if item_id is not None:
+        try:
+            from core.inbox import mark_inbox_done, get_inbox_items
+            mark_inbox_done(int(item_id))
+            emit('inbox_update', get_inbox_items(), broadcast=True)
+        except Exception as e:
+            print(f"[GUI] Error al marcar nota como hecha: {e}")
+
+@socketio.on('clear_inbox')
+def handle_clear_inbox(data=None):
+    try:
+        from core.inbox import clear_inbox, get_inbox_items
+        clear_inbox()
+        emit('inbox_update', get_inbox_items(), broadcast=True)
+    except Exception as e:
+        print(f"[GUI] Error al vaciar la bandeja: {e}")
 
 @socketio.on('trust_device')
 def handle_trust_device(data):

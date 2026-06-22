@@ -1849,3 +1849,48 @@ body.defcon-violet #defcon-badge { display: inline-flex; color: #b15cff; box-sha
     box-shadow: none;
     background: rgba(0, 0, 0, 0.15);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Jarvis Inbox (panel)
+   ═══════════════════════════════════════════════════════════ */
+#inbox-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 10px;
+    margin-bottom: 10px;
+    background: rgba(0, 212, 255, 0.05);
+    border: 1px solid rgba(0, 212, 255, 0.25);
+    border-radius: 6px;
+    color: #d6f5ff;
+    font-family: inherit;
+    font-size: 0.78rem;
+    outline: none;
+    pointer-events: auto;
+}
+#inbox-input::placeholder { color: rgba(0, 212, 255, 0.4); }
+#inbox-input:focus { border-color: rgba(0, 212, 255, 0.6); box-shadow: 0 0 10px rgba(0,212,255,0.15); }
+#inbox-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; padding-right: 4px; }
+.inbox-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 7px 10px;
+    background: rgba(0, 40, 60, 0.35);
+    border: 1px solid rgba(0, 212, 255, 0.12);
+    border-left: 2px solid rgba(0, 212, 255, 0.5);
+    border-radius: 5px;
+}
+.inbox-text { font-size: 0.78rem; color: #e6f7ff; line-height: 1.1rem; word-break: break-word; }
+.inbox-done-btn {
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 255, 136, 0.4);
+    background: rgba(0, 255, 136, 0.08);
+    color: #00ff88;
+    cursor: pointer;
+    font-size: 0.75rem; line-height: 1;
+    pointer-events: auto;
+    transition: all 0.2s ease;
+}
+.inbox-done-btn:hover { background: rgba(0, 255, 136, 0.25); box-shadow: 0 0 8px rgba(0,255,136,0.3); }
+.inbox-empty { color: #64748b; font-size: 0.7rem; font-style: italic; text-align: center; padding: 10px; }
+#inbox-clear-btn:hover { color: #ff5577; }
