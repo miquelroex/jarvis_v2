@@ -125,5 +125,15 @@ def get_compiled_system_prompt() -> str:
         import logging
         logging.error(f"Error al integrar memoria en el prompt del sistema: {e}")
 
+    # Contexto del proyecto git activo (rama, cambios, último commit).
+    try:
+        from core.project_awareness import get_context_line
+        project_line = get_context_line()
+        if project_line:
+            base_prompt += f"\n\nCONTEXTO DEL PROYECTO ACTIVO (git):\n{project_line}\n"
+    except Exception as e:
+        import logging
+        logging.error(f"Error al integrar el contexto del proyecto en el prompt: {e}")
+
     return base_prompt
 

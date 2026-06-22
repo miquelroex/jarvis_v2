@@ -95,5 +95,24 @@ class TestContextLine(unittest.TestCase):
             self.assertEqual(pa.get_context_line(), "")
 
 
+class TestPromptInjection(unittest.TestCase):
+    def test_prompt_includes_project_context(self):
+        import core.prompts as prompts
+        with patch("core.project_awareness.get_context_line", return_value="Proyecto activo: jarvis · rama main"), \
+             patch("core.memory.get_all_memories", return_value=[]), \
+             patch.object(prompts, "is_socratic_mode_active", return_value=False):
+            compiled = prompts.get_compiled_system_prompt()
+        self.assertIn("CONTEXTO DEL PROYECTO ACTIVO", compiled)
+        self.assertIn("Proyecto activo: jarvis", compiled)
+
+    def test_prompt_omits_when_no_repo(self):
+        import core.prompts as prompts
+        with patch("core.project_awareness.get_context_line", return_value=""), \
+             patch("core.memory.get_all_memories", return_value=[]), \
+             patch.object(prompts, "is_socratic_mode_active", return_value=False):
+            compiled = prompts.get_compiled_system_prompt()
+        self.assertNotIn("CONTEXTO DEL PROYECTO ACTIVO", compiled)
+
+
 if __name__ == "__main__":
     unittest.main()
