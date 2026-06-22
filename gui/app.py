@@ -140,6 +140,13 @@ def handle_connect():
         emit('threat_level_update', compute_threat_level())
     except Exception as e:
         print(f"[GUI] Error al enviar nivel de amenaza inicial: {e}")
+
+    # Enviar dashboard de salud (self-monitoring) actual al conectar
+    try:
+        from core.self_monitor import get_health_dashboard
+        emit('health_dashboard_update', get_health_dashboard())
+    except Exception as e:
+        print(f"[GUI] Error al enviar dashboard de salud inicial: {e}")
     
     # Cargar y enviar últimos 15 logs de modelos
     try:

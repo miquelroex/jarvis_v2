@@ -1767,3 +1767,35 @@ body.defcon-violet #defcon-overlay {
 body.defcon-amber  #defcon-badge { display: inline-flex; color: #ffaa00; box-shadow: 0 0 14px rgba(255,170,0,0.4); }
 body.defcon-red    #defcon-badge { display: inline-flex; color: #ff3344; box-shadow: 0 0 16px rgba(255,40,60,0.5); animation: defcon-pulse 1.6s ease-in-out infinite; }
 body.defcon-violet #defcon-badge { display: inline-flex; color: #b15cff; box-shadow: 0 0 16px rgba(150,60,255,0.5); }
+
+/* ═══════════════════════════════════════════════════════════
+   Self-Monitoring — dashboard de salud (HUD)
+   ═══════════════════════════════════════════════════════════ */
+.sm-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.sm-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    background: rgba(0, 212, 255, 0.04);
+    border: 1px solid rgba(0, 212, 255, 0.12);
+    border-radius: 6px;
+}
+.sm-metric-wide { grid-column: 1 / -1; }
+.sm-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.08rem;
+    text-transform: uppercase;
+    color: rgba(0, 212, 255, 0.6);
+}
+.sm-value {
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #d6f5ff;
+    text-shadow: 0 0 8px rgba(0, 212, 255, 0.35);
+}

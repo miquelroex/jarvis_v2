@@ -18,6 +18,7 @@ import core.dependency_health as dep_health
 import core.daily_digest as daily_digest
 import core.morning_briefing as morning_briefing
 import core.threat_level as threat_level
+import core.self_monitor as self_monitor
 
 def start_all_services():
     """
@@ -129,6 +130,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Nivel de Amenaza DEFCON: {e}")
 
+    # 16. Dashboard de Salud (Self-Monitoring) — controlado por JARVIS_SELF_MONITOR_ENABLED (on por defecto)
+    try:
+        self_monitor.start_self_monitor_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Dashboard de Salud: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -137,6 +144,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 16. Dashboard de Salud (Self-Monitoring)
+    try:
+        self_monitor.stop_self_monitor_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Dashboard de Salud: {e}")
 
     # 15. Nivel de Amenaza DEFCON
     try:
@@ -363,5 +376,12 @@ def get_services_status() -> dict:
     else:
         threat_alive = threat_level.THREAT_THREAD is not None and threat_level.THREAT_THREAD.is_alive()
         status["threat_level"] = "running" if threat_alive else "stopped"
+
+    # 17. Dashboard de Salud (Self-Monitoring) (on por defecto)
+    if os.getenv("JARVIS_SELF_MONITOR_ENABLED", "true").lower() not in ("true", "1", "yes"):
+        status["self_monitor"] = "disabled"
+    else:
+        monitor_alive = self_monitor.MONITOR_THREAD is not None and self_monitor.MONITOR_THREAD.is_alive()
+        status["self_monitor"] = "running" if monitor_alive else "stopped"
 
     return status

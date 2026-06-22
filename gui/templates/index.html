@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>JARVIS</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=7">
+    <link rel="stylesheet" href="/static/css/style.css?v=8">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 </head>
 <body>
@@ -132,6 +132,22 @@
                 </div>
                 <div id="startup-health-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
                     <!-- Se llenará con el healthcheck de arranque -->
+                </div>
+            </div>
+
+            <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
+                <div style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
+                    <span>Self-Monitoring</span>
+                    <span id="sm-uptime" style="font-size: 0.65rem; color: #8aa; letter-spacing: 0;">—</span>
+                </div>
+                <div id="self-monitor-grid" class="sm-grid">
+                    <div class="sm-metric"><span class="sm-label">CPU</span><span class="sm-value" id="sm-cpu">—</span></div>
+                    <div class="sm-metric"><span class="sm-label">RAM Sistema</span><span class="sm-value" id="sm-ram-sys">—</span></div>
+                    <div class="sm-metric"><span class="sm-label">RAM Jarvis</span><span class="sm-value" id="sm-ram-proc">—</span></div>
+                    <div class="sm-metric"><span class="sm-label">Servicios</span><span class="sm-value" id="sm-services">—</span></div>
+                    <div class="sm-metric"><span class="sm-label">Llamadas IA hoy</span><span class="sm-value" id="sm-calls">—</span></div>
+                    <div class="sm-metric"><span class="sm-label">Tokens hoy</span><span class="sm-value" id="sm-tokens">—</span></div>
+                    <div class="sm-metric sm-metric-wide"><span class="sm-label">Coste estimado hoy</span><span class="sm-value" id="sm-cost">—</span></div>
                 </div>
             </div>
         </div>

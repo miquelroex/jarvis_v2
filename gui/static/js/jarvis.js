@@ -558,6 +558,27 @@ socket.on('daily_usage_update', (data) => {
     }
 });
 
+// Self-Monitoring — dashboard de salud en vivo
+socket.on('health_dashboard_update', (data) => {
+    if (!data) return;
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const sys = data.system || {};
+    const usage = data.usage || {};
+    const svc = data.services || {};
+
+    setText('sm-cpu', (sys.cpu_percent != null ? sys.cpu_percent : '—') + '%');
+    setText('sm-ram-sys', (sys.system_ram_percent != null ? sys.system_ram_percent : '—') + '%');
+    setText('sm-ram-proc', (sys.process_ram_mb != null ? Math.round(sys.process_ram_mb) : '—') + ' MB');
+    setText('sm-services', (svc.running || 0) + ' on · ' + (svc.stopped || 0) + ' off');
+    setText('sm-calls', usage.calls != null ? usage.calls : '—');
+    setText('sm-tokens', usage.tokens != null ? usage.tokens.toLocaleString() : '—');
+    setText('sm-cost', usage.cost != null ? '$' + Number(usage.cost).toFixed(4) : '—');
+
+    const up = sys.uptime_seconds || 0;
+    const h = Math.floor(up / 3600), m = Math.floor((up % 3600) / 60);
+    setText('sm-uptime', h > 0 ? (h + 'h ' + m + 'm') : (m + 'm'));
+});
+
 // DEFCON — nivel de amenaza: tiñe la interfaz y la esfera según el nivel
 socket.on('threat_level_update', (data) => {
     const level = (data && data.level) || 'green';
