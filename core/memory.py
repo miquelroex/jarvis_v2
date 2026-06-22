@@ -20,7 +20,7 @@ def get_db_path() -> str:
 
 # Versión actual del esquema de la base de datos. Incrementar al añadir una
 # nueva migración en _MIGRATIONS.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def _migration_v1(conn: sqlite3.Connection):
@@ -52,11 +52,19 @@ def _migration_v1(conn: sqlite3.Connection):
     """)
 
 
+def _migration_v2(conn: sqlite3.Connection):
+    """v2: columna 'embedding' (JSON) en memories para la búsqueda semántica."""
+    cols = [row[1] for row in conn.execute("PRAGMA table_info(memories)").fetchall()]
+    if "embedding" not in cols:
+        conn.execute("ALTER TABLE memories ADD COLUMN embedding TEXT")
+
+
 # Registro ordenado de migraciones: versión_destino -> función(conn).
 # Para evolucionar el esquema: subir SCHEMA_VERSION y añadir aquí la migración
-# correspondiente (p.ej. 2: _migration_v2 con ALTER TABLE / CREATE TABLE).
+# correspondiente (p.ej. 3: _migration_v3 con ALTER TABLE / CREATE TABLE).
 _MIGRATIONS = {
     1: _migration_v1,
+    2: _migration_v2,
 }
 
 

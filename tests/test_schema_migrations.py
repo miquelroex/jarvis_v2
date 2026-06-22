@@ -74,25 +74,27 @@ class TestSchemaMigrations(unittest.TestCase):
         self.assertIn("scheduled_tasks", self._tables())
 
     def test_migration_loop_applies_pending_in_order(self):
-        # Partimos de una BD ya en v1.
+        # Partimos de una BD ya en la versión actual; añadimos una migración
+        # ficticia "siguiente" (v_actual + 1) y verificamos que se aplica.
         memory.init_db(self.db_path)
+        next_version = memory.SCHEMA_VERSION + 1
         applied = []
 
-        def fake_v2(conn):
+        def fake_next(conn):
             conn.execute("CREATE TABLE IF NOT EXISTS nueva_tabla (id INTEGER)")
-            applied.append(2)
+            applied.append(next_version)
 
         new_migrations = dict(memory._MIGRATIONS)
-        new_migrations[2] = fake_v2
+        new_migrations[next_version] = fake_next
 
         conn = sqlite3.connect(self.db_path)
         try:
-            with patch.object(memory, "SCHEMA_VERSION", 2), \
+            with patch.object(memory, "SCHEMA_VERSION", next_version), \
                  patch.object(memory, "_MIGRATIONS", new_migrations):
                 result = memory._apply_migrations(conn)
-                self.assertEqual(result, 2)
-                self.assertEqual(applied, [2])
-                self.assertEqual(memory.get_schema_version(conn), 2)
+                self.assertEqual(result, next_version)
+                self.assertEqual(applied, [next_version])
+                self.assertEqual(memory.get_schema_version(conn), next_version)
                 row = conn.execute(
                     "SELECT name FROM sqlite_master WHERE type='table' AND name='nueva_tabla'"
                 ).fetchone()
