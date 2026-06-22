@@ -17,6 +17,7 @@ import core.clipboard_monitor as clipboard_monitor
 import core.dependency_health as dep_health
 import core.daily_digest as daily_digest
 import core.morning_briefing as morning_briefing
+import core.threat_level as threat_level
 
 def start_all_services():
     """
@@ -122,6 +123,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Briefing Matutino: {e}")
 
+    # 15. Nivel de Amenaza DEFCON — controlado por JARVIS_THREAT_LEVEL_ENABLED (on por defecto)
+    try:
+        threat_level.start_threat_level_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Nivel de Amenaza DEFCON: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -130,6 +137,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 15. Nivel de Amenaza DEFCON
+    try:
+        threat_level.stop_threat_level_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Nivel de Amenaza DEFCON: {e}")
 
     # 14. Briefing Matutino programado
     try:
@@ -343,5 +356,12 @@ def get_services_status() -> dict:
     else:
         briefing_alive = morning_briefing.BRIEFING_THREAD is not None and morning_briefing.BRIEFING_THREAD.is_alive()
         status["morning_briefing"] = "running" if briefing_alive else "stopped"
+
+    # 16. Nivel de Amenaza DEFCON (on por defecto)
+    if os.getenv("JARVIS_THREAT_LEVEL_ENABLED", "true").lower() not in ("true", "1", "yes"):
+        status["threat_level"] = "disabled"
+    else:
+        threat_alive = threat_level.THREAT_THREAD is not None and threat_level.THREAT_THREAD.is_alive()
+        status["threat_level"] = "running" if threat_alive else "stopped"
 
     return status

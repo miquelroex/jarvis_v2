@@ -133,6 +133,13 @@ def handle_connect():
             emit('dependency_health_update', dep_health_data)
     except Exception as e:
         print(f"[GUI] Error al enviar informe de dependencias inicial: {e}")
+
+    # Enviar nivel de amenaza DEFCON actual al conectar
+    try:
+        from core.threat_level import compute_threat_level
+        emit('threat_level_update', compute_threat_level())
+    except Exception as e:
+        print(f"[GUI] Error al enviar nivel de amenaza inicial: {e}")
     
     # Cargar y enviar últimos 15 logs de modelos
     try:

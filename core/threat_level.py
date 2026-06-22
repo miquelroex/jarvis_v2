@@ -17,6 +17,7 @@ defensiva (cualquier fallo cae al valor seguro por defecto).
 """
 import os
 import logging
+import threading
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -175,3 +176,52 @@ def emit_threat_level() -> dict:
     except Exception:
         pass
     return report
+
+
+# --- Daemon periódico ---
+THREAT_THREAD = None
+stop_event = threading.Event()
+_last_level = None
+
+
+def _threat_loop():
+    """Recalcula el nivel periódicamente y lo emite a la GUI solo cuando cambia."""
+    global _last_level
+    if stop_event.wait(timeout=25):
+        return
+    while not stop_event.is_set():
+        try:
+            report = compute_threat_level()
+            if report["level"] != _last_level:
+                _last_level = report["level"]
+                try:
+                    from gui.app import socketio
+                    socketio.emit("threat_level_update", report)
+                except Exception:
+                    pass
+                logger.info(f"[Threat] Nivel DEFCON: {report['level']} — {', '.join(report['reasons'])}")
+        except Exception as e:
+            logger.error(f"[Threat] Error en el bucle del daemon: {e}")
+        interval = int(os.getenv("JARVIS_THREAT_LEVEL_INTERVAL", "12"))
+        if stop_event.wait(timeout=interval):
+            break
+
+
+def start_threat_level_daemon():
+    """Lanza el daemon del nivel de amenaza. Idempotente. Activado por defecto
+    (es ligero); desactivable con JARVIS_THREAT_LEVEL_ENABLED=false."""
+    global THREAT_THREAD
+    if os.getenv("JARVIS_THREAT_LEVEL_ENABLED", "true").lower() not in ("true", "1", "yes"):
+        logging.info("[Threat] Desactivado en .env.")
+        return
+    if THREAT_THREAD is not None and THREAT_THREAD.is_alive():
+        return
+    stop_event.clear()
+    THREAT_THREAD = threading.Thread(target=_threat_loop, name="ThreatLevelDaemon", daemon=True)
+    THREAT_THREAD.start()
+    logging.info("[Threat] Daemon del nivel de amenaza DEFCON iniciado.")
+
+
+def stop_threat_level_daemon():
+    """Detiene el daemon del nivel de amenaza."""
+    stop_event.set()

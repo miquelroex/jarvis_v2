@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>JARVIS</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=6">
+    <link rel="stylesheet" href="/static/css/style.css?v=7">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 </head>
 <body>
@@ -50,6 +50,13 @@
 
     <!-- Canvas donde se dibujan las animaciones -->
     <canvas id="jarvis-canvas"></canvas>
+
+    <!-- DEFCON: tinte cinematográfico de toda la interfaz según el nivel de amenaza -->
+    <div id="defcon-overlay"></div>
+    <div id="defcon-badge">
+        <span id="defcon-level">DEFCON</span>
+        <span id="defcon-reason"></span>
+    </div>
 
     <div id="overlay">
         <!-- Panel Lateral Izquierdo (Logs de Modelos + Centinela de Red) -->

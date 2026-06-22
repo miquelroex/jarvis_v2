@@ -2,6 +2,7 @@
 import os
 import sys
 import types
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -101,6 +102,45 @@ class TestComputeAndEmit(unittest.TestCase):
         self.assertEqual(emitted["ev"], "threat_level_update")
         self.assertEqual(emitted["data"]["level"], "green")
         self.assertEqual(report["level"], "green")
+
+
+class TestDaemon(unittest.TestCase):
+    def setUp(self):
+        tl.THREAT_THREAD = None
+        tl.stop_event.clear()
+        tl._last_level = None
+
+    def tearDown(self):
+        tl.stop_event.set()
+        tl.THREAT_THREAD = None
+
+    def test_disabled_by_env(self):
+        with patch.dict(os.environ, {"JARVIS_THREAT_LEVEL_ENABLED": "false"}):
+            tl.start_threat_level_daemon()
+        self.assertIsNone(tl.THREAT_THREAD)
+
+    def test_start_stop_idempotent(self):
+        keep_alive = threading.Event()
+
+        def fake_loop():
+            keep_alive.wait(timeout=5)
+
+        with patch.dict(os.environ, {"JARVIS_THREAT_LEVEL_ENABLED": "true"}), \
+             patch.object(tl, "_threat_loop", side_effect=fake_loop):
+            tl.start_threat_level_daemon()
+            self.assertIsNotNone(tl.THREAT_THREAD)
+            first = tl.THREAT_THREAD
+            self.assertTrue(first.is_alive())
+
+            tl.start_threat_level_daemon()  # no-op
+            self.assertIs(tl.THREAT_THREAD, first)
+
+            tl.stop_threat_level_daemon()
+            self.assertTrue(tl.stop_event.is_set())
+
+            keep_alive.set()
+            first.join(timeout=2)
+            self.assertFalse(first.is_alive())
 
 
 if __name__ == "__main__":

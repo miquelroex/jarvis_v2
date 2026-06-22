@@ -77,6 +77,14 @@ let targetColor = { ...stateColors.idle };
 let currentParams = { ...stateParams.idle };
 let targetParams = { ...stateParams.idle };
 
+// DEFCON: color de la esfera según el nivel de amenaza (rojo/violet la fuerzan).
+const defconColors = {
+    amber:  { r: 1.0,  g: 0.67, b: 0.0  },
+    red:    { r: 1.0,  g: 0.2,  b: 0.27 },
+    violet: { r: 0.69, g: 0.36, b: 1.0  }
+};
+let defconOverride = false;
+
 // Setup de Three.js
 const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -550,10 +558,36 @@ socket.on('daily_usage_update', (data) => {
     }
 });
 
+// DEFCON — nivel de amenaza: tiñe la interfaz y la esfera según el nivel
+socket.on('threat_level_update', (data) => {
+    const level = (data && data.level) || 'green';
+    document.body.classList.remove('defcon-green', 'defcon-amber', 'defcon-red', 'defcon-violet');
+    document.body.classList.add('defcon-' + level);
+
+    const levelEl = document.getElementById('defcon-level');
+    const reasonEl = document.getElementById('defcon-reason');
+    if (levelEl) levelEl.textContent = 'DEFCON ' + level.toUpperCase();
+    if (reasonEl) {
+        reasonEl.textContent = (data.reasons && data.reasons.length) ? '· ' + data.reasons[0] : '';
+    }
+
+    // La esfera adopta el color de alarma en rojo/violet; en green/amber sigue el estado.
+    if (level === 'red' || level === 'violet') {
+        defconOverride = true;
+        targetColor = { ...defconColors[level] };
+    } else {
+        defconOverride = false;
+        targetColor = { ...(stateColors[currentState] || stateColors.idle) };
+    }
+});
+
 socket.on('state_update', (data) => {
     // Actualizar estado
     currentState = data.status;
-    targetColor = { ...(stateColors[data.status] || stateColors.idle) };
+    // En nivel DEFCON rojo/violet la esfera mantiene el color de alarma.
+    if (!defconOverride) {
+        targetColor = { ...(stateColors[data.status] || stateColors.idle) };
+    }
     targetParams = { ...(stateParams[data.status] || stateParams.idle) };
 
     // Actualizar textos
