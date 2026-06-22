@@ -180,6 +180,57 @@ def handle_fast_command(command: str):
         return resp
 
 
+    # --- Comandos rápidos: control de audio del sistema ---
+    # Reactivar sonido (comprobar antes que "silencio" porque lo contiene)
+    if any(kw in text for kw in ["quita el silencio", "activa el sonido", "reactiva el sonido", "desmutea"]):
+        from core.system_audio import set_mute
+        set_mute(False)
+        return "Sonido reactivado, señor."
+    if any(kw in text for kw in ["silencia", "silencio", "mutea", "quita el sonido"]):
+        from core.system_audio import set_mute
+        set_mute(True)
+        return "Silenciado, señor."
+    # Fijar el volumen a un valor concreto
+    if "volumen" in text and (" al " in text or " a " in text):
+        match_vol = re.search(r"\b(\d{1,3})\b", text)
+        if match_vol:
+            from core.system_audio import set_volume
+            v = set_volume(int(match_vol.group(1)))
+            return (f"Volumen al {v} por ciento, señor." if v >= 0
+                    else "Señor, no puedo controlar el volumen ahora mismo.")
+    # Subir / bajar volumen
+    if any(kw in text for kw in ["sube el volumen", "sube volumen", "mas volumen", "mas alto"]):
+        from core.system_audio import change_volume
+        v = change_volume(15)
+        return (f"Volumen al {v} por ciento, señor." if v >= 0
+                else "Señor, no puedo controlar el volumen ahora mismo.")
+    if any(kw in text for kw in ["baja el volumen", "baja volumen", "menos volumen", "mas bajo"]):
+        from core.system_audio import change_volume
+        v = change_volume(-15)
+        return (f"Volumen al {v} por ciento, señor." if v >= 0
+                else "Señor, no puedo controlar el volumen ahora mismo.")
+    # Consultar volumen
+    if any(kw in text for kw in ["que volumen hay", "volumen actual", "cuanto volumen"]):
+        from core.system_audio import get_volume
+        v = get_volume()
+        return (f"El volumen está al {v} por ciento, señor." if v >= 0
+                else "Señor, no puedo leer el volumen ahora mismo.")
+    # Multimedia (Spotify y reproductores): play/pausa, siguiente, anterior
+    if any(kw in text for kw in ["siguiente cancion", "cancion siguiente", "siguiente tema", "pasa de cancion"]):
+        from core.system_audio import media_action
+        media_action("next")
+        return "Siguiente, señor."
+    if any(kw in text for kw in ["cancion anterior", "anterior cancion", "tema anterior", "cancion previa"]):
+        from core.system_audio import media_action
+        media_action("previous")
+        return "Anterior, señor."
+    if any(kw in text for kw in ["pausa la musica", "reproduce la musica", "reanuda la musica",
+                                 "pausa la cancion", "pon la musica", "para la musica", "pausa musica"]):
+        from core.system_audio import media_action
+        media_action("play_pause")
+        return "Hecho, señor."
+
+
     # --- Comando rápido: salud de las dependencias ---
     dep_health_keywords = [
         "salud de las dependencias", "salud de dependencias",

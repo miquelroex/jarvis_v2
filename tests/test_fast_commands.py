@@ -246,6 +246,47 @@ class TestFastCommands(unittest.TestCase):
             resp = handle_fast_command("revisa las variables de entorno")
         self.assertIn("orden", resp.lower())
 
+    def _fake_audio(self, sink):
+        return {"core.system_audio": types.SimpleNamespace(
+            set_mute=lambda s: (sink.update(mute=s) or True),
+            set_volume=lambda p: (sink.update(setvol=p) or p),
+            change_volume=lambda d: (sink.update(delta=d) or 60),
+            get_volume=lambda: 55,
+            media_action=lambda a: (sink.setdefault("media", []).append(a) or True),
+        )}
+
+    def test_volume_up_command(self):
+        sink = {}
+        with patch.dict(sys.modules, self._fake_audio(sink)):
+            resp = handle_fast_command("sube el volumen")
+        self.assertEqual(sink["delta"], 15)
+        self.assertIn("60", resp)
+
+    def test_set_volume_command(self):
+        sink = {}
+        with patch.dict(sys.modules, self._fake_audio(sink)):
+            resp = handle_fast_command("pon el volumen al 30")
+        self.assertEqual(sink["setvol"], 30)
+        self.assertIn("30", resp)
+
+    def test_mute_command(self):
+        sink = {}
+        with patch.dict(sys.modules, self._fake_audio(sink)):
+            handle_fast_command("silencia")
+        self.assertTrue(sink["mute"])
+
+    def test_unmute_checked_before_mute(self):
+        sink = {}
+        with patch.dict(sys.modules, self._fake_audio(sink)):
+            handle_fast_command("quita el silencio")
+        self.assertFalse(sink["mute"])  # desmutea, pese a contener "silencio"
+
+    def test_media_next_command(self):
+        sink = {}
+        with patch.dict(sys.modules, self._fake_audio(sink)):
+            handle_fast_command("siguiente cancion")
+        self.assertEqual(sink["media"], ["next"])
+
     def test_set_active_model_rebuilds_agent(self):
         # set_active_model recrea el LLM y reconstruye el agente. Import perezoso
         # para que la colección del archivo no arrastre langchain.
