@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>JARVIS</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=8">
+    <link rel="stylesheet" href="/static/css/style.css?v=9">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 </head>
 <body>
@@ -89,6 +89,9 @@
                 <div id="sentinel-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
                     <span>Centinela de Red</span>
                     <span id="sentinel-status" style="font-size: 0.65rem; color: #888888; letter-spacing: 0;">ESCUCHANDO</span>
+                </div>
+                <div id="network-radar-wrap">
+                    <canvas id="network-radar" width="260" height="260"></canvas>
                 </div>
                 <div id="network-device-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding-right: 5px; pointer-events: auto;">
                     <!-- Se llenará con los dispositivos detectados en la red -->

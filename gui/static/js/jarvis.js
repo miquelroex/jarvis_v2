@@ -1040,7 +1040,83 @@ socket.on('run_code_response', (data) => {
 });
 
 // --- CENTINELA DE RED LOCAL ---
+// ===== Radar visual de red =====
+const networkRadar = (() => {
+    const canvas = document.getElementById('network-radar');
+    if (!canvas) return { setDevices: () => {} };
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2, cy = H / 2;
+    const maxR = Math.min(cx, cy) - 8;
+    let sweep = 0;
+    let devices = [];
+
+    const hash = (str) => {
+        let h = 0;
+        for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+        return h;
+    };
+    const posFor = (dev) => {
+        const h = hash(dev.mac || dev.ip || '');
+        const angle = (h % 360) * Math.PI / 180;
+        const radius = (0.30 + ((h >>> 9) % 1000) / 1000 * 0.62) * maxR;
+        return { angle, x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius };
+    };
+    const setDevices = (list) => {
+        devices = (list || []).map(d => ({ ...d, ...posFor(d) }));
+    };
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        // Anillos concéntricos
+        ctx.strokeStyle = 'rgba(0, 212, 255, 0.16)';
+        ctx.lineWidth = 1;
+        for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.arc(cx, cy, maxR * i / 3, 0, Math.PI * 2); ctx.stroke(); }
+        // Cruz
+        ctx.beginPath();
+        ctx.moveTo(cx - maxR, cy); ctx.lineTo(cx + maxR, cy);
+        ctx.moveTo(cx, cy - maxR); ctx.lineTo(cx, cy + maxR);
+        ctx.stroke();
+        // Barrido giratorio
+        ctx.save();
+        ctx.translate(cx, cy); ctx.rotate(sweep);
+        const g = ctx.createLinearGradient(0, 0, maxR, 0);
+        g.addColorStop(0, 'rgba(0, 255, 136, 0.0)');
+        g.addColorStop(1, 'rgba(0, 255, 136, 0.30)');
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, maxR, -0.38, 0); ctx.closePath();
+        ctx.fillStyle = g; ctx.fill();
+        ctx.strokeStyle = 'rgba(0, 255, 136, 0.55)';
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(maxR, 0); ctx.stroke();
+        ctx.restore();
+        // Centro (router/gateway)
+        ctx.fillStyle = '#00d4ff';
+        ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fill();
+        // Blips
+        const now = performance.now() / 1000;
+        devices.forEach(d => {
+            const da = ((d.angle - sweep) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+            const lit = da < 0.5 ? (1 - da / 0.5) : 0;            // glow al pasar el barrido
+            const c = d.known ? [0, 212, 255] : [255, 60, 80];
+            const pulse = d.known ? 1 : (0.6 + 0.4 * Math.abs(Math.sin(now * 3)));
+            const r = (d.known ? 3 : 4) + lit * 3;
+            ctx.beginPath();
+            ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${(0.5 + 0.5 * lit) * pulse})`;
+            ctx.arc(d.x, d.y, r, 0, Math.PI * 2); ctx.fill();
+            if (lit > 0.05 || !d.known) {
+                ctx.beginPath();
+                ctx.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${0.45 * Math.max(lit, d.known ? 0 : 0.5)})`;
+                ctx.arc(d.x, d.y, r + 4, 0, Math.PI * 2); ctx.stroke();
+            }
+        });
+        sweep = (sweep + 0.02) % (Math.PI * 2);
+        requestAnimationFrame(draw);
+    }
+    draw();
+    return { setDevices };
+})();
+
 socket.on('network_devices_update', (devices) => {
+    networkRadar.setDevices(devices);
     const deviceListEl = document.getElementById('network-device-list');
     const statusEl = document.getElementById('sentinel-status');
     if (!deviceListEl) return;

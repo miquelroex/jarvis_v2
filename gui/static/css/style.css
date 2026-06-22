@@ -1799,3 +1799,19 @@ body.defcon-violet #defcon-badge { display: inline-flex; color: #b15cff; box-sha
     color: #d6f5ff;
     text-shadow: 0 0 8px rgba(0, 212, 255, 0.35);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Radar visual de red
+   ═══════════════════════════════════════════════════════════ */
+#network-radar-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+#network-radar {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba(0,40,60,0.28) 0%, rgba(0,8,16,0.55) 100%);
+    box-shadow: 0 0 18px rgba(0, 212, 255, 0.12), inset 0 0 22px rgba(0,0,0,0.45);
+}
