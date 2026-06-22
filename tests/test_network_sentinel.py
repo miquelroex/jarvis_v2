@@ -1,3 +1,4 @@
+import sys
 import unittest
 from unittest.mock import patch, MagicMock, mock_open
 import os
@@ -5,6 +6,7 @@ import json
 from pathlib import Path
 
 # Asegurar import de network_sentinel
+import core.network_sentinel as ns
 from core.network_sentinel import (
     get_host_mac,
     load_known_devices,
@@ -222,6 +224,59 @@ class TestNetworkSentinel(unittest.TestCase):
         self.assertEqual(len(saved_data), 1)
         self.assertEqual(saved_data[0]["ip"], "192.168.1.1")
         self.assertEqual(saved_data[0]["mac"], "e0:60:66:11:22:33")
+
+class TestUserPresence(unittest.TestCase):
+    """Saludo de presencia al detectar la MAC del móvil del usuario."""
+
+    def setUp(self):
+        ns._user_presence_seen = False
+        ns._user_absence_consecutive = 0
+        self.spoken = []
+        # Fakes para no importar tools.voice real (crash local de OpenSSL).
+        self.fakes = {
+            "core.startup": MagicMock(generate_presence_greeting=lambda: "Bienvenido a casa, señor."),
+            "tools.voice": MagicMock(speak=lambda msg, **k: self.spoken.append(msg)),
+        }
+
+    def test_greets_on_arrival(self):
+        with patch.dict(os.environ, {"JARVIS_PRESENCE_MAC": "AA:BB:CC:DD:EE:FF"}), \
+             patch.dict(sys.modules, self.fakes):
+            ns._check_user_presence({"aa:bb:cc:dd:ee:ff"})
+        self.assertEqual(len(self.spoken), 1)
+        self.assertTrue(ns._user_presence_seen)
+
+    def test_no_repeat_while_present(self):
+        ns._user_presence_seen = True
+        with patch.dict(os.environ, {"JARVIS_PRESENCE_MAC": "AA:BB:CC:DD:EE:FF"}), \
+             patch.dict(sys.modules, self.fakes):
+            ns._check_user_presence({"aa:bb:cc:dd:ee:ff"})
+        self.assertEqual(self.spoken, [])
+
+    def test_absence_debounce_then_return_greets_again(self):
+        with patch.dict(os.environ, {"JARVIS_PRESENCE_MAC": "AA:BB:CC:DD:EE:FF"}), \
+             patch.dict(sys.modules, self.fakes):
+            ns._check_user_presence({"aa:bb:cc:dd:ee:ff"})      # llega -> saludo 1
+            ns._check_user_presence(set())                      # ausente 1
+            ns._check_user_presence(set())                      # ausente 2
+            self.assertTrue(ns._user_presence_seen)             # aún no confirmado ausente
+            ns._check_user_presence(set())                      # ausente 3 -> confirmado
+            self.assertFalse(ns._user_presence_seen)
+            ns._check_user_presence({"aa:bb:cc:dd:ee:ff"})      # vuelve -> saludo 2
+        self.assertEqual(len(self.spoken), 2)
+
+    def test_disabled_without_mac(self):
+        with patch.dict(os.environ, {"JARVIS_PRESENCE_MAC": ""}), \
+             patch.dict(sys.modules, self.fakes):
+            ns._check_user_presence({"aa:bb:cc:dd:ee:ff"})
+        self.assertEqual(self.spoken, [])
+
+    def test_mac_format_normalized(self):
+        # MAC con guiones y mayúsculas en .env debe casar con el formato del escaneo.
+        with patch.dict(os.environ, {"JARVIS_PRESENCE_MAC": "AA-BB-CC-DD-EE-FF"}), \
+             patch.dict(sys.modules, self.fakes):
+            ns._check_user_presence({"aa:bb:cc:dd:ee:ff"})
+        self.assertEqual(len(self.spoken), 1)
+
 
 if __name__ == '__main__':
     unittest.main()
