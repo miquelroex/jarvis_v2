@@ -13,6 +13,7 @@ import os
 import re
 import json
 import logging
+import threading
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -103,3 +104,67 @@ def run_proactive_check() -> dict:
     decision = _analyze_screen()
     decision["timestamp"] = datetime.now(timezone.utc).isoformat()
     return decision
+
+
+# --- Daemon periódico ---
+VISION_THREAD = None
+stop_event = threading.Event()
+_last_alert = ""  # último aviso emitido (para no repetir el mismo)
+
+
+def deliver_alert(decision: dict) -> bool:
+    """Habla el aviso si procede interrumpir y no es una repetición del anterior.
+
+    Si la decisión es no interrumpir, se reinicia el debounce (para que una nueva
+    aparición del mismo aviso más tarde vuelva a avisar). Devuelve True si avisó.
+    """
+    global _last_alert
+    if not decision.get("interrupt") or not decision.get("message"):
+        _last_alert = ""
+        return False
+    msg = decision["message"]
+    if msg == _last_alert:
+        return False  # mismo aviso seguido: no repetir
+    _last_alert = msg
+    try:
+        from tools.voice import speak
+        speak(msg, disable_vad=True)
+        logger.info(f"[ProactiveVision] Aviso proactivo emitido: {msg}")
+        return True
+    except Exception as e:
+        logger.warning(f"[ProactiveVision] No se pudo emitir el aviso: {e}")
+        return False
+
+
+def _vision_loop():
+    """Bucle del daemon: captura y analiza la pantalla periódicamente."""
+    if stop_event.wait(timeout=30):
+        return
+    while not stop_event.is_set():
+        try:
+            deliver_alert(run_proactive_check())
+        except Exception as e:
+            logger.error(f"[ProactiveVision] Error en el bucle del daemon: {e}")
+        interval = int(os.getenv("JARVIS_PROACTIVE_VISION_INTERVAL", "300"))
+        if stop_event.wait(timeout=interval):
+            break
+
+
+def start_proactive_vision_daemon():
+    """Lanza el daemon. Idempotente. DESACTIVADO por defecto (privacidad/coste):
+    JARVIS_PROACTIVE_VISION_ENABLED."""
+    global VISION_THREAD
+    if os.getenv("JARVIS_PROACTIVE_VISION_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        logging.info("[ProactiveVision] Desactivado en .env.")
+        return
+    if VISION_THREAD is not None and VISION_THREAD.is_alive():
+        return
+    stop_event.clear()
+    VISION_THREAD = threading.Thread(target=_vision_loop, name="ProactiveVisionDaemon", daemon=True)
+    VISION_THREAD.start()
+    logging.info("[ProactiveVision] Daemon de visión proactiva iniciado.")
+
+
+def stop_proactive_vision_daemon():
+    """Detiene el daemon de visión proactiva."""
+    stop_event.set()

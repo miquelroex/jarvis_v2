@@ -19,6 +19,7 @@ import core.daily_digest as daily_digest
 import core.morning_briefing as morning_briefing
 import core.threat_level as threat_level
 import core.self_monitor as self_monitor
+import core.proactive_vision as proactive_vision
 
 def start_all_services():
     """
@@ -136,6 +137,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Dashboard de Salud: {e}")
 
+    # 17. JARVIS Proactivo Visual — controlado por JARVIS_PROACTIVE_VISION_ENABLED (off por defecto)
+    try:
+        proactive_vision.start_proactive_vision_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Visión Proactiva: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -144,6 +151,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 17. JARVIS Proactivo Visual
+    try:
+        proactive_vision.stop_proactive_vision_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Visión Proactiva: {e}")
 
     # 16. Dashboard de Salud (Self-Monitoring)
     try:
@@ -383,5 +396,12 @@ def get_services_status() -> dict:
     else:
         monitor_alive = self_monitor.MONITOR_THREAD is not None and self_monitor.MONITOR_THREAD.is_alive()
         status["self_monitor"] = "running" if monitor_alive else "stopped"
+
+    # 18. JARVIS Proactivo Visual (off por defecto)
+    if os.getenv("JARVIS_PROACTIVE_VISION_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["proactive_vision"] = "disabled"
+    else:
+        vision_alive = proactive_vision.VISION_THREAD is not None and proactive_vision.VISION_THREAD.is_alive()
+        status["proactive_vision"] = "running" if vision_alive else "stopped"
 
     return status
