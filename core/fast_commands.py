@@ -80,12 +80,32 @@ def handle_fast_command(command: str):
     if match_query_pref is not None:
         query_text = command[len(match_query_pref):].strip()
         if query_text:
-            matches = search_memories(query_text)
+            # Primero búsqueda semántica (por significado); si no hay, subcadena.
+            matches = []
+            try:
+                from core.semantic_memory import semantic_search
+                matches = semantic_search(query_text, top_k=5, min_score=0.5)
+            except Exception:
+                matches = []
+            if not matches:
+                matches = search_memories(query_text)
             if matches:
                 formatted = "\n".join(f"- {m['content']}" for m in matches)
                 return f"Recuerdo lo siguiente sobre '{query_text}', señor:\n{formatted}"
             return f"No tengo recuerdos relacionados con '{query_text}', señor."
         return "Señor, ¿de qué desea que haga memoria?"
+
+    # --- Comando rápido: reindexar la memoria semántica ---
+    reindex_keywords = [
+        "reindexa la memoria", "reindexar la memoria", "indexa los recuerdos",
+        "reindexa los recuerdos", "reindexar memoria"
+    ]
+    if any(kw in text for kw in reindex_keywords):
+        from core.semantic_memory import backfill_embeddings
+        n = backfill_embeddings()
+        if n > 0:
+            return f"Entendido, señor. He indexado {n} recuerdo(s) para la búsqueda semántica."
+        return "Señor, no hay recuerdos pendientes de indexar, o la indexación no está disponible."
 
 
     # --- Comandos rápidos del Centinela de Pruebas ---

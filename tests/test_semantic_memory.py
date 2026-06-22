@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import sqlite3
+import threading
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -137,6 +138,28 @@ class TestBackfill(unittest.TestCase):
         rows = conn.execute("SELECT embedding FROM memories").fetchall()
         conn.close()
         self.assertTrue(all(r[0] is not None for r in rows))
+
+
+class TestAutoIndexGate(unittest.TestCase):
+    """El auto-indexado al guardar respeta JARVIS_SEMANTIC_MEMORY_ENABLED."""
+
+    def test_disabled_does_not_index(self):
+        with patch.dict(os.environ, {"JARVIS_SEMANTIC_MEMORY_ENABLED": "false"}), \
+             patch("core.semantic_memory.index_memory") as mock_idx:
+            memory._index_memory_best_effort(1, "hola")
+        mock_idx.assert_not_called()
+
+    def test_enabled_spawns_indexing(self):
+        done = threading.Event()
+
+        def fake_index(mid, content):
+            done.set()
+            return True
+
+        with patch.dict(os.environ, {"JARVIS_SEMANTIC_MEMORY_ENABLED": "true"}), \
+             patch("core.semantic_memory.index_memory", side_effect=fake_index):
+            memory._index_memory_best_effort(99, "hola")
+            self.assertTrue(done.wait(timeout=2))
 
 
 if __name__ == "__main__":

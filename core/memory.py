@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import threading
 from datetime import datetime, timezone
 import logging
 
@@ -124,6 +125,24 @@ def init_db(db_path: str = None):
         conn.close()
     logging.info(f"Base de datos de memoria inicializada en: {_db_path}")
 
+def _index_memory_best_effort(memory_id: int, content: str) -> None:
+    """Genera el embedding del recuerdo en segundo plano (memoria semántica).
+
+    No bloquea el guardado: lanza un hilo. No hace nada si está desactivado o no
+    hay clave de embeddings. Best-effort."""
+    if os.getenv("JARVIS_SEMANTIC_MEMORY_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        return
+
+    def _worker():
+        try:
+            from core.semantic_memory import index_memory
+            index_memory(memory_id, content)
+        except Exception as e:
+            logging.debug(f"No se pudo indexar el recuerdo {memory_id} para búsqueda semántica: {e}")
+
+    threading.Thread(target=_worker, name="SemanticIndexWorker", daemon=True).start()
+
+
 def save_memory(content: str, category: str = "general", source: str = "user") -> bool:
     """
     Guarda una nueva memoria.
@@ -144,7 +163,9 @@ def save_memory(content: str, category: str = "general", source: str = "user") -
             (category, source, content, created_at)
         )
         conn.commit()
+        new_id = cursor.lastrowid
         logging.info(f"Recuerdo guardado: '{content}' (Categoría: {category}, Origen: {source})")
+        _index_memory_best_effort(new_id, content)
         return True
     except sqlite3.IntegrityError:
         logging.info(f"El recuerdo ya existía en la base de datos: '{content}'")
