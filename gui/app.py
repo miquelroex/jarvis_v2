@@ -154,6 +154,13 @@ def handle_connect():
         emit('inbox_update', get_inbox_items())
     except Exception as e:
         print(f"[GUI] Error al enviar la bandeja de entrada inicial: {e}")
+
+    # Enviar estado del Protocolo Blackout (modo noche) actual al conectar
+    try:
+        from core.night_mode import is_blackout_active
+        emit('blackout_on' if is_blackout_active() else 'blackout_off')
+    except Exception as e:
+        print(f"[GUI] Error al enviar estado del modo noche inicial: {e}")
     
     # Cargar y enviar últimos 15 logs de modelos
     try:

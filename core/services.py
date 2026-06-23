@@ -20,6 +20,7 @@ import core.morning_briefing as morning_briefing
 import core.threat_level as threat_level
 import core.self_monitor as self_monitor
 import core.proactive_vision as proactive_vision
+import core.night_mode as night_mode
 
 def start_all_services():
     """
@@ -143,6 +144,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Visión Proactiva: {e}")
 
+    # 19. Protocolo Blackout (modo noche) — controlado por JARVIS_BLACKOUT_ENABLED (off por defecto)
+    try:
+        night_mode.start_night_mode_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Protocolo Blackout: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -151,6 +158,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 19. Protocolo Blackout (modo noche)
+    try:
+        night_mode.stop_night_mode_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Protocolo Blackout: {e}")
 
     # 17. JARVIS Proactivo Visual
     try:
@@ -403,5 +416,12 @@ def get_services_status() -> dict:
     else:
         vision_alive = proactive_vision.VISION_THREAD is not None and proactive_vision.VISION_THREAD.is_alive()
         status["proactive_vision"] = "running" if vision_alive else "stopped"
+
+    # 19. Protocolo Blackout (modo noche) (off por defecto)
+    if os.getenv("JARVIS_BLACKOUT_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["night_mode"] = "disabled"
+    else:
+        blackout_alive = night_mode.BLACKOUT_THREAD is not None and night_mode.BLACKOUT_THREAD.is_alive()
+        status["night_mode"] = "running" if blackout_alive else "stopped"
 
     return status

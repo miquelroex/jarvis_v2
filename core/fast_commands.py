@@ -261,6 +261,20 @@ def handle_fast_command(command: str):
         return "Mapa cerrado, señor."
 
 
+    # --- Comando rápido: Protocolo Blackout (modo noche) ---
+    if any(kw in text for kw in ["desactiva el modo noche", "desactivar el modo noche", "desactiva modo noche",
+                                 "quita el modo noche", "modo dia", "modo día", "sal del modo noche",
+                                 "desactiva el protocolo blackout", "fin del protocolo blackout"]):
+        from core.night_mode import set_blackout
+        set_blackout(False)
+        return "Protocolo Blackout desactivado, señor. Restaurando iluminación normal."
+    if any(kw in text for kw in ["activa el modo noche", "activar el modo noche", "modo noche", "modo nocturno",
+                                 "protocolo blackout", "activa el protocolo blackout"]):
+        from core.night_mode import set_blackout
+        set_blackout(True)
+        return "Protocolo Blackout activado, señor. Atenuando la interfaz."
+
+
     # --- Comando rápido: conciencia del proyecto activo ---
     if any(kw in text for kw in ["en que proyecto estoy", "estado del proyecto", "estado del repositorio",
                                  "estado de git", "en que rama estoy", "que rama es", "que proyecto es este"]):

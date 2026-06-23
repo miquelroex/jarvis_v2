@@ -1938,3 +1938,38 @@ body.defcon-violet #defcon-badge { display: inline-flex; color: #b15cff; box-sha
     content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
     background: radial-gradient(circle at center, rgba(0,212,255,0) 55%, rgba(0,40,70,0.4) 100%);
 }
+
+/* ═══════════════════════════════════════════
+   Protocolo Blackout (modo noche)
+   Atenúa toda la interfaz en tonos cálidos/ámbar y baja el brillo.
+   ═══════════════════════════════════════════ */
+body.blackout-active {
+    filter: brightness(0.62) sepia(0.35) hue-rotate(-12deg) saturate(0.85);
+    transition: filter 1.6s ease-in-out;
+}
+
+body.blackout-active::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9990;
+    background: radial-gradient(ellipse at center,
+                rgba(60, 30, 0, 0.0) 35%,
+                rgba(40, 18, 0, 0.45) 100%);
+    mix-blend-mode: multiply;
+}
+
+/* Indicador discreto de "modo noche activo" en la esquina */
+body.blackout-active .top-bar::after,
+body.blackout-active #top-bar::after {
+    content: "🌙 MODO NOCHE";
+    position: fixed;
+    top: 10px;
+    right: 16px;
+    z-index: 9991;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: rgba(255, 180, 90, 0.85);
+    text-shadow: 0 0 8px rgba(255, 140, 40, 0.6);
+}

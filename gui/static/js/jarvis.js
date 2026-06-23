@@ -739,6 +739,14 @@ socket.on('threat_level_update', (data) => {
     }
 });
 
+// Protocolo Blackout (modo noche) — atenúa la interfaz en tonos cálidos
+socket.on('blackout_on', () => {
+    document.body.classList.add('blackout-active');
+});
+socket.on('blackout_off', () => {
+    document.body.classList.remove('blackout-active');
+});
+
 socket.on('state_update', (data) => {
     // Actualizar estado
     currentState = data.status;
