@@ -23,6 +23,7 @@ import core.proactive_vision as proactive_vision
 import core.night_mode as night_mode
 import core.hud_overlay as hud_overlay
 import core.focus_mode as focus_mode
+import core.smart_lock as smart_lock
 
 def start_all_services():
     """
@@ -158,6 +159,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar HUD Overlay: {e}")
 
+    # 21. Smart Lock por proximidad Bluetooth — controlado por JARVIS_SMART_LOCK_ENABLED (off por defecto)
+    try:
+        smart_lock.start_smart_lock_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Smart Lock: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -166,6 +173,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 21. Smart Lock por proximidad Bluetooth
+    try:
+        smart_lock.stop_smart_lock_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Smart Lock: {e}")
 
     # Protocolo Verónica: si quedó activo, restaura las notificaciones de Windows.
     try:
@@ -453,5 +466,12 @@ def get_services_status() -> dict:
 
     # Protocolo Verónica (modo enfoque): bajo demanda, no es un daemon.
     status["focus_mode"] = "running" if focus_mode.is_focus_active() else "stopped"
+
+    # 21. Smart Lock por proximidad Bluetooth (off por defecto)
+    if os.getenv("JARVIS_SMART_LOCK_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["smart_lock"] = "disabled"
+    else:
+        lock_alive = smart_lock.LOCK_THREAD is not None and smart_lock.LOCK_THREAD.is_alive()
+        status["smart_lock"] = "running" if lock_alive else "stopped"
 
     return status
