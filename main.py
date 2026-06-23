@@ -96,6 +96,13 @@ def listen_for_next_command(source):
 def process_command(command_to_execute, transcript_for_ui):
   update_state("thinking", transcript=transcript_for_ui, model="")
 
+  # Registrar el último comando para el HUD Overlay flotante (best-effort).
+  try:
+    from core.hud_overlay import set_last_command
+    set_last_command(transcript_for_ui or command_to_execute)
+  except Exception:
+    pass
+
   route_result = smart_route(command_to_execute)
 
   if route_result:

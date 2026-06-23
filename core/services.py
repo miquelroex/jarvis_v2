@@ -21,6 +21,7 @@ import core.threat_level as threat_level
 import core.self_monitor as self_monitor
 import core.proactive_vision as proactive_vision
 import core.night_mode as night_mode
+import core.hud_overlay as hud_overlay
 
 def start_all_services():
     """
@@ -150,6 +151,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Protocolo Blackout: {e}")
 
+    # 20. HUD Overlay flotante — controlado por JARVIS_HUD_OVERLAY_ENABLED (off por defecto)
+    try:
+        hud_overlay.start_hud_overlay()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar HUD Overlay: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -158,6 +165,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 20. HUD Overlay flotante
+    try:
+        hud_overlay.stop_hud_overlay()
+    except Exception as e:
+        logging.error(f"Error al detener HUD Overlay: {e}")
 
     # 19. Protocolo Blackout (modo noche)
     try:
@@ -423,5 +436,11 @@ def get_services_status() -> dict:
     else:
         blackout_alive = night_mode.BLACKOUT_THREAD is not None and night_mode.BLACKOUT_THREAD.is_alive()
         status["night_mode"] = "running" if blackout_alive else "stopped"
+
+    # 20. HUD Overlay flotante (off por defecto)
+    if os.getenv("JARVIS_HUD_OVERLAY_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["hud_overlay"] = "disabled"
+    else:
+        status["hud_overlay"] = "running" if hud_overlay.is_hud_running() else "stopped"
 
     return status

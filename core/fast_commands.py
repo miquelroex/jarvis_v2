@@ -275,6 +275,19 @@ def handle_fast_command(command: str):
         return "Protocolo Blackout activado, señor. Atenuando la interfaz."
 
 
+    # --- Comando rápido: HUD Overlay flotante ---
+    if any(kw in text for kw in ["cierra el hud", "oculta el hud", "cerrar el hud", "quita el hud",
+                                 "cierra el overlay", "oculta el overlay"]):
+        from core.hud_overlay import stop_hud_overlay
+        stop_hud_overlay()
+        return "HUD desactivado, señor."
+    if any(kw in text for kw in ["abre el hud", "muestra el hud", "activa el hud", "abrir el hud",
+                                 "abre el overlay", "muestra el overlay", "hud flotante"]):
+        from core.hud_overlay import start_hud_overlay
+        start_hud_overlay(force=True)
+        return "HUD flotante desplegado, señor."
+
+
     # --- Comando rápido: conciencia del proyecto activo ---
     if any(kw in text for kw in ["en que proyecto estoy", "estado del proyecto", "estado del repositorio",
                                  "estado de git", "en que rama estoy", "que rama es", "que proyecto es este"]):
