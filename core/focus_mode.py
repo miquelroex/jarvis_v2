@@ -113,7 +113,10 @@ def start_focus(minutes=None, announce: bool = True) -> int:
     _ends_at = time.time() + minutes * 60
 
     if os.getenv("JARVIS_FOCUS_MUTE_NOTIFICATIONS", "true").lower() in ("true", "1", "yes"):
-        _prev_toast = _set_toast_notifications(False)
+        prev = _set_toast_notifications(False)
+        # Sólo guardar el valor original la primera vez (reactivar no debe perderlo).
+        if _prev_toast is None:
+            _prev_toast = prev
 
     _emit("veronica_on", {"minutes": minutes, "ends_at": _ends_at})
 

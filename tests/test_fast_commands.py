@@ -320,6 +320,61 @@ class TestFastCommands(unittest.TestCase):
         self.assertIn("main", resp)
         self.assertIn("3 archivo", resp)
 
+    def test_blackout_on_off_commands(self):
+        sink = []
+        fake = types.SimpleNamespace(set_blackout=lambda active, announce=False: sink.append(active))
+        with patch.dict(sys.modules, {"core.night_mode": fake}):
+            r_on = handle_fast_command("activa el modo noche")
+            r_off = handle_fast_command("desactiva el modo noche")
+        self.assertEqual(sink, [True, False])
+        self.assertIn("Blackout", r_on)
+        self.assertIn("Blackout", r_off)
+
+    def test_hud_open_close_commands(self):
+        sink = []
+        fake = types.SimpleNamespace(
+            start_hud_overlay=lambda force=False: sink.append(("open", force)),
+            stop_hud_overlay=lambda: sink.append(("close",)),
+        )
+        with patch.dict(sys.modules, {"core.hud_overlay": fake}):
+            handle_fast_command("abre el hud")
+            handle_fast_command("cierra el hud")
+        self.assertEqual(sink, [("open", True), ("close",)])
+
+    def test_veronica_on_with_minutes(self):
+        captured = {}
+        fake = types.SimpleNamespace(
+            start_focus=lambda minutes=None, announce=True: (captured.update(m=minutes) or (minutes or 25)),
+            stop_focus=lambda: True,
+        )
+        with patch.dict(sys.modules, {"core.focus_mode": fake}):
+            resp = handle_fast_command("modo enfoque 50 minutos")
+        self.assertEqual(captured["m"], 50)
+        self.assertIn("50", resp)
+
+    def test_thermal_open_command(self):
+        called = []
+        fake = types.SimpleNamespace(
+            open_thermal=lambda: called.append("open"),
+            close_thermal=lambda: called.append("close"),
+        )
+        with patch.dict(sys.modules, {"core.thermal_telemetry": fake}):
+            resp = handle_fast_command("abre el mapa de calor")
+        self.assertEqual(called, ["open"])
+        self.assertIn("térmica", resp.lower())
+
+    def test_thermal_not_confused_with_world_map(self):
+        # "abre el mapa de calor" debe abrir la térmica, NO el globo del mundo.
+        wm_called, th_called = [], []
+        fake_wm = types.SimpleNamespace(
+            open_map=lambda: wm_called.append("open"), close_map=lambda: True, fly_to=lambda p: None)
+        fake_th = types.SimpleNamespace(
+            open_thermal=lambda: th_called.append("open"), close_thermal=lambda: True)
+        with patch.dict(sys.modules, {"core.world_map": fake_wm, "core.thermal_telemetry": fake_th}):
+            handle_fast_command("abre el mapa de calor")
+        self.assertEqual(th_called, ["open"])
+        self.assertEqual(wm_called, [])
+
     def test_set_active_model_rebuilds_agent(self):
         # set_active_model recrea el LLM y reconstruye el agente. Import perezoso
         # para que la colección del archivo no arrastre langchain.
