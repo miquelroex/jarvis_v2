@@ -161,6 +161,16 @@ def handle_connect():
         emit('blackout_on' if is_blackout_active() else 'blackout_off')
     except Exception as e:
         print(f"[GUI] Error al enviar estado del modo noche inicial: {e}")
+
+    # Enviar estado del Protocolo Verónica (modo enfoque) actual al conectar
+    try:
+        from core.focus_mode import is_focus_active, get_ends_at
+        if is_focus_active():
+            emit('veronica_on', {'ends_at': get_ends_at()})
+        else:
+            emit('veronica_off')
+    except Exception as e:
+        print(f"[GUI] Error al enviar estado del modo enfoque inicial: {e}")
     
     # Cargar y enviar últimos 15 logs de modelos
     try:

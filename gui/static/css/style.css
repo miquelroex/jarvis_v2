@@ -1973,3 +1973,70 @@ body.blackout-active #top-bar::after {
     color: rgba(255, 180, 90, 0.85);
     text-shadow: 0 0 8px rgba(255, 140, 40, 0.6);
 }
+
+/* ═══════════════════════════════════════════
+   Protocolo Verónica (modo enfoque)
+   Tinte ámbar de alto contraste + temporizador de cuenta atrás flotante.
+   ═══════════════════════════════════════════ */
+body.focus-veronica {
+    filter: sepia(0.45) saturate(1.35) hue-rotate(-18deg) contrast(1.12) brightness(1.02);
+    transition: filter 1.2s ease-in-out;
+}
+
+body.focus-veronica::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9988;
+    box-shadow: inset 0 0 160px rgba(255, 150, 20, 0.18);
+}
+
+#veronica-timer {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9995;
+    text-align: center;
+    padding: 22px 40px;
+    border: 1px solid rgba(255, 176, 0, 0.55);
+    border-radius: 14px;
+    background: rgba(20, 11, 0, 0.55);
+    box-shadow: 0 0 40px rgba(255, 150, 20, 0.35), inset 0 0 24px rgba(255, 150, 20, 0.12);
+    backdrop-filter: blur(3px);
+    pointer-events: none;
+    animation: veronica-fade 0.6s ease-out;
+}
+
+#veronica-timer.hidden { display: none; }
+
+#veronica-label {
+    font-family: "Consolas", monospace;
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: #ffc14d;
+    text-shadow: 0 0 10px rgba(255, 150, 20, 0.7);
+}
+
+#veronica-countdown {
+    font-family: "Consolas", monospace;
+    font-size: 64px;
+    font-weight: bold;
+    line-height: 1.1;
+    color: #ffe2a8;
+    text-shadow: 0 0 18px rgba(255, 170, 40, 0.8);
+    margin: 6px 0 2px;
+}
+
+#veronica-sub {
+    font-family: "Consolas", monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: rgba(255, 190, 110, 0.7);
+}
+
+@keyframes veronica-fade {
+    from { opacity: 0; transform: translate(-50%, -46%); }
+    to   { opacity: 1; transform: translate(-50%, -50%); }
+}

@@ -22,6 +22,7 @@ import core.self_monitor as self_monitor
 import core.proactive_vision as proactive_vision
 import core.night_mode as night_mode
 import core.hud_overlay as hud_overlay
+import core.focus_mode as focus_mode
 
 def start_all_services():
     """
@@ -165,6 +166,13 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # Protocolo Verónica: si quedó activo, restaura las notificaciones de Windows.
+    try:
+        if focus_mode.is_focus_active():
+            focus_mode.stop_focus(announce=False)
+    except Exception as e:
+        logging.error(f"Error al restaurar Protocolo Verónica: {e}")
 
     # 20. HUD Overlay flotante
     try:
@@ -442,5 +450,8 @@ def get_services_status() -> dict:
         status["hud_overlay"] = "disabled"
     else:
         status["hud_overlay"] = "running" if hud_overlay.is_hud_running() else "stopped"
+
+    # Protocolo Verónica (modo enfoque): bajo demanda, no es un daemon.
+    status["focus_mode"] = "running" if focus_mode.is_focus_active() else "stopped"
 
     return status

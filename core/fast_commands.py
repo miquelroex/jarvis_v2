@@ -288,6 +288,22 @@ def handle_fast_command(command: str):
         return "HUD flotante desplegado, señor."
 
 
+    # --- Comando rápido: Protocolo de Enfoque "Verónica" ---
+    if any(kw in text for kw in ["desactiva el protocolo veronica", "fin del protocolo veronica",
+                                 "desactiva el modo enfoque", "termina el enfoque", "fin del enfoque",
+                                 "sal del modo enfoque", "para el enfoque", "desactiva veronica"]):
+        from core.focus_mode import stop_focus
+        stop_focus()
+        return "Protocolo Verónica desactivado, señor. Distractores restaurados."
+    if any(kw in text for kw in ["activa el protocolo veronica", "protocolo veronica", "modo enfoque",
+                                 "modo concentracion", "activa el modo enfoque", "activa veronica"]):
+        from core.focus_mode import start_focus
+        m = re.search(r"(\d+)\s*minuto", text)
+        minutes = int(m.group(1)) if m else None
+        eff = start_focus(minutes)
+        return f"Protocolo Verónica iniciado, señor. Concentración durante {eff} minutos. Silenciando distractores."
+
+
     # --- Comando rápido: conciencia del proyecto activo ---
     if any(kw in text for kw in ["en que proyecto estoy", "estado del proyecto", "estado del repositorio",
                                  "estado de git", "en que rama estoy", "que rama es", "que proyecto es este"]):

@@ -747,6 +747,44 @@ socket.on('blackout_off', () => {
     document.body.classList.remove('blackout-active');
 });
 
+// Protocolo Verónica (modo enfoque) — tinte ámbar + temporizador de cuenta atrás
+const veronica = (() => {
+    let endsAt = null;      // epoch ms
+    let ticker = null;
+    const panel = document.getElementById('veronica-timer');
+    const countEl = document.getElementById('veronica-countdown');
+
+    function fmt(secs) {
+        secs = Math.max(0, Math.floor(secs));
+        const m = String(Math.floor(secs / 60)).padStart(2, '0');
+        const s = String(secs % 60).padStart(2, '0');
+        return m + ':' + s;
+    }
+    function tick() {
+        if (endsAt === null) return;
+        const remaining = (endsAt - Date.now()) / 1000;
+        if (countEl) countEl.textContent = fmt(remaining);
+        if (remaining <= 0) stop();   // el backend también lo cierra
+    }
+    function start(payload) {
+        endsAt = (payload && payload.ends_at ? payload.ends_at * 1000 : Date.now() + 25 * 60000);
+        document.body.classList.add('focus-veronica');
+        if (panel) panel.classList.remove('hidden');
+        tick();
+        if (ticker) clearInterval(ticker);
+        ticker = setInterval(tick, 1000);
+    }
+    function stop() {
+        endsAt = null;
+        if (ticker) { clearInterval(ticker); ticker = null; }
+        document.body.classList.remove('focus-veronica');
+        if (panel) panel.classList.add('hidden');
+    }
+    socket.on('veronica_on', start);
+    socket.on('veronica_off', stop);
+    return { start, stop };
+})();
+
 socket.on('state_update', (data) => {
     // Actualizar estado
     currentState = data.status;
