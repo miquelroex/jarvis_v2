@@ -103,3 +103,4 @@ psutil==6.1.1
 playwright==1.49.1
 
 pycaw==20240210
+bleak==3.0.2
