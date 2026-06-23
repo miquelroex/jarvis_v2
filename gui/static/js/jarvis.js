@@ -785,6 +785,118 @@ const veronica = (() => {
     return { start, stop };
 })();
 
+// Mapa de calor de hardware 3D (Stark Thermal Telemetry)
+const thermalHud = (() => {
+    const overlay = document.getElementById('thermal-overlay');
+    const canvas = document.getElementById('thermal-canvas');
+    const statsEl = document.getElementById('thermal-stats');
+    const closeBtn = document.getElementById('thermal-close-btn');
+    let scene, camera, renderer, group, tiles = [];
+    let rafId = null, built = false, open = false, latest = null;
+
+    function loadColor(load) {
+        // 0 (frío/azul 210°) -> 100 (caliente/rojo 0°)
+        const t = Math.max(0, Math.min(1, load / 100));
+        const hue = (1 - t) * 210;
+        const light = 28 + t * 28;
+        const c = new THREE.Color();
+        c.setStyle(`hsl(${hue.toFixed(0)}, 100%, ${light.toFixed(0)}%)`);
+        return c;
+    }
+
+    function build() {
+        const n = (latest && latest.cores ? latest.cores.length : 16) || 16;
+        const cols = Math.ceil(Math.sqrt(n));
+        const rows = Math.ceil(n / cols);
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+        camera.position.set(0, cols * 1.05, cols * 1.5);
+        camera.lookAt(0, 0, 0);
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+        resize();
+
+        group = new THREE.Group();
+        const gap = 1.18;
+        tiles = [];
+        for (let i = 0; i < n; i++) {
+            const r = Math.floor(i / cols), c = i % cols;
+            const geo = new THREE.BoxGeometry(0.95, 1, 0.95);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x0a3a6b });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set((c - (cols - 1) / 2) * gap, 0, (r - (rows - 1) / 2) * gap);
+            // arista holográfica
+            const edges = new THREE.LineSegments(
+                new THREE.EdgesGeometry(geo),
+                new THREE.LineBasicMaterial({ color: 0x67d4ff, transparent: true, opacity: 0.35 }));
+            mesh.add(edges);
+            group.add(mesh);
+            tiles.push(mesh);
+        }
+        scene.add(group);
+        built = true;
+        if (latest) apply(latest);
+    }
+
+    function apply(data) {
+        if (!built || !data || !data.cores) return;
+        data.cores.forEach((core, i) => {
+            const mesh = tiles[i];
+            if (!mesh) return;
+            const load = core.load || 0;
+            mesh.material.color = loadColor(load);
+            const h = 0.4 + (load / 100) * 2.4;
+            mesh.scale.y = h;
+            mesh.position.y = h / 2 - 0.2;
+        });
+        if (statsEl) {
+            const temp = (data.cpu_temp != null) ? `${data.cpu_temp}°C` : 'N/D';
+            const bat = data.battery ? `${data.battery.percent}%${data.battery.plugged ? ' ⚡' : ''}` : 'N/D';
+            statsEl.textContent = `CPU ${data.cpu_overall ?? 0}%  ·  RAM ${data.ram_percent ?? 0}%  ·  TEMP ${temp}  ·  BAT ${bat}`;
+        }
+    }
+
+    function resize() {
+        if (!renderer || !camera) return;
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+    }
+
+    function animate() {
+        rafId = requestAnimationFrame(animate);
+        if (group) group.rotation.y += 0.0045;
+        if (renderer && scene && camera) renderer.render(scene, camera);
+    }
+
+    function show() {
+        if (!overlay) return;
+        overlay.classList.add('active');
+        open = true;
+        if (!built) build();
+        resize();
+        if (rafId === null) animate();
+    }
+    function hide() {
+        if (!overlay) return;
+        overlay.classList.remove('active');
+        open = false;
+        if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+    }
+
+    socket.on('thermal_update', (data) => {
+        latest = data;
+        if (open) apply(data);
+    });
+    socket.on('thermal_open', show);
+    socket.on('thermal_close', hide);
+    if (closeBtn) closeBtn.addEventListener('click', hide);
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open) hide(); });
+    window.addEventListener('resize', () => { if (open) resize(); });
+    return { show, hide };
+})();
+
 socket.on('state_update', (data) => {
     // Actualizar estado
     currentState = data.status;

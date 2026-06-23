@@ -24,6 +24,7 @@ import core.night_mode as night_mode
 import core.hud_overlay as hud_overlay
 import core.focus_mode as focus_mode
 import core.smart_lock as smart_lock
+import core.thermal_telemetry as thermal_telemetry
 
 def start_all_services():
     """
@@ -165,6 +166,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Smart Lock: {e}")
 
+    # 22. Telemetría térmica de hardware — controlado por JARVIS_THERMAL_TELEMETRY_ENABLED (on por defecto)
+    try:
+        thermal_telemetry.start_thermal_telemetry_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Telemetría Térmica: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -173,6 +180,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 22. Telemetría térmica de hardware
+    try:
+        thermal_telemetry.stop_thermal_telemetry_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Telemetría Térmica: {e}")
 
     # 21. Smart Lock por proximidad Bluetooth
     try:
@@ -473,5 +486,12 @@ def get_services_status() -> dict:
     else:
         lock_alive = smart_lock.LOCK_THREAD is not None and smart_lock.LOCK_THREAD.is_alive()
         status["smart_lock"] = "running" if lock_alive else "stopped"
+
+    # 22. Telemetría térmica de hardware (on por defecto)
+    if os.getenv("JARVIS_THERMAL_TELEMETRY_ENABLED", "true").lower() not in ("true", "1", "yes"):
+        status["thermal_telemetry"] = "disabled"
+    else:
+        thermal_alive = thermal_telemetry.THERMAL_THREAD is not None and thermal_telemetry.THERMAL_THREAD.is_alive()
+        status["thermal_telemetry"] = "running" if thermal_alive else "stopped"
 
     return status

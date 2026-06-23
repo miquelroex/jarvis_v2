@@ -171,6 +171,13 @@ def handle_connect():
             emit('veronica_off')
     except Exception as e:
         print(f"[GUI] Error al enviar estado del modo enfoque inicial: {e}")
+
+    # Enviar un snapshot inicial de telemetría térmica al conectar
+    try:
+        from core.thermal_telemetry import get_thermal_snapshot
+        emit('thermal_update', get_thermal_snapshot())
+    except Exception as e:
+        print(f"[GUI] Error al enviar telemetría térmica inicial: {e}")
     
     # Cargar y enviar últimos 15 logs de modelos
     try:

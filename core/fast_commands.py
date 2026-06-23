@@ -288,6 +288,20 @@ def handle_fast_command(command: str):
         return "HUD flotante desplegado, señor."
 
 
+    # --- Comando rápido: mapa de calor térmico 3D ---
+    if any(kw in text for kw in ["cierra la telemetria termica", "cierra el mapa de calor",
+                                 "oculta el mapa de calor", "cierra la termica", "cerrar el mapa de calor"]):
+        from core.thermal_telemetry import close_thermal
+        close_thermal()
+        return "Telemetría térmica cerrada, señor."
+    if any(kw in text for kw in ["abre la telemetria termica", "telemetria termica", "mapa de calor",
+                                 "abre el mapa de calor", "muestra el mapa de calor", "mapa termico",
+                                 "temperatura del hardware", "telemetria del hardware"]):
+        from core.thermal_telemetry import open_thermal
+        open_thermal()
+        return "Telemetría térmica activa, señor. Proyectando el mapa de calor del hardware."
+
+
     # --- Comando rápido: Protocolo de Enfoque "Verónica" ---
     if any(kw in text for kw in ["desactiva el protocolo veronica", "fin del protocolo veronica",
                                  "desactiva el modo enfoque", "termina el enfoque", "fin del enfoque",

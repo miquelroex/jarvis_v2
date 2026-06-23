@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>JARVIS</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=14">
+    <link rel="stylesheet" href="/static/css/style.css?v=15">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <!-- Mapbox GL JS (globo 3D del mundo) -->
     <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css">
@@ -71,6 +71,22 @@
             <button id="map-close-btn" title="Cerrar mapa">✕ CERRAR</button>
         </div>
         <div id="map-scanlines"></div>
+    </div>
+
+    <!-- Mapa de calor de hardware 3D (Stark Thermal Telemetry) -->
+    <div id="thermal-overlay">
+        <canvas id="thermal-canvas"></canvas>
+        <div id="thermal-hud-top">
+            <span id="thermal-title">▣ JARVIS · TELEMETRÍA TÉRMICA</span>
+            <span id="thermal-stats"></span>
+            <button id="thermal-close-btn" title="Cerrar telemetría">✕ CERRAR</button>
+        </div>
+        <div id="thermal-legend">
+            <span class="thermal-leg-cold">● OCIOSO</span>
+            <span class="thermal-leg-warm">● CARGA</span>
+            <span class="thermal-leg-hot">● SATURADO</span>
+        </div>
+        <div id="thermal-scanlines"></div>
     </div>
 
     <!-- Protocolo Verónica: temporizador de enfoque flotante -->
@@ -303,6 +319,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
     <!-- Nuestro JavaScript con las animaciones -->
-    <script src="/static/js/jarvis.js?v=2"></script>
+    <script src="/static/js/jarvis.js?v=3"></script>
 </body>
 </html>
