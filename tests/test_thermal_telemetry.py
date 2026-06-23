@@ -90,6 +90,14 @@ class TestEmit(unittest.TestCase):
 
 
 class TestDaemon(unittest.TestCase):
+    def setUp(self):
+        # Aislar de hilos dejados por otros tests (el daemon es on por defecto).
+        tt.stop_thermal_telemetry_daemon()
+        if tt.THERMAL_THREAD is not None and tt.THERMAL_THREAD.is_alive():
+            tt.THERMAL_THREAD.join(timeout=2)
+        tt.THERMAL_THREAD = None
+        tt.stop_event.clear()
+
     def tearDown(self):
         tt.stop_thermal_telemetry_daemon()
         tt.THERMAL_THREAD = None
