@@ -126,7 +126,7 @@ def _lock_workstation():
 def _welcome():
     try:
         from tools.voice import speak
-        speak("Bienvenido de nuevo, señor. Reanudando operaciones.", disable_vad=True)
+        speak("Bienvenido de nuevo, señor. Reanudando operaciones.", disable_vad=True, tone="success")
     except Exception as e:
         logger.warning(f"[SmartLock] No se pudo emitir el saludo: {e}")
 

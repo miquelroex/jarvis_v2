@@ -164,24 +164,53 @@ def _play_audio(file_path: str, disable_vad: bool = False) -> bool:
                 pass
         return False
 
-async def _generate_edge_tts(text: str, file_path: str):
+async def _generate_edge_tts(text: str, file_path: str, rate: str = "+0%", pitch: str = "+0Hz"):
     """Genera audio con Edge-TTS.
-    
+
     La voz se configura con JARVIS_EDGE_TTS_VOICE en .env.
     Voces recomendadas (más graves/formales): es-ES-AlvaroNeural, es-ES-PabloNeural
+    rate/pitch ajustan el tono (voz adaptativa); ver core.voice_tone.
     """
     voice = os.getenv("JARVIS_EDGE_TTS_VOICE", "es-ES-AlvaroNeural")
-    communicate = edge_tts.Communicate(text, voice)
+    communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
     await communicate.save(file_path)
 
-def _synthesize_and_play(text: str, disable_vad: bool = False):
+def _eleven_voice_settings(tone: str):
+    """Construye un VoiceSettings de ElevenLabs según el tono. None si no se puede."""
+    try:
+        from elevenlabs import VoiceSettings
+        from core.voice_tone import get_eleven_settings
+        s = get_eleven_settings(tone)
+        return VoiceSettings(
+            stability=s["stability"],
+            similarity_boost=0.75,
+            style=s["style"],
+            use_speaker_boost=True,
+        )
+    except Exception:
+        return None
+
+
+def _synthesize_and_play(text: str, disable_vad: bool = False, tone=None):
     """Sintetiza y reproduce una locución (bloquea hasta terminar).
 
     Orden de prioridad de motores: ElevenLabs -> Edge-TTS -> pyttsx3.
+    El tono (voz adaptativa) ajusta rate/pitch (Edge) y stability/style
+    (ElevenLabs); si no se indica, se infiere del texto. Ver core.voice_tone.
     Lo invoca el worker de voz; no gestiona _speaking_active (lo hace el worker).
     """
     TEMP_DIR.mkdir(parents=True, exist_ok=True)
     temp_file = str(TEMP_DIR / f"speech_{uuid.uuid4().hex}.mp3")
+
+    # Resolver el tono (explícito o detectado del texto), best-effort.
+    adaptive = os.getenv("JARVIS_VOICE_ADAPTIVE_ENABLED", "true").lower() in ("true", "1", "yes")
+    try:
+        from core.voice_tone import resolve_tone, get_edge_params
+        tone = resolve_tone(text, tone) if adaptive else "neutral"
+        edge = get_edge_params(tone)
+    except Exception:
+        tone = "neutral"
+        edge = {"rate": "+0%", "pitch": "+0Hz"}
 
     eleven_key = os.getenv("ELEVENLABS_API_KEY")
     eleven_voice_id = os.getenv("ELEVENLABS_VOICE_ID", "LlZr3QuzbW4WrPjgATHG")
@@ -190,11 +219,15 @@ def _synthesize_and_play(text: str, disable_vad: bool = False):
     if eleven_key:
         try:
             client = ElevenLabs(api_key=eleven_key)
-            audio_gen = client.text_to_speech.convert(
+            convert_kwargs = dict(
                 text=text,
                 voice_id=eleven_voice_id,
-                model_id="eleven_multilingual_v2"
+                model_id="eleven_multilingual_v2",
             )
+            vs = _eleven_voice_settings(tone)
+            if vs is not None:
+                convert_kwargs["voice_settings"] = vs
+            audio_gen = client.text_to_speech.convert(**convert_kwargs)
             with open(temp_file, "wb") as f:
                 for chunk in audio_gen:
                     if chunk:
@@ -207,7 +240,7 @@ def _synthesize_and_play(text: str, disable_vad: bool = False):
 
     # CAPA 2: Edge-TTS (Voz Neural Gratuita)
     try:
-        asyncio.run(_generate_edge_tts(text, temp_file))
+        asyncio.run(_generate_edge_tts(text, temp_file, rate=edge["rate"], pitch=edge["pitch"]))
         if _play_audio(temp_file, disable_vad):
             return
     except Exception as e:
@@ -222,10 +255,10 @@ def _speech_worker():
     una tras otra, garantizando que nunca se solapen."""
     global _speaking_active
     while True:
-        text, disable_vad = _speech_queue.get()
+        text, disable_vad, tone = _speech_queue.get()
         _speaking_active = True
         try:
-            _synthesize_and_play(text, disable_vad)
+            _synthesize_and_play(text, disable_vad, tone)
         except Exception as e:
             logging.error(f"⚠️ Error en el worker de voz: {e}")
         finally:
@@ -273,16 +306,19 @@ threading.Thread(target=_global_key_listener, daemon=True).start()
 # Arrancar el worker único que serializa la reproducción de voz
 threading.Thread(target=_speech_worker, daemon=True).start()
 
-def speak(text: str, disable_vad: bool = False) -> None:
+def speak(text: str, disable_vad: bool = False, tone=None) -> None:
     """
     Encola el texto para reproducirlo por voz de forma no bloqueante.
 
     Las locuciones se reproducen una tras otra mediante un worker único, de modo
     que nunca se solapan aunque varias partes del sistema llamen a speak() a la vez.
     Orden de prioridad de motores: ElevenLabs -> Edge-TTS -> pyttsx3.
+
+    tone: perfil de voz adaptativa (neutral/alert/calm/success/humor). Si es None,
+    se infiere automáticamente del texto. Ver core.voice_tone.
     """
     # Evitar llamadas vacías
     if not text or not text.strip():
         return
 
-    _speech_queue.put((text, disable_vad))
+    _speech_queue.put((text, disable_vad, tone))
