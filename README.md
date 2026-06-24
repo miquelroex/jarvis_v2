@@ -37,6 +37,26 @@ Está diseñado sobre una arquitectura híbrida en Python que combina un **enrut
 
 ---
 
+## 🦾 Protocolos y Módulos Estilo Iron Man
+
+Conjunto de servicios de fondo y experiencias visuales/voz inspirados en el HUD de Stark. Cada uno se activa por voz y/o por variable de entorno (la mayoría desactivados por defecto; consulta `.env.example`).
+
+*   🎙️ **Voz Adaptativa (Tone Shifting)**: Jarvis ajusta automáticamente velocidad, tono y estilo de su voz según el contexto de cada frase: sereno al informar, firme y rápido en alertas, pausado y grave de noche, brillante al confirmar un éxito y juguetón en la ironía. Funciona sobre Edge-TTS (`rate`/`pitch`) y ElevenLabs (`voice_settings`). Interruptor `JARVIS_VOICE_ADAPTIVE_ENABLED`.
+*   🦾 **HUD Overlay Flotante**: Ventana de escritorio sin bordes, semitransparente y siempre encima (topmost) con telemetría en vivo (reloj, RAM/CPU, servicios activos, DEFCON, último comando). Borde rojo parpadeante en alerta; arrastrable y `Esc` para cerrar. Voz: *"abre el HUD"*.
+*   🔥 **Mapa de Calor de Hardware 3D**: Visualización 3D (three.js) de la carga real por núcleo de la CPU (azul→rojo, con relieve por carga) más CPU/RAM/temperatura/batería. Voz: *"abre el mapa de calor"*.
+*   🌍 **Atlas Global 3D**: Globo terráqueo interactivo (Mapbox GL) que vuela a cualquier lugar por voz: *"abre el mapa"*, *"llévame a Tokio"*.
+*   🎯 **Protocolo Verónica (Modo Enfoque)**: Silencia las notificaciones de Windows, tiñe la GUI en ámbar de alto contraste y muestra un temporizador de productividad. Voz: *"modo enfoque 50 minutos"*.
+*   🌙 **Protocolo Blackout (Modo Noche)**: Pasada cierta hora atenúa la interfaz en tonos cálidos y, una vez por noche, sugiere descansar con voz suave. Voz: *"modo noche"*.
+*   🔒 **Smart Lock por Bluetooth**: Bloquea el PC automáticamente cuando tu móvil/reloj se aleja (escaneo BLE por MAC/nombre y RSSI con anti-rebote) y te da la bienvenida al volver.
+*   👁️ **JARVIS Proactivo Visual**: Captura periódicamente la pantalla y la analiza con Gemini Vision para avisarte por voz si detecta algo relevante (opt-in; envía capturas a Google).
+*   🧠 **Memoria Semántica (RAG local)**: Indexa los recuerdos con embeddings de Google y permite buscarlos por significado (coseno sobre vectores).
+*   🧭 **Conciencia de Proyecto (Project Awareness)**: Detecta el repositorio git activo (rama, último commit, cambios sin confirmar) e inyecta ese contexto en el prompt del sistema.
+*   🔊 **Control de Audio y Multimedia por Voz**: Sube/baja/silencia el volumen del sistema (pycaw) y controla play/pausa/siguiente/anterior por voz.
+*   📥 **Bandeja de Entrada (Inbox)**: Panel interactivo en la GUI para capturar notas/tareas rápidas por voz o teclado.
+*   🌡️ **Nivel de Amenaza DEFCON y Self-Monitoring**: Tinte de la interfaz por nivel de amenaza agregado y dashboard de salud en vivo (uso de IA, servicios, sistema).
+
+---
+
 ## 🛠️ Configuración e Instalación
 
 ### 1. Requisitos
@@ -83,8 +103,10 @@ python main.py
 ```
 
 ### Ejecutar el Suite de Pruebas
-Puedes validar que el enrutador, los comandos rápidos locales y las importaciones de todas las herramientas funcionen perfectamente ejecutando:
+Puedes validar que el enrutador, los comandos rápidos locales y las importaciones de todas las herramientas funcionen perfectamente ejecutando (recomendado, igual que en CI):
 ```bash
-python -m unittest discover -s tests -p "test_*.py"
+python -m pytest -q
 ```
-*(Todos los tests deben reportar `OK`)*.
+*(o, con la librería estándar: `python -m unittest discover -s tests -p "test_*.py"`)*.
+
+> **Nota (Windows local):** algunos tests que importan `tools/voice.py` o `gui/app.py` pueden abortar localmente por el conocido error nativo de OpenSSL (`no OPENSSL_Applink`). El pipeline de CI (windows-latest, entorno limpio) los ejecuta sin problema y debe reportar todo en verde.
