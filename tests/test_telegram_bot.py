@@ -23,6 +23,21 @@ class MockMessage:
         self.chat = MockChat()
         self.message_id = 55555
 
+
+class MockVoice:
+    def __init__(self, file_id="voicefileid"):
+        self.file_id = file_id
+
+
+class MockVoiceMessage:
+    def __init__(self, user_id=12345, username="miquel"):
+        self.content_type = "voice"
+        self.voice = MockVoice()
+        self.text = None
+        self.from_user = MockUser(user_id, username)
+        self.chat = MockChat()
+        self.message_id = 55556
+
 class MockCallbackQuery:
     def __init__(self, data, user_id=12345, username="miquel", message_text="Test Message"):
         self.id = "999"
@@ -192,37 +207,76 @@ class TestTelegramBot(unittest.TestCase):
 
     @patch('telebot.TeleBot')
     @patch('threading.Thread')
-    @patch('core.telegram_bot.smart_route')
-    @patch('core.telegram_bot.get_executor')
+    @patch('core.telegram_bot._send_voice_reply')
+    @patch('core.telegram_bot.get_response')
     @patch('core.telegram_bot.update_state')
-    def test_telegram_bot_natural_language_agent(self, mock_update_state, mock_get_executor, mock_route, mock_thread, mock_telebot_class):
+    def test_telegram_bot_natural_language_agent(self, mock_update_state, mock_get_response, mock_voice, mock_thread, mock_telebot_class):
         handlers = {}
         mock_bot_instance = MagicMock()
         mock_telebot_class.return_value = mock_bot_instance
         mock_bot_instance.message_handler.side_effect = lambda **f: lambda func: handlers.setdefault(func.__name__, func)
 
-        # Simular que el router inteligente no puede procesarlo
-        mock_route.return_value = None
-        
-        # Simular respuesta del agente
-        mock_agent_instance = MagicMock()
-        mock_get_executor.return_value = mock_agent_instance
-        mock_agent_instance.invoke.return_value = {"output": "Respuesta del agente general"}
+        # El cerebro común resuelve y devuelve (respuesta, modelo).
+        mock_get_response.return_value = ("Respuesta del agente general", "deepseek/deepseek-v4-pro")
 
         with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "valid_token", "TELEGRAM_USER_ID": "12345"}):
             start_telegram_bot()
-            
+
             auth_msg = MockMessage("busca en internet", user_id=12345)
             handlers["handle_natural_language"](auth_msg)
-            
-            mock_route.assert_called_once_with("busca en internet")
-            mock_agent_instance.invoke.assert_called_once_with({"input": "busca en internet"})
+
+            mock_get_response.assert_called_once_with("busca en internet")
             mock_bot_instance.reply_to.assert_called_once_with(auth_msg, "Respuesta del agente general")
-            
+
             # Verificar que actualizó los estados de la GUI
             mock_update_state.assert_any_call("thinking", transcript="[Telegram] busca en internet", model="")
             mock_update_state.assert_any_call("speaking", response="Respuesta del agente general", model="deepseek/deepseek-v4-pro")
             mock_update_state.assert_any_call("idle")
+
+    @patch('telebot.TeleBot')
+    @patch('threading.Thread')
+    @patch('core.telegram_bot._send_voice_reply')
+    @patch('core.telegram_bot.get_response')
+    @patch('core.telegram_bot.update_state')
+    @patch('core.whisper_stt.transcribe_file')
+    def test_telegram_bot_voice_message(self, mock_transcribe, mock_update_state, mock_get_response, mock_voice, mock_thread, mock_telebot_class):
+        handlers = {}
+        mock_bot_instance = MagicMock()
+        mock_telebot_class.return_value = mock_bot_instance
+        mock_bot_instance.message_handler.side_effect = lambda **f: lambda func: handlers.setdefault(func.__name__, func)
+        mock_bot_instance.get_file.return_value = MagicMock(file_path="voice/file.ogg")
+        mock_bot_instance.download_file.return_value = b"oggbytes"
+        mock_transcribe.return_value = "que hora es"
+        mock_get_response.return_value = ("Son las tres, señor.", "Comando Local")
+
+        with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "valid_token", "TELEGRAM_USER_ID": "12345"}):
+            start_telegram_bot()
+
+            voice_msg = MockVoiceMessage(user_id=12345)
+            with patch("builtins.open", mock_open()):
+                handlers["handle_voice_message"](voice_msg)
+
+            mock_transcribe.assert_called_once()
+            # Procesa el texto transcrito por el cerebro y responde con voz.
+            mock_get_response.assert_called_once_with("que hora es")
+            mock_voice.assert_called_once()
+
+    @patch('telebot.TeleBot')
+    @patch('threading.Thread')
+    def test_telegram_bot_voicereply_toggle(self, mock_thread, mock_telebot_class):
+        handlers = {}
+        mock_bot_instance = MagicMock()
+        mock_telebot_class.return_value = mock_bot_instance
+        mock_bot_instance.message_handler.side_effect = lambda **f: lambda func: handlers.setdefault(func.__name__, func)
+
+        with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "valid_token", "TELEGRAM_USER_ID": "12345"}):
+            start_telegram_bot()
+            import core.telegram_bot as tb
+
+            handlers["handle_voicereply"](MockMessage("/voicereply off", user_id=12345))
+            self.assertFalse(tb.voice_reply_enabled)
+            handlers["handle_voicereply"](MockMessage("/voicereply on", user_id=12345))
+            self.assertTrue(tb.voice_reply_enabled)
 
     @patch('telebot.TeleBot')
     @patch('threading.Thread')
