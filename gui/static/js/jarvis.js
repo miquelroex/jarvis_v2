@@ -932,6 +932,167 @@ const thermalHud = (() => {
     return { show, hide };
 })();
 
+// Sala de Hologramas: explorador de arquitectura 3D (constelación de módulos)
+const holograph = (() => {
+    const overlay = document.getElementById('holo-overlay');
+    const canvas = document.getElementById('holo-canvas');
+    const statsEl = document.getElementById('holo-stats');
+    const closeBtn = document.getElementById('holo-close-btn');
+    let scene, camera, renderer, group;
+    let rafId = null, built = false, open = false, latest = null;
+    let dragging = false, lastX = 0, lastY = 0, zoom = 60;
+
+    const GROUP_COLORS = { core: '#00e5ff', tools: '#ffb000', gui: '#39ff8a' };
+    function groupColor(g) { return GROUP_COLORS[g] || '#bf5af2'; }
+
+    function makeLabelSprite(text, colorHex) {
+        const cv = document.createElement('canvas');
+        const ctx = cv.getContext('2d');
+        const font = 22;
+        ctx.font = `bold ${font}px Consolas, monospace`;
+        cv.width = ctx.measureText(text).width + 16;
+        cv.height = font + 12;
+        ctx.font = `bold ${font}px Consolas, monospace`;
+        ctx.fillStyle = colorHex;
+        ctx.shadowColor = colorHex;
+        ctx.shadowBlur = 8;
+        ctx.fillText(text, 8, font);
+        const tex = new THREE.CanvasTexture(cv);
+        const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(cv.width / 26, cv.height / 26, 1);
+        return sprite;
+    }
+
+    function build() {
+        const data = latest || { nodes: [], edges: [] };
+        const nodes = data.nodes || [];
+        const N = Math.max(1, nodes.length);
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(50, canvas.clientWidth / canvas.clientHeight, 0.1, 2000);
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+        resize();
+
+        group = new THREE.Group();
+        const R = 26 + N * 0.12;
+        const pos = {};
+        // Umbral de tamaño para etiquetar sólo los módulos relevantes (evita ruido).
+        const sizes = nodes.map(n => n.size || 0).sort((a, b) => b - a);
+        const labelThreshold = sizes.length > 28 ? sizes[28] : 0;
+
+        nodes.forEach((n, i) => {
+            // Distribución uniforme en esfera (espiral áurea).
+            const phi = Math.acos(1 - 2 * (i + 0.5) / N);
+            const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5);
+            const x = R * Math.sin(phi) * Math.cos(theta);
+            const y = R * Math.sin(phi) * Math.sin(theta);
+            const z = R * Math.cos(phi);
+            pos[n.id] = new THREE.Vector3(x, y, z);
+
+            const col = new THREE.Color(groupColor(n.group));
+            const r = 0.6 + Math.min(n.size || 0, 30) / 30 * 2.2;
+            const mesh = new THREE.Mesh(
+                new THREE.SphereGeometry(r, 16, 16),
+                new THREE.MeshBasicMaterial({ color: col }));
+            mesh.position.set(x, y, z);
+            group.add(mesh);
+
+            if ((n.size || 0) >= labelThreshold && labelThreshold > 0 || nodes.length <= 30) {
+                const label = makeLabelSprite(n.label.replace(/^([a-z]+)\./, ''), groupColor(n.group));
+                label.position.set(x, y + r + 1.4, z);
+                group.add(label);
+            }
+        });
+
+        // Aristas (imports) como líneas tenues.
+        const verts = [];
+        const colors = [];
+        (data.edges || []).forEach(e => {
+            const a = pos[e.source], b = pos[e.target];
+            if (!a || !b) return;
+            const c = new THREE.Color(groupColor((e.target.split('.')[0])));
+            verts.push(a.x, a.y, a.z, b.x, b.y, b.z);
+            colors.push(c.r, c.g, c.b, c.r, c.g, c.b);
+        });
+        if (verts.length) {
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+            geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            const lines = new THREE.LineSegments(geo,
+                new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.22 }));
+            group.add(lines);
+        }
+
+        scene.add(group);
+        built = true;
+        if (statsEl) statsEl.textContent = `${data.module_count ?? nodes.length} módulos · ${data.edge_count ?? (data.edges || []).length} enlaces`;
+    }
+
+    function resize() {
+        if (!renderer || !camera) return;
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+    }
+
+    function animate() {
+        rafId = requestAnimationFrame(animate);
+        if (group && !dragging) group.rotation.y += 0.0016;
+        if (camera) { camera.position.set(0, 0, zoom); camera.lookAt(0, 0, 0); }
+        if (renderer && scene && camera) renderer.render(scene, camera);
+    }
+
+    function rebuild() {
+        if (renderer) { try { renderer.dispose(); } catch (e) {} }
+        built = false;
+        build();
+    }
+
+    function show() {
+        if (!overlay) return;
+        overlay.classList.add('active');
+        open = true;
+        if (!built) build();
+        resize();
+        if (rafId === null) animate();
+    }
+    function hide() {
+        if (!overlay) return;
+        overlay.classList.remove('active');
+        open = false;
+        if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+    }
+
+    // Rotación con arrastre y zoom con rueda.
+    if (canvas) {
+        canvas.addEventListener('mousedown', (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+        window.addEventListener('mouseup', () => { dragging = false; });
+        window.addEventListener('mousemove', (e) => {
+            if (!dragging || !group) return;
+            group.rotation.y += (e.clientX - lastX) * 0.005;
+            group.rotation.x += (e.clientY - lastY) * 0.005;
+            lastX = e.clientX; lastY = e.clientY;
+        });
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            zoom = Math.max(20, Math.min(160, zoom + Math.sign(e.deltaY) * 6));
+        }, { passive: false });
+    }
+
+    socket.on('architecture_graph', (data) => {
+        latest = data;
+        if (open) rebuild();
+    });
+    socket.on('holo_open', show);
+    socket.on('holo_close', hide);
+    if (closeBtn) closeBtn.addEventListener('click', hide);
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open) hide(); });
+    window.addEventListener('resize', () => { if (open) resize(); });
+    return { show, hide };
+})();
+
 socket.on('state_update', (data) => {
     // Actualizar estado
     currentState = data.status;

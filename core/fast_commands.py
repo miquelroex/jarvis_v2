@@ -303,6 +303,20 @@ def handle_fast_command(command: str):
         return "Telemetría térmica activa, señor. Proyectando el mapa de calor del hardware."
 
 
+    # --- Comando rápido: Sala de Hologramas (arquitectura 3D) ---
+    if any(kw in text for kw in ["cierra la sala de hologramas", "cierra la holomesa", "cierra la arquitectura",
+                                 "oculta la arquitectura", "cierra los hologramas"]):
+        from core.architecture_graph import close_holograph
+        close_holograph()
+        return "Sala de hologramas cerrada, señor."
+    if any(kw in text for kw in ["sala de hologramas", "abre la holomesa", "muestra la arquitectura",
+                                 "mapa de arquitectura", "arquitectura del proyecto", "explorador de arquitectura",
+                                 "proyecta la arquitectura"]):
+        from core.architecture_graph import open_holograph
+        open_holograph()
+        return "Proyectando la arquitectura del proyecto, señor. Sala de hologramas activa."
+
+
     # --- Comando rápido: Protocolo de Enfoque "Verónica" ---
     if any(kw in text for kw in ["desactiva el protocolo veronica", "fin del protocolo veronica",
                                  "desactiva el modo enfoque", "termina el enfoque", "fin del enfoque",

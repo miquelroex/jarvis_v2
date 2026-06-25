@@ -2089,3 +2089,53 @@ body.focus-veronica::before {
     position: absolute; inset: 0; z-index: 2; pointer-events: none;
     background: repeating-linear-gradient(to bottom, rgba(0,212,255,0.035) 0px, rgba(0,212,255,0.035) 1px, transparent 1px, transparent 3px);
 }
+
+/* ═══════════════════════════════════════════
+   Sala de Hologramas (explorador de arquitectura 3D)
+   ═══════════════════════════════════════════ */
+#holo-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: radial-gradient(ellipse at center, #04101a 0%, #01060c 100%);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+#holo-overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
+#holo-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+#holo-canvas:active { cursor: grabbing; }
+#holo-hud-top {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; gap: 18px;
+    padding: 14px 22px; z-index: 3;
+    background: linear-gradient(to bottom, rgba(2,8,16,0.85), rgba(2,8,16,0));
+    font-family: 'Courier New', monospace;
+    pointer-events: none;
+}
+#holo-title { color: #00d4ff; font-weight: bold; letter-spacing: 0.2rem; text-transform: uppercase; text-shadow: 0 0 12px rgba(0,212,255,0.6); font-size: 0.95rem; }
+#holo-stats { color: #d6f5ff; font-size: 0.9rem; letter-spacing: 0.05rem; text-shadow: 0 0 8px rgba(0,212,255,0.4); flex: 1; }
+#holo-close-btn {
+    pointer-events: auto;
+    background: rgba(255, 40, 60, 0.12);
+    border: 1px solid rgba(255, 60, 80, 0.5);
+    color: #ff5577;
+    padding: 6px 14px; border-radius: 6px;
+    font-family: inherit; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.1rem;
+    cursor: pointer; transition: all 0.2s ease;
+}
+#holo-close-btn:hover { background: rgba(255,40,60,0.3); box-shadow: 0 0 12px rgba(255,40,60,0.4); }
+#holo-legend {
+    position: absolute; bottom: 18px; left: 0; right: 0; z-index: 3;
+    display: flex; justify-content: center; gap: 26px;
+    font-family: 'Courier New', monospace; font-size: 0.74rem; letter-spacing: 0.12rem;
+    pointer-events: none;
+}
+#holo-legend .holo-leg-core  { color: #00e5ff; text-shadow: 0 0 8px rgba(0,229,255,0.6); }
+#holo-legend .holo-leg-tools { color: #ffb000; text-shadow: 0 0 8px rgba(255,176,0,0.6); }
+#holo-legend .holo-leg-gui   { color: #39ff8a; text-shadow: 0 0 8px rgba(57,255,138,0.6); }
+#holo-scanlines {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background: repeating-linear-gradient(to bottom, rgba(0,212,255,0.03) 0px, rgba(0,212,255,0.03) 1px, transparent 1px, transparent 3px);
+}

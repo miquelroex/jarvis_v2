@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>JARVIS</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=15">
+    <link rel="stylesheet" href="/static/css/style.css?v=16">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <!-- Mapbox GL JS (globo 3D del mundo) -->
     <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css">
@@ -71,6 +71,23 @@
             <button id="map-close-btn" title="Cerrar mapa">✕ CERRAR</button>
         </div>
         <div id="map-scanlines"></div>
+    </div>
+
+    <!-- Sala de Hologramas: explorador de arquitectura 3D -->
+    <div id="holo-overlay">
+        <canvas id="holo-canvas"></canvas>
+        <div id="holo-hud-top">
+            <span id="holo-title">⬡ JARVIS · SALA DE HOLOGRAMAS</span>
+            <span id="holo-stats"></span>
+            <button id="holo-close-btn" title="Cerrar holomesa">✕ CERRAR</button>
+        </div>
+        <div id="holo-legend">
+            <span class="holo-leg-core">● core</span>
+            <span class="holo-leg-tools">● tools</span>
+            <span class="holo-leg-gui">● gui</span>
+        </div>
+        <div id="holo-hover"></div>
+        <div id="holo-scanlines"></div>
     </div>
 
     <!-- Mapa de calor de hardware 3D (Stark Thermal Telemetry) -->
@@ -319,6 +336,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
     <!-- Nuestro JavaScript con las animaciones -->
-    <script src="/static/js/jarvis.js?v=4"></script>
+    <script src="/static/js/jarvis.js?v=5"></script>
 </body>
 </html>
