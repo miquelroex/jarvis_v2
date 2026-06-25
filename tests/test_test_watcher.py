@@ -38,50 +38,52 @@ class TestTestWatcher(unittest.TestCase):
         self.assertIsNone(res3)
 
     @patch("subprocess.run")
-    @patch("core.test_watcher.speak")
-    def test_run_test_state_changes_and_voice_alerts(self, mock_speak, mock_run):
-        # 1. Primer ejecución: Pasa (estado inicial desconocido, no debería hablar)
+    @patch("core.reactions.react")
+    def test_run_test_state_changes_and_voice_alerts(self, mock_react, mock_run):
+        # 1. Primer ejecución: Pasa (estado inicial desconocido, no debería reaccionar)
         mock_process = MagicMock()
         mock_process.returncode = 0
         mock_process.stderr = ""
         mock_process.stdout = "OK"
         mock_run.return_value = mock_process
-        
+
         res = run_test("tests.test_dummy")
         self.assertTrue(res)
-        mock_speak.assert_not_called()
+        mock_react.assert_not_called()
         self.assertEqual(_test_states.get("tests.test_dummy"), "pass")
 
-        # 2. Segunda ejecución: Pasa -> Pasa (no debería hablar)
-        mock_speak.reset_mock()
+        # 2. Segunda ejecución: Pasa -> Pasa (no debería reaccionar)
+        mock_react.reset_mock()
         res = run_test("tests.test_dummy")
         self.assertTrue(res)
-        mock_speak.assert_not_called()
+        mock_react.assert_not_called()
         self.assertEqual(_test_states.get("tests.test_dummy"), "pass")
 
-        # 3. Tercera ejecución: Pasa -> Falla (debería alertar por voz)
-        mock_speak.reset_mock()
+        # 3. Tercera ejecución: Pasa -> Falla (reacción "test_broken")
+        mock_react.reset_mock()
         mock_process.returncode = 1
         res = run_test("tests.test_dummy")
         self.assertFalse(res)
-        mock_speak.assert_called_once()
-        self.assertIn("fallando", mock_speak.call_args[0][0])
+        mock_react.assert_called_once()
+        self.assertEqual(mock_react.call_args[0][0], "test_broken")
         self.assertEqual(_test_states.get("tests.test_dummy"), "fail")
 
-        # 4. Cuarta ejecución: Falla -> Falla (no debería hablar de nuevo)
-        mock_speak.reset_mock()
+        # 4. Cuarta ejecución: Falla -> Falla (no debería reaccionar de nuevo)
+        mock_react.reset_mock()
         res = run_test("tests.test_dummy")
         self.assertFalse(res)
-        mock_speak.assert_not_called()
+        mock_react.assert_not_called()
         self.assertEqual(_test_states.get("tests.test_dummy"), "fail")
 
-        # 5. Quinta ejecución: Falla -> Pasa (debería notificar recuperación por voz)
-        mock_speak.reset_mock()
+        # 5. Quinta ejecución: Falla -> Pasa (reacción "test_recovered" con la racha)
+        mock_react.reset_mock()
         mock_process.returncode = 0
         res = run_test("tests.test_dummy")
         self.assertTrue(res)
-        mock_speak.assert_called_once()
-        self.assertIn("vuelven a pasar", mock_speak.call_args[0][0])
+        mock_react.assert_called_once()
+        self.assertEqual(mock_react.call_args[0][0], "test_recovered")
+        # El contexto debe traer la racha de fallos previa (2 fallos en pasos 3 y 4).
+        self.assertEqual(mock_react.call_args[0][1].get("fails"), 2)
         self.assertEqual(_test_states.get("tests.test_dummy"), "pass")
 
 if __name__ == "__main__":
