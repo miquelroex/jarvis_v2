@@ -112,6 +112,14 @@ def get_compiled_system_prompt() -> str:
     if is_socratic_mode_active():
         base_prompt += SOCRATIC_PROMPT_ADDITION
 
+    # Medidor de Sarcasmo: ajusta el grado de ironía británica en caliente.
+    try:
+        from core.personality import get_sarcasm_level, get_sarcasm_directive
+        base_prompt += get_sarcasm_directive(get_sarcasm_level())
+    except Exception as e:
+        import logging
+        logging.error(f"Error al integrar el medidor de sarcasmo en el prompt: {e}")
+
     try:
         from core.memory import get_all_memories
         mems = get_all_memories(limit=20)
