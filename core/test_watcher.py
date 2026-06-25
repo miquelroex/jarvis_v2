@@ -15,6 +15,9 @@ stop_event = threading.Event()
 # Registro de estados de los tests en memoria: { "tests.test_memory": "pass"/"fail" }
 _test_states = {}
 
+# Racha de fallos consecutivos por suite (para reacciones con más "alma")
+_fail_streak = {}
+
 # Almacena el estado de los archivos para detectar cambios: { absolute_path: modification_time }
 _file_mtimes = {}
 
@@ -156,17 +159,23 @@ def run_test(test_module: str = None) -> bool:
         
         # Guardar el nuevo estado
         _test_states[display_name] = current_state
-        
-        # Emitir alertas por voz solo ante CAMBIOS reales de estado (evita ruidos repetitivos)
+
+        # Actualizar racha de fallos consecutivos (para la intensidad del alivio)
+        fails_before = _fail_streak.get(display_name, 0)
+        _fail_streak[display_name] = fails_before + 1 if current_state == "fail" else 0
+
+        # Reaccionar con "alma" solo ante CAMBIOS reales de estado (evita ruido repetitivo)
         if prev_state is not None:
-            if prev_state == "pass" and current_state == "fail":
-                msg = f"Señor, lamento informarle que las pruebas de {display_name} están fallando en este momento. Puede revisar la salida en el panel de logs."
-                logging.warning(f"[TestWatcher] Alerta emitida: {msg}")
-                speak(msg)
-            elif prev_state == "fail" and current_state == "pass":
-                msg = f"Excelente, señor. Las pruebas de {display_name} se han corregido y vuelven a pasar correctamente."
-                logging.info(f"[TestWatcher] Alerta emitida: {msg}")
-                speak(msg)
+            try:
+                from core.reactions import react
+                if prev_state == "pass" and current_state == "fail":
+                    msg = react("test_broken", {"name": display_name})
+                    logging.warning(f"[TestWatcher] Reacción emitida: {msg}")
+                elif prev_state == "fail" and current_state == "pass":
+                    msg = react("test_recovered", {"name": display_name, "fails": fails_before})
+                    logging.info(f"[TestWatcher] Reacción emitida: {msg}")
+            except Exception as e:
+                logging.warning(f"[TestWatcher] No se pudo emitir la reacción: {e}")
         return success
                 
 def watcher_loop(workspace_root: str):

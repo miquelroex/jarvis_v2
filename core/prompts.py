@@ -120,6 +120,14 @@ def get_compiled_system_prompt() -> str:
         import logging
         logging.error(f"Error al integrar el medidor de sarcasmo en el prompt: {e}")
 
+    # Reacciones con Alma: matiz emocional contenido en las respuestas.
+    try:
+        from core.reactions import get_emotion_directive
+        base_prompt += get_emotion_directive()
+    except Exception as e:
+        import logging
+        logging.error(f"Error al integrar las reacciones con alma en el prompt: {e}")
+
     try:
         from core.memory import get_all_memories
         mems = get_all_memories(limit=20)
