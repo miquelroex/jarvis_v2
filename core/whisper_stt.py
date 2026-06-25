@@ -176,6 +176,43 @@ def transcribe_audio(audio: sr.AudioData, google_fallback: bool = True) -> str:
         raise
 
 
+def transcribe_file(file_path: str) -> str:
+    """Transcribe un fichero de audio (p.ej. una nota de voz .ogg/opus de
+    Telegram) directamente con Whisper. faster-whisper decodifica el contenedor
+    vía PyAV, así que admite ogg/opus, mp3, wav, etc.
+
+    Args:
+        file_path: ruta al fichero de audio.
+
+    Returns:
+        Texto transcrito (cadena vacía si Whisper no detecta voz).
+
+    Raises:
+        ImportError: si faster-whisper no está instalado.
+    """
+    start = time.time()
+    model = _get_model()
+
+    language = os.getenv("JARVIS_WHISPER_LANGUAGE", "es")
+    initial_prompt = os.getenv("JARVIS_WHISPER_PROMPT", None)
+
+    segments, info = model.transcribe(
+        file_path,
+        language=language,
+        initial_prompt=initial_prompt,
+        beam_size=5,
+        vad_filter=True,
+    )
+    text = " ".join(seg.text.strip() for seg in segments).strip()
+
+    elapsed = time.time() - start
+    logger.info(
+        f"[STT] ✅ engine=whisper(file) | model={os.getenv('JARVIS_WHISPER_MODEL', 'small')} | "
+        f"latency={elapsed:.2f}s | text=\"{text}\""
+    )
+    return text
+
+
 def _google_transcribe(audio: sr.AudioData) -> str:
     """Transcribe audio usando Google Web Speech API (fallback).
 

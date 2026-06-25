@@ -60,6 +60,36 @@ class TestWhisperLazyLoading(unittest.TestCase):
         self.assertEqual(ws._model_name, "small")
 
 
+class TestTranscribeFile(unittest.TestCase):
+    """Verifica la transcripción directa de un fichero (notas de voz de Telegram)."""
+
+    def setUp(self):
+        import core.whisper_stt as ws
+        ws._model = None
+        ws._model_name = None
+
+    def test_transcribe_file_uses_model_on_path(self):
+        import core.whisper_stt as ws
+        mock_model = MagicMock()
+        seg1, seg2 = MagicMock(), MagicMock()
+        seg1.text = " hola "
+        seg2.text = " señor "
+        mock_model.transcribe.return_value = ([seg1, seg2], MagicMock())
+        with patch.object(ws, "_get_model", return_value=mock_model):
+            result = ws.transcribe_file("logs/audio_temp/nota.ogg")
+        # Se llama a transcribe con la RUTA del fichero, no con AudioData.
+        args, kwargs = mock_model.transcribe.call_args
+        self.assertEqual(args[0], "logs/audio_temp/nota.ogg")
+        self.assertEqual(result, "hola señor")
+
+    def test_transcribe_file_empty_segments(self):
+        import core.whisper_stt as ws
+        mock_model = MagicMock()
+        mock_model.transcribe.return_value = ([], MagicMock())
+        with patch.object(ws, "_get_model", return_value=mock_model):
+            self.assertEqual(ws.transcribe_file("x.ogg"), "")
+
+
 class TestModelCaching(unittest.TestCase):
     """Verifica que el modelo se cachea y no se recarga innecesariamente."""
 

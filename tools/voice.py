@@ -175,6 +175,59 @@ async def _generate_edge_tts(text: str, file_path: str, rate: str = "+0%", pitch
     communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
     await communicate.save(file_path)
 
+def synthesize_to_file(text: str, tone=None):
+    """Sintetiza `text` a un fichero mp3 y devuelve su ruta (sin reproducir).
+
+    Pensado para enviar la voz de Jarvis por canales externos (p.ej. Telegram).
+    Orden de motores: ElevenLabs -> Edge-TTS. Devuelve None si ambos fallan.
+    El tono (voz adaptativa) se infiere del texto si no se indica.
+    """
+    if not text or not text.strip():
+        return None
+    TEMP_DIR.mkdir(parents=True, exist_ok=True)
+    out_file = str(TEMP_DIR / f"tts_{uuid.uuid4().hex}.mp3")
+
+    try:
+        from core.voice_tone import resolve_tone, get_edge_params
+        tone = resolve_tone(text, tone)
+        edge = get_edge_params(tone)
+    except Exception:
+        tone = "neutral"
+        edge = {"rate": "+0%", "pitch": "+0Hz"}
+
+    eleven_key = os.getenv("ELEVENLABS_API_KEY")
+    eleven_voice_id = os.getenv("ELEVENLABS_VOICE_ID", "LlZr3QuzbW4WrPjgATHG")
+
+    # CAPA 1: ElevenLabs
+    if eleven_key:
+        try:
+            client = ElevenLabs(api_key=eleven_key)
+            convert_kwargs = dict(
+                text=text, voice_id=eleven_voice_id, model_id="eleven_multilingual_v2")
+            vs = _eleven_voice_settings(tone)
+            if vs is not None:
+                convert_kwargs["voice_settings"] = vs
+            audio_gen = client.text_to_speech.convert(**convert_kwargs)
+            with open(out_file, "wb") as f:
+                for chunk in audio_gen:
+                    if chunk:
+                        f.write(chunk)
+            if os.path.getsize(out_file) > 0:
+                return out_file
+        except Exception as e:
+            logging.warning(f"⚠️ ElevenLabs (a fichero) falló ({e}). Probando Edge-TTS...")
+
+    # CAPA 2: Edge-TTS
+    try:
+        asyncio.run(_generate_edge_tts(text, out_file, rate=edge["rate"], pitch=edge["pitch"]))
+        if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
+            return out_file
+    except Exception as e:
+        logging.warning(f"⚠️ Edge-TTS (a fichero) falló ({e}).")
+
+    return None
+
+
 def _play_with_core(file_path: str, disable_vad: bool):
     """Reproduce el audio y, en paralelo, alimenta el núcleo holográfico reactivo
     a la voz de la GUI (envolvente de amplitud). Best-effort: nunca rompe la voz."""
