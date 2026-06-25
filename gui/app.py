@@ -185,6 +185,13 @@ def handle_connect():
         emit('packet_map_update', get_packet_map())
     except Exception as e:
         print(f"[GUI] Error al enviar telemetría de red inicial: {e}")
+
+    # Enviar el nivel de sarcasmo actual al conectar (sincroniza el slider)
+    try:
+        from core.personality import get_sarcasm_level
+        emit('sarcasm_level_update', {'level': get_sarcasm_level()})
+    except Exception as e:
+        print(f"[GUI] Error al enviar el nivel de sarcasmo inicial: {e}")
     
     # Cargar y enviar últimos 15 logs de modelos
     try:
@@ -493,6 +500,15 @@ def handle_run_code_request(data):
         "stderr": stderr,
         "image_base64": image_base64
     })
+
+@socketio.on('set_sarcasm')
+def handle_set_sarcasm(data):
+    try:
+        from core.personality import set_sarcasm_level
+        level = set_sarcasm_level((data or {}).get('level', 3))
+        emit('sarcasm_level_update', {'level': level}, broadcast=True)
+    except Exception as e:
+        print(f"[GUI] Error al ajustar el nivel de sarcasmo: {e}")
 
 @socketio.on('add_inbox_item')
 def handle_add_inbox_item(data):

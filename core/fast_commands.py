@@ -317,6 +317,29 @@ def handle_fast_command(command: str):
         return f"En {result['target_language']}: {tr}"
 
 
+    # --- Comando rápido: Medidor de Sarcasmo ---
+    if "sarcasmo" in text or "socarron" in text or "modo formal" in text or "ponte serio" in text:
+        from core.personality import get_sarcasm_level, set_sarcasm_level, adjust_sarcasm
+        if any(kw in text for kw in ["cuanto", "que nivel", "nivel actual", "como esta", "que sarcasmo"]) and \
+                not any(kw in text for kw in ["sube", "baja", "pon", "fija"]):
+            return f"Mi medidor de sarcasmo está en {get_sarcasm_level()} sobre 10, señor."
+        m = re.search(r"\b(10|\d)\b", text)
+        if any(kw in text for kw in ["maximo sarcasmo", "sarcasmo maximo", "modo socarron", "modo descarado", "a tope"]):
+            lvl = set_sarcasm_level(10)
+        elif any(kw in text for kw in ["modo formal", "sin sarcasmo", "cero sarcasmo", "nada de sarcasmo", "ponte serio"]):
+            lvl = set_sarcasm_level(0)
+        elif any(kw in text for kw in ["sube", "mas sarcasmo", "aumenta", "incrementa"]):
+            lvl = adjust_sarcasm(2)
+        elif any(kw in text for kw in ["baja", "menos sarcasmo", "reduce", "disminuye"]):
+            lvl = adjust_sarcasm(-2)
+        elif m is not None:
+            lvl = set_sarcasm_level(int(m.group(1)))
+        else:
+            return (f"Mi medidor de sarcasmo está en {get_sarcasm_level()} sobre 10, señor. "
+                    "Puede decir 'sube el sarcasmo' o 'nivel de sarcasmo 7'.")
+        return f"Medidor de sarcasmo ajustado a {lvl} sobre 10, señor."
+
+
     # --- Comando rápido: Packet Map 3D (telemetría de red) ---
     if any(kw in text for kw in ["cierra el mapa de paquetes", "cierra la telemetria de red",
                                  "cierra el packet map", "oculta el mapa de red", "cierra el mapa de red"]):

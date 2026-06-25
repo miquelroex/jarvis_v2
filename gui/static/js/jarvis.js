@@ -43,6 +43,23 @@ const settingsBtnClose = document.getElementById('settings-btn-close');
 const whisperModelSelect = document.getElementById('whisper-model-select');
 const whisperStatusValue = document.getElementById('whisper-status-value');
 
+// Medidor de Sarcasmo (slider de personalidad)
+const sarcasmSlider = document.getElementById('sarcasm-slider');
+const sarcasmValue = document.getElementById('sarcasm-value');
+if (sarcasmSlider) {
+    sarcasmSlider.addEventListener('input', () => {
+        if (sarcasmValue) sarcasmValue.textContent = sarcasmSlider.value;
+    });
+    sarcasmSlider.addEventListener('change', () => {
+        socket.emit('set_sarcasm', { level: parseInt(sarcasmSlider.value, 10) });
+    });
+}
+socket.on('sarcasm_level_update', (data) => {
+    const lvl = (data && typeof data.level === 'number') ? data.level : 3;
+    if (sarcasmSlider) sarcasmSlider.value = lvl;
+    if (sarcasmValue) sarcasmValue.textContent = lvl;
+});
+
 // Elementos de métricas acumuladas diarias
 const dailyCallsVal = document.getElementById('daily-calls-val');
 const dailyTokensVal = document.getElementById('daily-tokens-val');
