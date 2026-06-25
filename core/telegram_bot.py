@@ -5,14 +5,57 @@ import time
 import telebot
 from tools.screenshot import take_screenshot
 from tools.terminal import execute_cmd, is_command_safe
-from core.router import smart_route
-from core.agent_manager import get_executor
-from core.model_logging import log_model_usage
+from core.conversation import get_response
 from gui.app import update_state
 
 bot = None
 bot_thread = None
 stop_event = threading.Event()
+# Modo "responder con voz": si está activo, Jarvis adjunta una nota de audio con
+# su voz a las respuestas de texto. A las notas de voz siempre responde con voz.
+voice_reply_enabled = os.getenv("JARVIS_TELEGRAM_VOICE_REPLY", "true").lower() in ("true", "1", "yes")
+
+
+def _send_long_message(bot_obj, message, text: str):
+    """Envía texto respetando el límite de 4096 caracteres de Telegram."""
+    if not text:
+        text = "(respuesta vacía)"
+    chunks = [text[i:i + 4000] for i in range(0, len(text), 4000)]
+    for idx, chunk in enumerate(chunks):
+        try:
+            if idx == 0:
+                bot_obj.reply_to(message, chunk)
+            else:
+                bot_obj.send_message(message.chat.id, chunk)
+        except Exception:
+            pass
+
+
+def _send_voice_reply(bot_obj, chat_id, text: str):
+    """Sintetiza la respuesta en la voz de Jarvis y la envía. Best-effort.
+
+    Telegram exige OGG/OPUS para notas de voz "redondas"; el sintetizador
+    devuelve mp3, así que se envía como audio (.ogg vía send_voice si lo fuera)."""
+    path = None
+    try:
+        from tools.voice import synthesize_to_file
+        path = synthesize_to_file(text)
+        if not path:
+            return
+        bot_obj.send_chat_action(chat_id, 'record_audio')
+        with open(path, 'rb') as audio:
+            if path.lower().endswith(".ogg"):
+                bot_obj.send_voice(chat_id, audio)
+            else:
+                bot_obj.send_audio(chat_id, audio, title="JARVIS", performer="JARVIS")
+    except Exception as e:
+        logging.warning(f"[Telegram] No se pudo enviar la respuesta por voz: {e}")
+    finally:
+        try:
+            if path and os.path.exists(path):
+                os.remove(path)
+        except Exception:
+            pass
 
 def send_mfa_request(mfa_type: str, details: dict) -> None:
     """
@@ -131,9 +174,11 @@ def start_telegram_bot():
             "📱 `/status` - Obtener carga de CPU, RAM y estado del sistema\n"
             "📸 `/screenshot` - Capturar el escritorio actual\n"
             "🔊 `/say <texto>` - Reproducir voz localmente por los altavoces\n"
+            "🎙 `/voicereply <on|off>` - Activar/desactivar que Jarvis te conteste con su voz\n"
             "💻 `/cmd <comando>` - Ejecutar comando seguro en la terminal\n"
             "🔑 `/trust <mac> <nombre>` - Confiar en un dispositivo de la red\n\n"
-            "También puedes enviar cualquier instrucción en lenguaje natural y Jarvis la procesará con IA."
+            "💬 *Conversación*: escríbeme cualquier cosa en lenguaje natural y te responderé.\n"
+            "🎤 *Notas de voz*: envíame un audio; lo transcribo, lo proceso y te contesto con mi voz."
         )
         bot.reply_to(message, help_text, parse_mode="Markdown")
 
@@ -331,79 +376,77 @@ def start_telegram_bot():
                 except Exception:
                     pass
 
-    @bot.message_handler(func=lambda msg: True)
-    def handle_natural_language(message):
-        if not is_authorized(message):
-            return
-            
-        text = message.text.strip()
-        if not text:
-            return
-            
+    def _respond(message, text, with_voice):
+        """Procesa `text` con el cerebro de Jarvis y responde (texto + voz opcional)."""
         bot.send_chat_action(message.chat.id, 'typing')
-        
-        # Sincronizar estado en la GUI
         update_state("thinking", transcript=f"[Telegram] {text}", model="")
-        
         try:
-            # 1. Intentar enrutamiento rápido o síncrono
-            route_result = smart_route(text)
-            if route_result:
-                content = route_result["content"]
-                route_type = route_result.get("type", "")
-                if route_type == "fast_command":
-                    model_display = "Comando Local"
-                elif "gemini" in route_type:
-                    model_display = os.getenv("JARVIS_MODEL_GEMINI", "gemini-3.5-flash")
-                elif "pro" in route_type:
-                    model_display = os.getenv("JARVIS_MODEL_PRO", "moonshotai/kimi-k2.6")
-                elif "gpt" in route_type:
-                    model_display = os.getenv("JARVIS_MODEL_GPT", "openai/gpt-5.4-mini")
-                elif "code" in route_type:
-                    model_display = os.getenv("JARVIS_MODEL_CODE", "qwen/qwen3-coder")
-                elif "reasoning" in route_type:
-                    model_display = os.getenv("JARVIS_MODEL_THINK", "qwen/qwen3.7-plus")
-                else:
-                    model_display = "Procesador Interno"
-            else:
-                # 2. Delegar al agente de LangChain
-                default_model = os.getenv("JARVIS_MODEL_DEFAULT", "deepseek/deepseek-v4-pro")
-                prompt_tokens = 0
-                completion_tokens = 0
-                from langchain_community.callbacks import get_openai_callback
-                try:
-                    with get_openai_callback() as cb:
-                        response = get_executor().invoke({"input": text})
-                        prompt_tokens = cb.prompt_tokens
-                        completion_tokens = cb.completion_tokens
-                    content = response["output"]
-                except Exception as ex:
-                    log_model_usage(
-                        tool_name="main_model",
-                        model_name=default_model,
-                        prompt=text,
-                        prompt_tokens=0,
-                        completion_tokens=0,
-                        provider="openrouter"
-                    )
-                    raise ex
-                
-                log_model_usage(
-                    tool_name="main_model",
-                    model_name=default_model,
-                    prompt=text,
-                    prompt_tokens=prompt_tokens,
-                    completion_tokens=completion_tokens,
-                    provider="openrouter"
-                )
-                model_display = default_model
-                
+            content, model_display = get_response(text)
             update_state("speaking", response=content, model=model_display)
-            bot.reply_to(message, content)
+            _send_long_message(bot, message, content)
+            if with_voice:
+                _send_voice_reply(bot, message.chat.id, content)
             update_state("idle")
         except Exception as e:
             update_state("idle")
             bot.reply_to(message, f"❌ Error de procesamiento: {str(e)}")
+
+    @bot.message_handler(commands=['voicereply'])
+    def handle_voicereply(message):
+        if not is_authorized(message):
+            return
+        global voice_reply_enabled
+        arg = message.text.replace("/voicereply", "").strip().lower()
+        if arg in ("on", "activar", "si", "sí", "true", "1"):
+            voice_reply_enabled = True
+        elif arg in ("off", "desactivar", "no", "false", "0"):
+            voice_reply_enabled = False
+        else:
+            voice_reply_enabled = not voice_reply_enabled
+        estado = "activada 🔊" if voice_reply_enabled else "desactivada 🔇"
+        bot.reply_to(message, f"Respuesta por voz {estado}, señor.")
+
+    @bot.message_handler(content_types=['voice', 'audio'])
+    def handle_voice_message(message):
+        if not is_authorized(message):
+            return
+        ogg_path = None
+        try:
+            bot.send_chat_action(message.chat.id, 'typing')
+            file_info = bot.get_file(
+                message.voice.file_id if message.content_type == 'voice' else message.audio.file_id)
+            downloaded = bot.download_file(file_info.file_path)
+            TEMP_DIR = "logs/audio_temp"
+            os.makedirs(TEMP_DIR, exist_ok=True)
+            ogg_path = os.path.join(TEMP_DIR, f"tg_voice_{message.message_id}.ogg")
+            with open(ogg_path, 'wb') as f:
+                f.write(downloaded)
+
+            from core.whisper_stt import transcribe_file
+            text = transcribe_file(ogg_path).strip()
+            if not text:
+                bot.reply_to(message, "🤔 No he podido entender el audio, señor. ¿Puede repetirlo?")
+                return
+            bot.reply_to(message, f"🗣 _He entendido_: «{text}»", parse_mode="Markdown")
+            # A las notas de voz, Jarvis responde siempre también con su voz.
+            _respond(message, text, with_voice=True)
+        except Exception as e:
+            bot.reply_to(message, f"❌ Error al procesar el audio: {str(e)}")
+        finally:
+            try:
+                if ogg_path and os.path.exists(ogg_path):
+                    os.remove(ogg_path)
+            except Exception:
+                pass
+
+    @bot.message_handler(func=lambda msg: True)
+    def handle_natural_language(message):
+        if not is_authorized(message):
+            return
+        text = (message.text or "").strip()
+        if not text:
+            return
+        _respond(message, text, with_voice=voice_reply_enabled)
 
     def run_polling():
         logging.info("[Telegram] Bot polling thread started.")
