@@ -662,7 +662,90 @@ socket.on('health_dashboard_update', (data) => {
     const up = sys.uptime_seconds || 0;
     const h = Math.floor(up / 3600), m = Math.floor((up % 3600) / 60);
     setText('sm-uptime', h > 0 ? (h + 'h ' + m + 'm') : (m + 'm'));
+
+    if (sys.cpu_percent != null) arcReactor.setCpu(sys.cpu_percent);
+    if (sys.system_ram_percent != null) arcReactor.setRam(sys.system_ram_percent);
 });
+
+// ===== Reactor ARC: anillo de energía reactivo a CPU/RAM/temperatura =====
+const arcReactor = (() => {
+    const canvas = document.getElementById('arc-reactor');
+    let cpu = 0, ram = 0, temp = null, pulse = 0, raf = null;
+    const ctx = canvas ? canvas.getContext('2d') : null;
+
+    function setCpu(v) { cpu = Math.max(0, Math.min(100, v)); const e = document.getElementById('arc-cpu'); if (e) e.textContent = Math.round(cpu) + '%'; }
+    function setRam(v) { ram = Math.max(0, Math.min(100, v)); const e = document.getElementById('arc-ram'); if (e) e.textContent = Math.round(ram) + '%'; }
+    function setTemp(v) { temp = v; const e = document.getElementById('arc-temp'); if (e) e.textContent = (v != null ? Math.round(v) + '°' : 'N/D'); }
+
+    // Color base azul -> ámbar -> rojo según carga combinada / temperatura.
+    function tierColor(load) {
+        const t = Math.max(0, Math.min(1, load / 100));
+        const hue = (1 - t) * 195;            // 195 (cian) -> 0 (rojo)
+        return `hsl(${hue.toFixed(0)}, 100%, ${(55 - t * 12).toFixed(0)}%)`;
+    }
+
+    function arc(cx, cy, r, frac, width, color, glow) {
+        if (!ctx) return;
+        ctx.beginPath();
+        ctx.lineWidth = width;
+        ctx.strokeStyle = color;
+        ctx.shadowBlur = glow;
+        ctx.shadowColor = color;
+        ctx.lineCap = 'round';
+        const start = -Math.PI / 2;
+        ctx.arc(cx, cy, r, start, start + frac * Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+
+    function draw() {
+        raf = requestAnimationFrame(draw);
+        if (!ctx) return;
+        const W = canvas.width, H = canvas.height, cx = W / 2, cy = H / 2;
+        ctx.clearRect(0, 0, W, H);
+        const load = Math.max(cpu, ram);
+        const tload = (temp != null) ? Math.max(load, (temp - 30) / 0.6) : load; // temp influye
+        const col = tierColor(tload);
+        pulse += 0.06 + load / 1000;
+
+        // Aros de fondo tenues
+        arc(cx, cy, 78, 1, 2, 'rgba(0,160,200,0.12)', 0);
+        arc(cx, cy, 60, 1, 2, 'rgba(0,160,200,0.10)', 0);
+
+        // Anillo exterior = CPU, anillo medio = RAM
+        arc(cx, cy, 78, cpu / 100, 6, tierColor(cpu), 14);
+        arc(cx, cy, 60, ram / 100, 6, tierColor(ram), 12);
+
+        // Segmentos tipo repulsor alrededor del núcleo
+        const segs = 12, lit = Math.round((load / 100) * segs);
+        for (let i = 0; i < segs; i++) {
+            const a = (i / segs) * Math.PI * 2 - Math.PI / 2;
+            const on = i < lit;
+            ctx.beginPath();
+            ctx.fillStyle = on ? col : 'rgba(0,140,180,0.18)';
+            ctx.shadowBlur = on ? 8 : 0; ctx.shadowColor = col;
+            ctx.arc(cx + Math.cos(a) * 40, cy + Math.sin(a) * 40, on ? 3.2 : 2.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        // Núcleo pulsante (intensidad por carga)
+        const baseR = 16 + (load / 100) * 6;
+        const r = baseR + Math.sin(pulse) * (2 + load / 25);
+        const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, r + 8);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.4, col);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.beginPath();
+        ctx.fillStyle = grad;
+        ctx.arc(cx, cy, r + 8, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    if (ctx) draw();
+    socket.on('thermal_update', (d) => { if (d && d.cpu_temp != null) setTemp(d.cpu_temp); });
+    return { setCpu, setRam, setTemp };
+})();
 
 // ===== Globo 3D del mundo (Mapbox) =====
 const worldMap = (() => {
