@@ -174,6 +174,7 @@ def start_telegram_bot():
             "📱 `/status` - Obtener carga de CPU, RAM y estado del sistema\n"
             "📸 `/screenshot` - Capturar el escritorio actual\n"
             "🔊 `/say <texto>` - Reproducir voz localmente por los altavoces\n"
+            "🌐 `/translate [al <idioma>] <texto>` - Traducir (Protocolo Babel)\n"
             "🎙 `/voicereply <on|off>` - Activar/desactivar que Jarvis te conteste con su voz\n"
             "💻 `/cmd <comando>` - Ejecutar comando seguro en la terminal\n"
             "🔑 `/trust <mac> <nombre>` - Confiar en un dispositivo de la red\n\n"
@@ -238,6 +239,34 @@ def start_telegram_bot():
         from tools.voice import speak
         speak(text, disable_vad=True)
         bot.reply_to(message, f"🔊 Reproduciendo localmente: '{text}'")
+
+    @bot.message_handler(commands=['translate'])
+    def handle_translate(message):
+        if not is_authorized(message):
+            return
+        args = message.text.replace("/translate", "", 1).strip()
+        if not args:
+            bot.reply_to(message, "Uso: `/translate [al <idioma>] <texto>`. Ej: `/translate al inglés hola señor`", parse_mode="Markdown")
+            return
+        bot.send_chat_action(message.chat.id, 'typing')
+        try:
+            from core.babel import parse_translate_command, translate
+            target, payload = parse_translate_command(args)
+            if not payload:
+                payload, target = args, None
+            result = translate(payload, target)
+            tr = result.get("translation")
+            if not tr:
+                bot.reply_to(message, "❌ No he podido traducir eso, señor.")
+                return
+            bot.reply_to(
+                message,
+                f"🌐 *{result['target_language']}* (de {result['source_language']}):\n{tr}",
+                parse_mode="Markdown")
+            if voice_reply_enabled:
+                _send_voice_reply(bot, message.chat.id, tr)
+        except Exception as e:
+            bot.reply_to(message, f"❌ Error al traducir: {str(e)}")
 
     @bot.message_handler(commands=['cmd'])
     def handle_cmd(message):

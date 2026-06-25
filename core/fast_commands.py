@@ -303,6 +303,19 @@ def handle_fast_command(command: str):
         return "Telemetría térmica activa, señor. Proyectando el mapa de calor del hardware."
 
 
+    # --- Comando rápido: Protocolo Babel (traducción) ---
+    if text.startswith("traduce") or text.startswith("traducir") or "como se dice" in text:
+        from core.babel import parse_translate_command, translate
+        target, payload = parse_translate_command(command)
+        if not payload:
+            return "¿Qué desea que traduzca, señor?"
+        result = translate(payload, target)
+        tr = result.get("translation")
+        if not tr:
+            return "No he podido traducir eso, señor."
+        return f"En {result['target_language']}: {tr}"
+
+
     # --- Comando rápido: Sala de Hologramas (arquitectura 3D) ---
     if any(kw in text for kw in ["cierra la sala de hologramas", "cierra la holomesa", "cierra la arquitectura",
                                  "oculta la arquitectura", "cierra los hologramas"]):
