@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>JARVIS</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=16">
+    <link rel="stylesheet" href="/static/css/style.css?v=17">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <!-- Mapbox GL JS (globo 3D del mundo) -->
     <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css">
@@ -71,6 +71,22 @@
             <button id="map-close-btn" title="Cerrar mapa">✕ CERRAR</button>
         </div>
         <div id="map-scanlines"></div>
+    </div>
+
+    <!-- Packet Map 3D: telemetría de red (Stark HUD) -->
+    <div id="packet-overlay">
+        <canvas id="packet-canvas"></canvas>
+        <div id="packet-hud-top">
+            <span id="packet-title">◈ JARVIS · TELEMETRÍA DE RED</span>
+            <span id="packet-stats"></span>
+            <button id="packet-close-btn" title="Cerrar telemetría de red">✕ CERRAR</button>
+        </div>
+        <div id="packet-legend">
+            <span class="packet-leg-public">● público</span>
+            <span class="packet-leg-private">● privado</span>
+            <span class="packet-leg-loopback">● local</span>
+        </div>
+        <div id="packet-scanlines"></div>
     </div>
 
     <!-- Sala de Hologramas: explorador de arquitectura 3D -->
@@ -336,6 +352,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
     <!-- Nuestro JavaScript con las animaciones -->
-    <script src="/static/js/jarvis.js?v=5"></script>
+    <script src="/static/js/jarvis.js?v=6"></script>
 </body>
 </html>

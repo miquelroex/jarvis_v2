@@ -1093,6 +1093,153 @@ const holograph = (() => {
     return { show, hide };
 })();
 
+// Packet Map 3D: telemetría de red (conexiones del equipo a endpoints remotos)
+const packetMap = (() => {
+    const overlay = document.getElementById('packet-overlay');
+    const canvas = document.getElementById('packet-canvas');
+    const statsEl = document.getElementById('packet-stats');
+    const closeBtn = document.getElementById('packet-close-btn');
+    let scene, camera, renderer, group, beams = [];
+    let rafId = null, built = false, open = false, latest = null;
+    let dragging = false, lastX = 0, lastY = 0, zoom = 70;
+    let pulse = 0;
+
+    const GROUP_COLORS = { public: '#00e5ff', private: '#ffb000', loopback: '#7a8a99' };
+    function groupColor(g) { return GROUP_COLORS[g] || '#bf5af2'; }
+
+    function makeLabel(text, colorHex) {
+        const cv = document.createElement('canvas');
+        const ctx = cv.getContext('2d');
+        const font = 20;
+        ctx.font = `bold ${font}px Consolas, monospace`;
+        cv.width = ctx.measureText(text).width + 14;
+        cv.height = font + 10;
+        ctx.font = `bold ${font}px Consolas, monospace`;
+        ctx.fillStyle = colorHex; ctx.shadowColor = colorHex; ctx.shadowBlur = 8;
+        ctx.fillText(text, 6, font);
+        const tex = new THREE.CanvasTexture(cv);
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+        sprite.scale.set(cv.width / 28, cv.height / 28, 1);
+        return sprite;
+    }
+
+    function build() {
+        const data = latest || { nodes: [], edges: [] };
+        const nodes = data.nodes || [];
+        const N = Math.max(1, nodes.length);
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(50, canvas.clientWidth / canvas.clientHeight, 0.1, 2000);
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+        resize();
+        group = new THREE.Group();
+        beams = [];
+
+        // Nodo central: ESTE EQUIPO (núcleo brillante).
+        const core = new THREE.Mesh(
+            new THREE.SphereGeometry(2.4, 24, 24),
+            new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        group.add(core);
+        const coreLabel = makeLabel('ESTE EQUIPO', '#dffaff');
+        coreLabel.position.set(0, 4, 0);
+        group.add(coreLabel);
+
+        const R = 30 + N * 0.35;
+        const maxCount = Math.max(1, ...nodes.map(n => n.count || 1));
+        const topLabel = nodes.slice().sort((a, b) => (b.count || 0) - (a.count || 0)).slice(0, 18);
+        const labelSet = new Set(topLabel.map(n => n.id));
+
+        nodes.forEach((n, i) => {
+            const phi = Math.acos(1 - 2 * (i + 0.5) / N);
+            const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5);
+            const p = new THREE.Vector3(
+                R * Math.sin(phi) * Math.cos(theta),
+                R * Math.sin(phi) * Math.sin(theta),
+                R * Math.cos(phi));
+            const col = new THREE.Color(groupColor(n.group));
+            const r = 0.7 + (n.count || 1) / maxCount * 2.6;
+            const mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 14),
+                new THREE.MeshBasicMaterial({ color: col }));
+            mesh.position.copy(p);
+            group.add(mesh);
+
+            // Haz de luz desde el centro al endpoint (pulsa con el tráfico).
+            const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), p]);
+            const mat = new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.3 });
+            const line = new THREE.Line(geo, mat);
+            line.userData.base = 0.18 + Math.min(1, (n.count || 1) / maxCount) * 0.5;
+            beams.push(line);
+            group.add(line);
+
+            if (labelSet.has(n.id)) {
+                const label = makeLabel(n.label, groupColor(n.group));
+                label.position.set(p.x, p.y + r + 1.3, p.z);
+                group.add(label);
+            }
+        });
+
+        scene.add(group);
+        built = true;
+        if (statsEl) statsEl.textContent =
+            `${data.connection_count ?? 0} conexiones · ${data.endpoint_count ?? nodes.length} endpoints`;
+    }
+
+    function resize() {
+        if (!renderer || !camera) return;
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+
+    function animate() {
+        rafId = requestAnimationFrame(animate);
+        pulse += 0.05;
+        if (group && !dragging) group.rotation.y += 0.0018;
+        beams.forEach((b, i) => {
+            b.material.opacity = b.userData.base * (0.6 + 0.4 * Math.sin(pulse + i * 0.6));
+        });
+        if (camera) { camera.position.set(0, 0, zoom); camera.lookAt(0, 0, 0); }
+        if (renderer && scene && camera) renderer.render(scene, camera);
+    }
+
+    function rebuild() { if (renderer) { try { renderer.dispose(); } catch (e) {} } built = false; build(); }
+    function show() {
+        if (!overlay) return;
+        overlay.classList.add('active'); open = true;
+        if (!built) build();
+        resize();
+        if (rafId === null) animate();
+    }
+    function hide() {
+        if (!overlay) return;
+        overlay.classList.remove('active'); open = false;
+        if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+    }
+
+    if (canvas) {
+        canvas.addEventListener('mousedown', (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+        window.addEventListener('mouseup', () => { dragging = false; });
+        window.addEventListener('mousemove', (e) => {
+            if (!dragging || !group) return;
+            group.rotation.y += (e.clientX - lastX) * 0.005;
+            group.rotation.x += (e.clientY - lastY) * 0.005;
+            lastX = e.clientX; lastY = e.clientY;
+        });
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            zoom = Math.max(24, Math.min(180, zoom + Math.sign(e.deltaY) * 6));
+        }, { passive: false });
+    }
+
+    socket.on('packet_map_update', (data) => { latest = data; if (open) rebuild(); });
+    socket.on('packet_open', show);
+    socket.on('packet_close', hide);
+    if (closeBtn) closeBtn.addEventListener('click', hide);
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && open) hide(); });
+    window.addEventListener('resize', () => { if (open) resize(); });
+    return { show, hide };
+})();
+
 socket.on('state_update', (data) => {
     // Actualizar estado
     currentState = data.status;

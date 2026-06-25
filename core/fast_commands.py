@@ -251,12 +251,13 @@ def handle_fast_command(command: str):
         if loc:
             return f"Volando a {loc['name']}, señor."
         return f"Señor, no he podido localizar '{place}' en el mapa."
-    # (excluir "mapa de calor", que es la telemetría térmica, no el globo del mundo)
-    if "calor" not in text and any(kw in text for kw in ["abre el mapa", "abre el globo", "muestra el mapa", "abrir el mapa", "abre el mundo"]):
+    # (excluir "mapa de calor"/"de red"/"de paquetes": son otras vistas, no el globo)
+    _not_world = ("calor", "red", "paquete", "arquitectura")
+    if not any(x in text for x in _not_world) and any(kw in text for kw in ["abre el mapa", "abre el globo", "muestra el mapa", "abrir el mapa", "abre el mundo"]):
         from core.world_map import open_map
         open_map()
         return "Abriendo el mapa mundial, señor."
-    if "calor" not in text and any(kw in text for kw in ["cierra el mapa", "cierra el globo", "oculta el mapa", "cerrar el mapa", "cierra el mundo"]):
+    if not any(x in text for x in _not_world) and any(kw in text for kw in ["cierra el mapa", "cierra el globo", "oculta el mapa", "cerrar el mapa", "cierra el mundo"]):
         from core.world_map import close_map
         close_map()
         return "Mapa cerrado, señor."
@@ -314,6 +315,20 @@ def handle_fast_command(command: str):
         if not tr:
             return "No he podido traducir eso, señor."
         return f"En {result['target_language']}: {tr}"
+
+
+    # --- Comando rápido: Packet Map 3D (telemetría de red) ---
+    if any(kw in text for kw in ["cierra el mapa de paquetes", "cierra la telemetria de red",
+                                 "cierra el packet map", "oculta el mapa de red", "cierra el mapa de red"]):
+        from core.packet_map import close_packet_map
+        close_packet_map()
+        return "Telemetría de red cerrada, señor."
+    if any(kw in text for kw in ["mapa de paquetes", "packet map", "telemetria de red",
+                                 "mapa de red", "conexiones de red", "trafico de red",
+                                 "muestra la red", "telemetria de conexiones"]):
+        from core.packet_map import open_packet_map
+        open_packet_map()
+        return "Telemetría de red activa, señor. Proyectando el mapa de paquetes."
 
 
     # --- Comando rápido: Sala de Hologramas (arquitectura 3D) ---

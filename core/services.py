@@ -25,6 +25,7 @@ import core.hud_overlay as hud_overlay
 import core.focus_mode as focus_mode
 import core.smart_lock as smart_lock
 import core.thermal_telemetry as thermal_telemetry
+import core.packet_map as packet_map
 
 def start_all_services():
     """
@@ -172,6 +173,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Telemetría Térmica: {e}")
 
+    # 23. Packet Map (telemetría de red) — controlado por JARVIS_PACKET_MAP_ENABLED (on por defecto)
+    try:
+        packet_map.start_packet_map_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Packet Map: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -180,6 +187,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 23. Packet Map (telemetría de red)
+    try:
+        packet_map.stop_packet_map_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Packet Map: {e}")
 
     # 22. Telemetría térmica de hardware
     try:
@@ -493,5 +506,12 @@ def get_services_status() -> dict:
     else:
         thermal_alive = thermal_telemetry.THERMAL_THREAD is not None and thermal_telemetry.THERMAL_THREAD.is_alive()
         status["thermal_telemetry"] = "running" if thermal_alive else "stopped"
+
+    # 23. Packet Map (telemetría de red) (on por defecto)
+    if os.getenv("JARVIS_PACKET_MAP_ENABLED", "true").lower() not in ("true", "1", "yes"):
+        status["packet_map"] = "disabled"
+    else:
+        packet_alive = packet_map.PACKET_THREAD is not None and packet_map.PACKET_THREAD.is_alive()
+        status["packet_map"] = "running" if packet_alive else "stopped"
 
     return status

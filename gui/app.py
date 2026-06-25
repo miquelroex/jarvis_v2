@@ -178,6 +178,13 @@ def handle_connect():
         emit('thermal_update', get_thermal_snapshot())
     except Exception as e:
         print(f"[GUI] Error al enviar telemetría térmica inicial: {e}")
+
+    # Enviar un snapshot inicial del Packet Map al conectar
+    try:
+        from core.packet_map import get_packet_map
+        emit('packet_map_update', get_packet_map())
+    except Exception as e:
+        print(f"[GUI] Error al enviar telemetría de red inicial: {e}")
     
     # Cargar y enviar últimos 15 logs de modelos
     try:
