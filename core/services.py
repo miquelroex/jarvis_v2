@@ -26,6 +26,7 @@ import core.focus_mode as focus_mode
 import core.smart_lock as smart_lock
 import core.thermal_telemetry as thermal_telemetry
 import core.packet_map as packet_map
+import core.anticipation as anticipation
 
 def start_all_services():
     """
@@ -179,6 +180,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Packet Map: {e}")
 
+    # 24. Anticipación — controlado por JARVIS_ANTICIPATION_ENABLED (off por defecto)
+    try:
+        anticipation.start_anticipation_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Anticipación: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -187,6 +194,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 24. Anticipación
+    try:
+        anticipation.stop_anticipation_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Anticipación: {e}")
 
     # 23. Packet Map (telemetría de red)
     try:
@@ -513,5 +526,12 @@ def get_services_status() -> dict:
     else:
         packet_alive = packet_map.PACKET_THREAD is not None and packet_map.PACKET_THREAD.is_alive()
         status["packet_map"] = "running" if packet_alive else "stopped"
+
+    # 24. Anticipación (off por defecto)
+    if os.getenv("JARVIS_ANTICIPATION_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["anticipation"] = "disabled"
+    else:
+        ant_alive = anticipation.ANTICIPATE_THREAD is not None and anticipation.ANTICIPATE_THREAD.is_alive()
+        status["anticipation"] = "running" if ant_alive else "stopped"
 
     return status

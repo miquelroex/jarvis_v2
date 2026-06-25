@@ -16,6 +16,15 @@ def normalize_text(text: str) -> str:
     text = "".join(char for char in text if unicodedata.category(char) != "Mn")
     return text
 
+
+def _record_anticipation(action: str):
+    """Registra una acción para el motor de anticipación (best-effort)."""
+    try:
+        from core.anticipation import record_action
+        record_action(action)
+    except Exception:
+        pass
+
 def handle_fast_command(command: str):
     """
     Comprueba si el comando introducido coincide con una orden local rápida
@@ -338,6 +347,17 @@ def handle_fast_command(command: str):
             return (f"Mi medidor de sarcasmo está en {get_sarcasm_level()} sobre 10, señor. "
                     "Puede decir 'sube el sarcasmo' o 'nivel de sarcasmo 7'.")
         return f"Medidor de sarcasmo ajustado a {lvl} sobre 10, señor."
+
+
+    # --- Comando rápido: Anticipación ---
+    if any(kw in text for kw in ["anticipa", "que suelo hacer", "que hago normalmente",
+                                 "que sueles sugerir", "que me sugieres ahora", "que toca ahora"]):
+        from core.anticipation import get_suggestions, _phrase
+        sugg = get_suggestions(top_k=3)
+        if not sugg:
+            return "Aún no tengo suficientes patrones para anticiparme, señor. Deme algo más de tiempo observando sus rutinas."
+        opciones = ", ".join(_phrase(s["action"]) for s in sugg)
+        return f"A esta hora suele: {opciones}, señor. ¿Desea que me adelante?"
 
 
     # --- Comando rápido: Packet Map 3D (telemetría de red) ---
@@ -757,11 +777,13 @@ def handle_fast_command(command: str):
     for name, url in websites.items():
         if f"abre {name}" in text or f"abrir {name}" in text:
             open_website.invoke({"url": url})
+            _record_anticipation(f"web:{name}")
             return f"Abriendo {name}, señor."
 
     for name, executable in apps.items():
         if f"abre {name}" in text or f"abrir {name}" in text:
             open_windows_app.invoke({"app_executable": executable})
+            _record_anticipation(f"app:{name}")
             return f"Abriendo {name}, señor."
 
     if "que hora es" in text or "dime la hora" in text:
