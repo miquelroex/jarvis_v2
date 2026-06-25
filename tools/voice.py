@@ -175,6 +175,24 @@ async def _generate_edge_tts(text: str, file_path: str, rate: str = "+0%", pitch
     communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
     await communicate.save(file_path)
 
+def _play_with_core(file_path: str, disable_vad: bool):
+    """Reproduce el audio y, en paralelo, alimenta el núcleo holográfico reactivo
+    a la voz de la GUI (envolvente de amplitud). Best-effort: nunca rompe la voz."""
+    try:
+        from core.voice_core import start_voice_core
+        start_voice_core(file_path)
+    except Exception:
+        pass
+    try:
+        return _play_audio(file_path, disable_vad)
+    finally:
+        try:
+            from core.voice_core import stop_voice_core
+            stop_voice_core()
+        except Exception:
+            pass
+
+
 def _eleven_voice_settings(tone: str):
     """Construye un VoiceSettings de ElevenLabs según el tono. None si no se puede."""
     try:
@@ -233,7 +251,7 @@ def _synthesize_and_play(text: str, disable_vad: bool = False, tone=None):
                     if chunk:
                         f.write(chunk)
 
-            if _play_audio(temp_file, disable_vad):
+            if _play_with_core(temp_file, disable_vad):
                 return
         except Exception as e:
             logging.warning(f"⚠️ ElevenLabs falló ({e}). Usando Capa 2 (Edge-TTS)...")
@@ -241,7 +259,7 @@ def _synthesize_and_play(text: str, disable_vad: bool = False, tone=None):
     # CAPA 2: Edge-TTS (Voz Neural Gratuita)
     try:
         asyncio.run(_generate_edge_tts(text, temp_file, rate=edge["rate"], pitch=edge["pitch"]))
-        if _play_audio(temp_file, disable_vad):
+        if _play_with_core(temp_file, disable_vad):
             return
     except Exception as e:
         logging.warning(f"⚠️ Edge-TTS falló ({e}). Usando Capa 3 (pyttsx3 Offline)...")
@@ -287,6 +305,13 @@ def stop_speak() -> None:
             logging.info("🔇 Voz de Jarvis interrumpida.")
     except Exception as e:
         logging.error(f"Error al detener la voz: {e}")
+
+    # 3. Detener el núcleo holográfico reactivo (GUI)
+    try:
+        from core.voice_core import stop_voice_core
+        stop_voice_core()
+    except Exception:
+        pass
 
 def _global_key_listener():
     """Monitorea la tecla ESC (0x1B) para detener la voz en Windows."""

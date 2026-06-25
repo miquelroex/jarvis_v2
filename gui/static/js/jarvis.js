@@ -240,6 +240,13 @@ const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
 let lastTime = 0;
 let runTime = 0;
 
+// --- Núcleo holográfico reactivo a la voz ---
+let voiceLevelTarget = 0;   // amplitud objetivo (0..1) recibida del backend
+let voiceLevelSmooth = 0;   // amplitud suavizada para la animación
+let extraRipple = 0;        // contribución de la voz a la onda radial
+let voiceCoreActive = false; // Jarvis está hablando (entre start y stop)
+let lastVoiceLevelAt = 0;   // timestamp del último voice_level real recibido
+
 // Actualizar posiciones de nodos principales
 const updateNodes = (time) => {
     const posAttr = coreNodes.geometry.attributes.position;
@@ -260,7 +267,7 @@ const updateNodes = (time) => {
         // Onda expansiva radial para hablar ('speaking')
         const distFromCenter = Math.sqrt(node.baseX * node.baseX + node.baseY * node.baseY + node.baseZ * node.baseZ);
         if (distFromCenter > 0.1) {
-            const radialRipple = Math.sin(distFromCenter * 3.0 - time * 12.0) * currentParams.voiceRippleAmp;
+            const radialRipple = Math.sin(distFromCenter * 3.0 - time * 12.0) * (currentParams.voiceRippleAmp + extraRipple);
             if (radialRipple > 0) {
                 targetX += (node.baseX / distFromCenter) * radialRipple;
                 targetY += (node.baseY / distFromCenter) * radialRipple;
@@ -384,12 +391,23 @@ function animate(now) {
     currentParams.lineOpacityMultiplier = lerp(currentParams.lineOpacityMultiplier, targetParams.lineOpacityMultiplier, 0.05);
     currentParams.dustSpeed = lerp(currentParams.dustSpeed, targetParams.dustSpeed, 0.05);
     currentParams.nodeSize = lerp(currentParams.nodeSize, targetParams.nodeSize, 0.05);
-    
+
+    // Núcleo reactivo a la voz: si el backend no envía amplitud real, generar un
+    // pulso sintético orgánico mientras Jarvis habla (entre start y stop).
+    if (voiceCoreActive && (now - lastVoiceLevelAt) > 150) {
+        const s = runTime;
+        const synth = 0.35 + 0.32 * Math.abs(Math.sin(s * 9.0))
+                           + 0.18 * Math.abs(Math.sin(s * 21.0 + 1.3));
+        voiceLevelTarget = Math.min(1, synth);
+    }
+    voiceLevelSmooth += (voiceLevelTarget - voiceLevelSmooth) * 0.35;
+    extraRipple = voiceLevelSmooth * 0.55;
+
     const threeColor = new THREE.Color(currentColor.r, currentColor.g, currentColor.b);
-    
+
     // 1. Sincronizar colores y tamaños de materiales
     nodeMaterial.color.copy(threeColor);
-    nodeMaterial.size = currentParams.nodeSize;
+    nodeMaterial.size = currentParams.nodeSize + voiceLevelSmooth * 1.4;
     dustMaterial.color.copy(threeColor);
     
     // 1b. Sincronizar colores del badge del modelo en la GUI
@@ -449,7 +467,10 @@ function animate(now) {
     mouseY = lerp(mouseY, targetMouseY, 0.05);
     hologramGroup.rotation.y = mouseX * 0.35 + (runTime * 0.02);
     hologramGroup.rotation.x = -mouseY * 0.35;
-    
+
+    // 5. Latido del núcleo al ritmo de la voz
+    hologramGroup.scale.setScalar(1 + voiceLevelSmooth * 0.08);
+
     renderer.render(scene, camera);
 }
 
@@ -737,6 +758,20 @@ socket.on('threat_level_update', (data) => {
         defconOverride = false;
         targetColor = { ...(stateColors[currentState] || stateColors.idle) };
     }
+});
+
+// Núcleo holográfico reactivo a la voz: la esfera pulsa con la amplitud real
+socket.on('voice_core_start', () => {
+    voiceCoreActive = true;
+    lastVoiceLevelAt = 0;
+});
+socket.on('voice_level', (data) => {
+    voiceLevelTarget = Math.max(0, Math.min(1, (data && data.level) || 0));
+    lastVoiceLevelAt = performance.now();
+});
+socket.on('voice_core_stop', () => {
+    voiceCoreActive = false;
+    voiceLevelTarget = 0;
 });
 
 // Protocolo Blackout (modo noche) — atenúa la interfaz en tonos cálidos
