@@ -1340,7 +1340,48 @@ const packetMap = (() => {
     return { show, hide };
 })();
 
+// Subtítulos en vivo del HUD (texto holográfico sincronizado con la voz)
+const hudSubtitles = (() => {
+    const box = document.getElementById('hud-subtitles');
+    const textEl = document.getElementById('hud-subtitles-text');
+    let typeTimer = null, hideTimer = null;
+
+    function clearTimers() {
+        if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    }
+    function show(text) {
+        if (!box || !textEl || !text) return;
+        clearTimers();
+        // Subtítulos: una sola línea limpia (sin saltos ni bloques de código largos).
+        let clean = String(text).replace(/```[\s\S]*?```/g, ' (código) ').replace(/\s+/g, ' ').trim();
+        if (clean.length > 240) clean = clean.slice(0, 237) + '…';
+        box.classList.add('visible');
+        textEl.textContent = '';
+        let i = 0;
+        typeTimer = setInterval(() => {
+            textEl.textContent = clean.slice(0, ++i);
+            if (i >= clean.length) { clearInterval(typeTimer); typeTimer = null; }
+        }, 22);
+        // Auto-ocultar pasado un tiempo proporcional a la longitud (salvaguarda).
+        const dur = Math.min(15000, 2500 + clean.length * 55);
+        hideTimer = setTimeout(hide, dur);
+    }
+    function hide() {
+        clearTimers();
+        if (box) box.classList.remove('visible');
+    }
+    return { show, hide };
+})();
+
 socket.on('state_update', (data) => {
+    // Subtítulos: mostrar al hablar, ocultar en cualquier otro estado.
+    if (data.status === 'speaking' && data.response) {
+        hudSubtitles.show(data.response);
+    } else if (data.status !== 'speaking') {
+        hudSubtitles.hide();
+    }
+
     // Actualizar estado
     currentState = data.status;
     // En nivel DEFCON rojo/violet la esfera mantiene el color de alarma.
