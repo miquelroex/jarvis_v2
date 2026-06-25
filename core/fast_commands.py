@@ -33,6 +33,15 @@ def handle_fast_command(command: str):
     """
     text = normalize_text(command)
 
+    # --- Comando rápido: Protocolo "Mayordomo" (prepara entorno + parte del día) ---
+    if any(kw in text for kw in ["protocolo mayordomo", "modo mayordomo", "activa el protocolo mayordomo",
+                                 "prepara mi estacion", "prepara mi entorno", "prepara el entorno",
+                                 "prepara mi puesto", "buenos dias jarvis", "buenas jarvis prepara"]):
+        import threading
+        from core.butler import run_butler
+        threading.Thread(target=run_butler, name="ButlerRun", daemon=True).start()
+        return "De inmediato, señor. Preparando su estación de trabajo y el parte del día."
+
     # --- Comandos rápidos de Memoria Persistente ---
     from core.memory import save_memory, search_memories, delete_memory_by_content, get_all_memories
 
