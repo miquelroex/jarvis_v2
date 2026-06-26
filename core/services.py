@@ -29,6 +29,7 @@ import core.packet_map as packet_map
 import core.anticipation as anticipation
 import core.productivity as productivity
 import core.insights as insights
+import core.watchpost as watchpost
 
 def start_all_services():
     """
@@ -200,6 +201,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Insight Proactivo: {e}")
 
+    # 27. Puesto de Vigilancia ("Jarvis, vigila esto") — controlado por JARVIS_WATCHPOST_ENABLED (off por defecto)
+    try:
+        watchpost.start_watchpost_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Puesto de Vigilancia: {e}")
+
     # Iron Legion: registrar las misiones integradas de los drones (sin daemon).
     try:
         import core.drones as drones
@@ -215,6 +222,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 27. Puesto de Vigilancia ("Jarvis, vigila esto")
+    try:
+        watchpost.stop_watchpost_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Puesto de Vigilancia: {e}")
 
     # 26. Insight Proactivo ("Señor, detecto un patrón")
     try:
@@ -580,5 +593,12 @@ def get_services_status() -> dict:
     else:
         ins_alive = insights.INSIGHT_THREAD is not None and insights.INSIGHT_THREAD.is_alive()
         status["insights"] = "running" if ins_alive else "stopped"
+
+    # 27. Puesto de Vigilancia (off por defecto)
+    if os.getenv("JARVIS_WATCHPOST_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["watchpost"] = "disabled"
+    else:
+        wp_alive = watchpost.WATCH_THREAD is not None and watchpost.WATCH_THREAD.is_alive()
+        status["watchpost"] = "running" if wp_alive else "stopped"
 
     return status

@@ -579,6 +579,22 @@ def handle_fast_command(command: str):
         return explain_module(command)
 
 
+    # --- Comando rápido: Puesto de Vigilancia ("Jarvis, vigila esto") ---
+    if any(kw in text for kw in ["deja de vigilar", "para de vigilar", "deja de observar"]):
+        from core.watchpost import remove_watch
+        n = remove_watch(command.split("vigilar", 1)[-1] if "vigilar" in command else command)
+        return (f"He retirado {n} vigilancia(s), señor." if n else
+                "No tenía nada vigilado con esa descripción, señor.")
+    if any(kw in text for kw in ["que estas vigilando", "que vigilas", "vigilancias activas",
+                                 "que tienes vigilado"]):
+        from core.watchpost import format_watch_list, list_watches
+        return format_watch_list(list_watches())
+    if any(kw in text for kw in ["vigila el", "vigila la", "vigila este", "vigila esto",
+                                 "ponme a vigilar", "vigilar el", "mantente vigilando"]):
+        from core.watchpost import start_watch_command
+        return start_watch_command(command)
+
+
     # --- Comando rápido: Packet Map 3D (telemetría de red) ---
     if any(kw in text for kw in ["cierra el mapa de paquetes", "cierra la telemetria de red",
                                  "cierra el packet map", "oculta el mapa de red", "cierra el mapa de red"]):

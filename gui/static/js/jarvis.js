@@ -1384,6 +1384,16 @@ const notificationBanner = (() => {
         if (hideTimer) clearTimeout(hideTimer);
         hideTimer = setTimeout(() => box.classList.remove('visible'), 6500);
     });
+    // Puesto de Vigilancia: aviso cuando algo bajo vigilancia cambia (reusa el banner).
+    socket.on('watch_alert', (data) => {
+        if (!box || !textEl || !data || !data.text) return;
+        textEl.textContent = data.text;
+        if (iconEl) iconEl.textContent = '👁';
+        box.classList.add('high');
+        box.classList.add('visible');
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => box.classList.remove('visible'), 7000);
+    });
     return {};
 })();
 
