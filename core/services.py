@@ -193,6 +193,13 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Rastreador de Productividad: {e}")
 
+    # Iron Legion: registrar las misiones integradas de los drones (sin daemon).
+    try:
+        import core.drones as drones
+        drones.register_builtin_missions()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al registrar misiones de drones: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():

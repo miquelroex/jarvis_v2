@@ -371,6 +371,34 @@ def handle_fast_command(command: str):
         return f"Medidor de sarcasmo ajustado a {lvl} sobre 10, señor."
 
 
+    # --- Comando rápido: Iron Legion (drones) ---
+    if any(kw in text for kw in ["estado de los drones", "estado del enjambre", "que drones",
+                                 "drones activos", "como van los drones"]):
+        from core.drones import format_drones
+        return format_drones()
+    if any(kw in text for kw in ["limpia los drones", "retira los drones", "recoge los drones",
+                                 "limpiar drones"]):
+        from core.drones import clear_finished
+        n = clear_finished()
+        return f"Retirados {n} drones del registro, señor."
+    if any(kw in text for kw in ["lanza un dron", "despliega un dron", "envia un dron",
+                                 "lanzar dron", "despliega dron", "manda un dron"]):
+        from core.drones import register_builtin_missions, launch_drone, list_missions
+        register_builtin_missions()
+        mission = None
+        if any(k in text for k in ["test", "prueba"]):
+            mission = "tests"
+        elif any(k in text for k in ["dependencia", "auditor"]):
+            mission = "dependencias"
+        elif any(k in text for k in ["limpieza", "limpiar", "mantenimiento", "logs"]):
+            mission = "limpieza"
+        if mission is None:
+            opciones = ", ".join(list_missions().values())
+            return f"¿Qué misión, señor? Disponibles: {opciones}."
+        d = launch_drone(mission)
+        return f"Dron {d['short']} desplegado, señor. Misión: {d['name']}. Le avisaré al completarse."
+
+
     # --- Comando rápido: Base de errores recurrentes ---
     if any(kw in text for kw in ["errores recurrentes", "base de errores", "cuantos errores he visto",
                                  "mis errores frecuentes", "errores frecuentes", "memoria de errores"]):

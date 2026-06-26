@@ -43,6 +43,34 @@ const settingsBtnClose = document.getElementById('settings-btn-close');
 const whisperModelSelect = document.getElementById('whisper-model-select');
 const whisperStatusValue = document.getElementById('whisper-status-value');
 
+// Iron Legion: panel de drones en vivo
+socket.on('drones_update', (drones) => {
+    const list = document.getElementById('drones-list');
+    const countEl = document.getElementById('drones-count');
+    if (!list) return;
+    drones = drones || [];
+    if (countEl) countEl.textContent = drones.length + (drones.length === 1 ? ' dron' : ' drones');
+    if (!drones.length) {
+        list.innerHTML = '<div class="drones-empty" style="color:#5b7a90; font-size:0.75rem;">Sin drones desplegados.</div>';
+        return;
+    }
+    const icon = { running: '◌', completed: '✓', failed: '✕' };
+    const color = { running: '#00d4ff', completed: '#39ff8a', failed: '#ff5577' };
+    list.innerHTML = '';
+    drones.slice().reverse().forEach((d) => {
+        const row = document.createElement('div');
+        row.className = 'drone-row drone-' + d.status;
+        row.style.cssText = 'display:flex; align-items:center; gap:8px; font-family:Consolas,monospace; font-size:0.74rem;';
+        const detail = d.status === 'failed' ? (d.error || '') : (d.result || '');
+        row.innerHTML =
+            '<span style="color:' + (color[d.status] || '#8aa') + '; font-weight:bold;">' + (icon[d.status] || '•') + '</span>' +
+            '<span style="color:#9fc; font-weight:bold;">#' + d.short + '</span>' +
+            '<span style="color:#cdeeff; flex:0 0 auto;">' + d.name + '</span>' +
+            '<span style="color:#5b7a90; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (detail || '') + '</span>';
+        list.appendChild(row);
+    });
+});
+
 // Medidor de Sarcasmo (slider de personalidad)
 const sarcasmSlider = document.getElementById('sarcasm-slider');
 const sarcasmValue = document.getElementById('sarcasm-value');

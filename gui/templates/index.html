@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>JARVIS</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=19">
+    <link rel="stylesheet" href="/static/css/style.css?v=20">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <!-- Mapbox GL JS (globo 3D del mundo) -->
     <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css">
@@ -238,6 +238,16 @@
                 </div>
 
                 <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
+                    <div style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
+                        <span>⬡ Iron Legion</span>
+                        <span id="drones-count" style="font-size: 0.65rem; color: #8aa; letter-spacing: 0;">0 drones</span>
+                    </div>
+                    <div id="drones-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 170px; overflow-y: auto; padding-right: 5px;">
+                        <div class="drones-empty" style="color:#5b7a90; font-size:0.75rem;">Sin drones desplegados.</div>
+                    </div>
+                </div>
+
+                <div class="panel-section" style="margin-top: 1.5rem; border-top: 1px solid rgba(0, 212, 255, 0.15); padding-top: 1rem;">
                     <div id="privacy-title" style="font-size: 0.9rem; font-weight: bold; letter-spacing: 0.15rem; color: #00d4ff; text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 10px #00d4ff;">
                         <span>Privacy Guard</span>
                         <span id="privacy-status" style="font-size: 0.65rem; color: #00ff88; letter-spacing: 0;">PROTEGIDO</span>
@@ -377,6 +387,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
     <!-- Nuestro JavaScript con las animaciones -->
-    <script src="/static/js/jarvis.js?v=8"></script>
+    <script src="/static/js/jarvis.js?v=9"></script>
 </body>
 </html>

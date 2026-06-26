@@ -192,6 +192,13 @@ def handle_connect():
         emit('sarcasm_level_update', {'level': get_sarcasm_level()})
     except Exception as e:
         print(f"[GUI] Error al enviar el nivel de sarcasmo inicial: {e}")
+
+    # Enviar el estado del enjambre de drones al conectar
+    try:
+        from core.drones import get_drones
+        emit('drones_update', get_drones())
+    except Exception as e:
+        print(f"[GUI] Error al enviar el estado de drones inicial: {e}")
     
     # Cargar y enviar últimos 15 logs de modelos
     try:
