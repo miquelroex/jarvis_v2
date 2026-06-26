@@ -335,6 +335,18 @@ def handle_fast_command(command: str):
             return consult(question)
 
 
+    # --- Comando rápido: Protocolo "Casa Llena" (multi-agente) ---
+    hp_prefixes = ["protocolo casa llena", "casa llena", "reune al equipo", "reúne al equipo",
+                   "despliega el equipo", "convoca al equipo", "que lo vea el equipo"]
+    for pref in hp_prefixes:
+        if text.startswith(normalize_text(pref)):
+            objective = command[len(pref):].lstrip(" ,:.¿?").strip()
+            if not objective:
+                return "¿Cuál es el objetivo para el equipo, señor?"
+            from core.house_party import run_house_party
+            return run_house_party(objective)
+
+
     # --- Comando rápido: Protocolo Babel (traducción) ---
     if text.startswith("traduce") or text.startswith("traducir") or "como se dice" in text:
         from core.babel import parse_translate_command, translate
