@@ -387,6 +387,17 @@ def handle_fast_command(command: str):
         return get_github_summary()
 
 
+    # --- Comando rápido: Evaluación de Amenaza Narrada ---
+    if any(kw in text for kw in ["analisis de riesgo", "probabilidad de exito", "evaluacion de amenaza",
+                                 "evalua la situacion", "evalua el riesgo", "evalua los riesgos"]):
+        from core.threat_assessment import get_assessment
+        return get_assessment()
+    if text.startswith("evalua "):
+        action = command[len("evalua "):].strip()
+        from core.threat_assessment import get_assessment
+        return get_assessment(action or None)
+
+
     # --- Comando rápido: Informe de Daños (Damage Report) ---
     if any(kw in text for kw in ["informe de danos", "parte de danos", "damage report",
                                  "estado de los sistemas", "diagnostico de sistemas",
