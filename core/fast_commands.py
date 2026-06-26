@@ -360,6 +360,14 @@ def handle_fast_command(command: str):
         return f"En {result['target_language']}: {tr}"
 
 
+    # --- Comando rápido: Informe de Daños (Damage Report) ---
+    if any(kw in text for kw in ["informe de danos", "parte de danos", "damage report",
+                                 "estado de los sistemas", "diagnostico de sistemas",
+                                 "como estan los sistemas", "informe de sistemas"]):
+        from core.damage_report import get_damage_report
+        return get_damage_report()
+
+
     # --- Comando rápido: "¿Esto es seguro?" (análisis de comandos) ---
     safety_prefixes = ["es seguro ejecutar ", "es seguro este comando ", "es seguro el comando ",
                        "es seguro ", "es peligroso ", "analiza el comando ", "analiza este comando ",
