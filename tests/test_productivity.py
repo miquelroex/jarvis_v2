@@ -96,6 +96,18 @@ class TestPersistence(unittest.TestCase):
         self.assertEqual(prod._load_today(), {})
 
 
+class TestTodayPath(unittest.TestCase):
+    def test_explicit_day_is_respected(self):
+        # Pasar un día explícito NO debe ser sobrescrito por la fecha de hoy.
+        p = prod._today_path("2026-01-15")
+        self.assertTrue(str(p).endswith("2026-01-15.json"))
+
+    def test_default_day_is_today(self):
+        from datetime import datetime
+        today = datetime.now().strftime("%Y-%m-%d")
+        self.assertIn(today, str(prod._today_path()))
+
+
 class TestDaemon(unittest.TestCase):
     def setUp(self):
         prod.stop_productivity_daemon()
