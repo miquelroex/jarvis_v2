@@ -358,6 +358,14 @@ def handle_fast_command(command: str):
         return f"Medidor de sarcasmo ajustado a {lvl} sobre 10, señor."
 
 
+    # --- Comando rápido: Protocolo "Hijo Pródigo" (ponme al día) ---
+    if any(kw in text for kw in ["ponme al dia", "ponme al corriente", "que me he perdido",
+                                 "protocolo hijo prodigo", "que ha pasado mientras no estaba",
+                                 "que ha pasado en mi ausencia", "resumen de ausencia", "que me perdi"]):
+        from core.prodigal import get_catchup
+        return get_catchup()
+
+
     # --- Comando rápido: Anticipación ---
     if any(kw in text for kw in ["anticipa", "que suelo hacer", "que hago normalmente",
                                  "que sueles sugerir", "que me sugieres ahora", "que toca ahora"]):
