@@ -17,6 +17,7 @@ from core.router import smart_route
 from core.llm_factory import get_llm
 from core.model_logging import log_model_usage
 from core.agent_manager import get_executor, init_agent, clear_conversation_memory
+from core.conversation_flow import should_stay_conversational, conversation_timeout
 
 
 load_dotenv()
@@ -293,7 +294,7 @@ def _handle_exit_phrases(state: "_LoopState", command_to_execute: str) -> bool:
 def _handle_conversation_timeout(state: "_LoopState", reason: str) -> None:
     """Si en modo conversación se supera el timeout sin entrada válida, vuelve al
     modo de palabra de activación (wake word)."""
-    if state.conversation_mode and time.time() - state.last_interaction_time > CONVERSATION_TIMEOUT:
+    if state.conversation_mode and time.time() - state.last_interaction_time > conversation_timeout(CONVERSATION_TIMEOUT):
         logging.info(f"⌛ {reason}. Returning to wake word mode.")
         state.conversation_mode = False
         clear_conversation_memory()
@@ -353,6 +354,11 @@ def write():
                                     continue
                                 process_command(command_to_execute, transcript_for_ui)
                                 state.last_interaction_time = time.time()
+                                # Modo Conversación Continua: seguir escuchando sin
+                                # repetir la palabra clave tras cualquier comando.
+                                if should_stay_conversational(True):
+                                    state.conversation_mode = True
+                                    update_state("listening", model="")
 
                         except sr.WaitTimeoutError:
                             logging.warning("⚠️ Timeout waiting for audio.")
