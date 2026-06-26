@@ -104,3 +104,4 @@ playwright==1.49.1
 
 pycaw==20240210
 bleak==3.0.2
+hypothesis==6.155.7

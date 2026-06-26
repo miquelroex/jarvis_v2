@@ -22,7 +22,7 @@ def clamp_level(value) -> int:
     """Acota el nivel al rango [0, 10] (puro)."""
     try:
         n = int(round(float(value)))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return DEFAULT_LEVEL
     return max(MIN_LEVEL, min(MAX_LEVEL, n))
 
