@@ -595,6 +595,14 @@ def handle_fast_command(command: str):
         return start_watch_command(command)
 
 
+    # --- Comando rápido: Análisis con Retícula ("escanea esto") ---
+    if any(kw in text for kw in ["escanea esto", "escanea la pantalla", "escanea el escritorio",
+                                 "analisis con reticula", "analiza la pantalla con reticula",
+                                 "escaneo de combate", "escanea la imagen"]):
+        from core.reticle_scan import scan_screen
+        return scan_screen()
+
+
     # --- Comando rápido: Packet Map 3D (telemetría de red) ---
     if any(kw in text for kw in ["cierra el mapa de paquetes", "cierra la telemetria de red",
                                  "cierra el packet map", "oculta el mapa de red", "cierra el mapa de red"]):
