@@ -360,6 +360,14 @@ def handle_fast_command(command: str):
         return f"En {result['target_language']}: {tr}"
 
 
+    # --- Comando rápido: Resumen de GitHub ---
+    if any(kw in text for kw in ["resumen de github", "parte de github", "estado de github",
+                                 "como esta github", "que hay en github", "pull requests pendientes",
+                                 "estado de los pull requests"]):
+        from core.github_report import get_github_summary
+        return get_github_summary()
+
+
     # --- Comando rápido: Informe de Daños (Damage Report) ---
     if any(kw in text for kw in ["informe de danos", "parte de danos", "damage report",
                                  "estado de los sistemas", "diagnostico de sistemas",
