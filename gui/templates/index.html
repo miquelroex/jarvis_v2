@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>JARVIS</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=21">
+    <link rel="stylesheet" href="/static/css/style.css?v=22">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <!-- Mapbox GL JS (globo 3D del mundo) -->
     <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css">
@@ -120,6 +120,12 @@
             <span class="thermal-leg-hot">● SATURADO</span>
         </div>
         <div id="thermal-scanlines"></div>
+    </div>
+
+    <!-- Banner de notificaciones entrantes -->
+    <div id="notification-banner">
+        <span id="notification-icon">◉</span>
+        <span id="notification-text"></span>
     </div>
 
     <!-- Stream de Pensamiento (lo que Jarvis va haciendo en tareas largas) -->
@@ -390,6 +396,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
     <!-- Nuestro JavaScript con las animaciones -->
-    <script src="/static/js/jarvis.js?v=10"></script>
+    <script src="/static/js/jarvis.js?v=11"></script>
 </body>
 </html>

@@ -405,8 +405,17 @@ def start_telegram_bot():
                 except Exception:
                     pass
 
+    def _announce_incoming():
+        """Banner dramático en la GUI al recibir un mensaje por Telegram (best-effort)."""
+        try:
+            from core.announcer import announce
+            announce("Telegram", kind="message", speak=False)
+        except Exception:
+            pass
+
     def _respond(message, text, with_voice):
         """Procesa `text` con el cerebro de Jarvis y responde (texto + voz opcional)."""
+        _announce_incoming()
         bot.send_chat_action(message.chat.id, 'typing')
         update_state("thinking", transcript=f"[Telegram] {text}", model="")
         try:

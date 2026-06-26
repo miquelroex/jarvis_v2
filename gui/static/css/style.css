@@ -2288,3 +2288,40 @@ body.focus-veronica::before {
     animation: thought-pulse 1.2s ease-in-out infinite;
 }
 @keyframes thought-pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+/* ═══════════════════════════════════════════
+   Banner de notificaciones entrantes (dramático)
+   ═══════════════════════════════════════════ */
+#notification-banner {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 250;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 360px;
+    padding: 12px 18px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(0,30,50,0.92), rgba(0,18,32,0.92));
+    border: 1px solid rgba(0, 212, 255, 0.45);
+    box-shadow: 0 0 24px rgba(0, 180, 255, 0.3);
+    font-family: 'Courier New', monospace;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(30px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+#notification-banner.visible { opacity: 1; transform: translateX(0); }
+#notification-banner.high {
+    border-color: rgba(255, 70, 90, 0.7);
+    box-shadow: 0 0 26px rgba(255, 60, 80, 0.4);
+}
+#notification-icon { font-size: 1.15rem; color: #00d4ff; text-shadow: 0 0 8px rgba(0,212,255,0.7); }
+#notification-banner.high #notification-icon { color: #ff5577; text-shadow: 0 0 8px rgba(255,70,90,0.7); }
+#notification-text {
+    font-size: 0.88rem;
+    letter-spacing: 0.03rem;
+    color: #d6f5ff;
+    text-shadow: 0 0 6px rgba(0, 180, 255, 0.4);
+}

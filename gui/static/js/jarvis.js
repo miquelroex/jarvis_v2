@@ -1368,6 +1368,25 @@ const packetMap = (() => {
     return { show, hide };
 })();
 
+// Anuncios de notificaciones entrantes (banner dramático)
+const notificationBanner = (() => {
+    const box = document.getElementById('notification-banner');
+    const textEl = document.getElementById('notification-text');
+    const iconEl = document.getElementById('notification-icon');
+    const ICON = { message: '✉', call: '📞', device: '📡', alert: '⚠' };
+    let hideTimer = null;
+    socket.on('notification_announce', (data) => {
+        if (!box || !textEl || !data || !data.text) return;
+        textEl.textContent = data.text;
+        if (iconEl) iconEl.textContent = ICON[data.kind] || '◉';
+        box.classList.toggle('high', data.priority === 'high');
+        box.classList.add('visible');
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => box.classList.remove('visible'), 6500);
+    });
+    return {};
+})();
+
 // Stream de Pensamiento: lo que Jarvis va haciendo paso a paso en tareas largas
 const thoughtStream = (() => {
     const box = document.getElementById('thought-stream');

@@ -387,6 +387,14 @@ def handle_fast_command(command: str):
         return get_github_summary()
 
 
+    # --- Comando rápido: prueba del anunciador de notificaciones ---
+    if any(kw in text for kw in ["notificacion de prueba", "simula una notificacion",
+                                 "prueba de notificacion", "anuncio de prueba"]):
+        from core.announcer import announce
+        return announce("Sistema", kind="alert", priority="high", speak=False) or \
+            "El anunciador está desactivado, señor."
+
+
     # --- Comando rápido: Evaluación de Amenaza Narrada ---
     if any(kw in text for kw in ["analisis de riesgo", "probabilidad de exito", "evaluacion de amenaza",
                                  "evalua la situacion", "evalua el riesgo", "evalua los riesgos"]):
