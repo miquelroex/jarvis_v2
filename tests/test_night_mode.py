@@ -34,6 +34,30 @@ class TestIsNight(unittest.TestCase):
         self.assertFalse(nm._is_night(5, 5, 5))
 
 
+class TestDecideTransition(unittest.TestCase):
+    DAY = date(2026, 6, 26)
+
+    def test_enter_night_announces_first_time(self):
+        # Noche y no activo, sin haber saludado hoy -> encender y avisar.
+        self.assertEqual(nm._decide_transition(True, False, None, self.DAY), ("on", True))
+
+    def test_enter_night_no_announce_if_already_greeted_today(self):
+        self.assertEqual(nm._decide_transition(True, False, self.DAY, self.DAY), ("on", False))
+
+    def test_enter_night_announces_if_greeted_other_day(self):
+        prev = date(2026, 6, 25)
+        self.assertEqual(nm._decide_transition(True, False, prev, self.DAY), ("on", True))
+
+    def test_leave_night_turns_off_without_announce(self):
+        self.assertEqual(nm._decide_transition(False, True, self.DAY, self.DAY), ("off", False))
+
+    def test_night_already_active_no_action(self):
+        self.assertEqual(nm._decide_transition(True, True, self.DAY, self.DAY), (None, False))
+
+    def test_day_already_inactive_no_action(self):
+        self.assertEqual(nm._decide_transition(False, False, None, self.DAY), (None, False))
+
+
 class TestSetBlackout(unittest.TestCase):
     def setUp(self):
         nm._blackout_active = False

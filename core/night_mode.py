@@ -78,6 +78,18 @@ def set_blackout(active: bool, announce: bool = False) -> bool:
     return _blackout_active
 
 
+def _decide_transition(night: bool, active: bool, greeted_date, today):
+    """Decide la transición del modo noche (pura).
+
+    Devuelve (accion, announce) con accion ∈ {None, "on", "off"}. Sólo se avisa
+    por voz la primera vez que se entra en la noche en un día dado."""
+    if night and not active:
+        return "on", (greeted_date != today)
+    if not night and active:
+        return "off", False
+    return None, False
+
+
 def _blackout_loop():
     """Comprueba periódicamente la hora y entra/sale del modo noche."""
     global _blackout_active, _greeted_date
@@ -89,11 +101,11 @@ def _blackout_loop():
             start = int(os.getenv("JARVIS_BLACKOUT_START_HOUR", "0"))
             end = int(os.getenv("JARVIS_BLACKOUT_END_HOUR", "7"))
             night = _is_night(now.hour, start, end)
-            if night and not _blackout_active:
-                announce = _greeted_date != now.date()
+            action, announce = _decide_transition(night, _blackout_active, _greeted_date, now.date())
+            if action == "on":
                 _greeted_date = now.date()
                 set_blackout(True, announce=announce)
-            elif not night and _blackout_active:
+            elif action == "off":
                 set_blackout(False)
         except Exception as e:
             logger.error(f"[NightMode] Error en el bucle del daemon: {e}")
