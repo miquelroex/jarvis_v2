@@ -39,9 +39,22 @@ def get_response(text: str):
     Lanza excepción si el agente falla (el llamador decide cómo informar)."""
     from core.router import smart_route
 
+    # Memoria de Sesión: registra el turno del usuario para dar continuidad.
+    try:
+        from core.session_memory import record_turn
+        record_turn("user", text)
+    except Exception:
+        pass
+
     route_result = smart_route(text)
     if route_result:
-        return route_result["content"], model_display_for_route(route_result.get("type", ""))
+        content = route_result["content"]
+        try:
+            from core.session_memory import record_turn
+            record_turn("jarvis", content)
+        except Exception:
+            pass
+        return content, model_display_for_route(route_result.get("type", ""))
 
     # Delegar al agente de LangChain.
     from core.agent_manager import get_executor
@@ -68,4 +81,15 @@ def get_response(text: str):
         tool_name="main_model", model_name=default_model, prompt=text,
         prompt_tokens=prompt_tokens, completion_tokens=completion_tokens, provider="openrouter",
     )
+
+    # Memoria de Sesión: enlaza con un tema reciente si lo hay y registra la respuesta.
+    try:
+        from core.session_memory import maybe_callback, record_turn
+        callback = maybe_callback(text)
+        if callback:
+            content = f"{callback} {content}"
+        record_turn("jarvis", content)
+    except Exception:
+        pass
+
     return content, default_model

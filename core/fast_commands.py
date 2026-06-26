@@ -554,6 +554,14 @@ def handle_fast_command(command: str):
         return get_insights_report()
 
 
+    # --- Comando rápido: Memoria de Sesión ("¿de qué hemos hablado?") ---
+    if any(kw in text for kw in ["de que hemos hablado", "que hemos hablado",
+                                 "de que hablabamos", "de que estabamos hablando",
+                                 "resumen de la conversacion", "que temas hemos tratado"]):
+        from core.session_memory import session_summary
+        return session_summary()
+
+
     # --- Comando rápido: Packet Map 3D (telemetría de red) ---
     if any(kw in text for kw in ["cierra el mapa de paquetes", "cierra la telemetria de red",
                                  "cierra el packet map", "oculta el mapa de red", "cierra el mapa de red"]):
