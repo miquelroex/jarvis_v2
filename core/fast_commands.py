@@ -360,6 +360,19 @@ def handle_fast_command(command: str):
         return f"En {result['target_language']}: {tr}"
 
 
+    # --- Comando rápido: "¿Esto es seguro?" (análisis de comandos) ---
+    safety_prefixes = ["es seguro ejecutar ", "es seguro este comando ", "es seguro el comando ",
+                       "es seguro ", "es peligroso ", "analiza el comando ", "analiza este comando ",
+                       "puedo ejecutar ", "es arriesgado "]
+    for pref in safety_prefixes:
+        if text.startswith(normalize_text(pref)):
+            cmd = command[len(pref):].strip().strip("'\"")
+            if not cmd:
+                return "¿Qué comando desea que analice, señor?"
+            from core.command_safety import format_for_voice
+            return format_for_voice(cmd)
+
+
     # --- Comando rápido: Medidor de Sarcasmo ---
     if "sarcasmo" in text or "socarron" in text or "modo formal" in text or "ponte serio" in text:
         from core.personality import get_sarcasm_level, set_sarcasm_level, adjust_sarcasm
