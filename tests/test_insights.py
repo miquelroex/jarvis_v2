@@ -213,18 +213,16 @@ def test_emit_gui_no_module_no_crash(monkeypatch):
     ins._emit_gui({"kind": "x", "text": "hola"})  # no debe lanzar
 
 
-def test_emit_gui_emits():
+def test_emit_gui_emits(monkeypatch):
     captured = {}
     fake = types.ModuleType("gui.app")
     fake.socketio = types.SimpleNamespace(
         emit=lambda ev, payload: captured.update({"ev": ev, "payload": payload}))
-    sys.modules["gui.app"] = fake
-    try:
-        ins._emit_gui({"kind": "hour", "text": "pico"})
-        assert captured["ev"] == "insight_detected"
-        assert captured["payload"]["text"] == "pico"
-    finally:
-        del sys.modules["gui.app"]
+    # setitem auto-restaura el módulo original tras el test (no contamina sys.modules).
+    monkeypatch.setitem(sys.modules, "gui.app", fake)
+    ins._emit_gui({"kind": "hour", "text": "pico"})
+    assert captured["ev"] == "insight_detected"
+    assert captured["payload"]["text"] == "pico"
 
 
 def test_deliver_voice_gated_off(monkeypatch):
