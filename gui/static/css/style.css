@@ -2251,3 +2251,40 @@ body.focus-veronica::before {
     margin-left: 2px;
 }
 @keyframes hud-sub-blink { 50% { opacity: 0; } }
+
+/* ═══════════════════════════════════════════
+   Stream de Pensamiento ("Trabajando, señor")
+   ═══════════════════════════════════════════ */
+#thought-stream {
+    position: fixed;
+    top: 64px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-6px);
+    z-index: 150;
+    max-width: 60vw;
+    padding: 6px 18px;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    border-radius: 14px;
+    background: rgba(0, 25, 40, 0.4);
+    border: 1px solid rgba(0, 212, 255, 0.18);
+}
+#thought-stream.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+#thought-stream-text {
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.04rem;
+    color: #9fdcff;
+    text-shadow: 0 0 8px rgba(0, 180, 255, 0.5);
+}
+#thought-stream-text::before {
+    content: '▸ ';
+    color: #00d4ff;
+    animation: thought-pulse 1.2s ease-in-out infinite;
+}
+@keyframes thought-pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }

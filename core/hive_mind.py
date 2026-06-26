@@ -98,6 +98,8 @@ def consult(question: str, models: list = None, synthesizer: str = None) -> str:
     if not models:
         return "Señor, no hay modelos configurados para la Mente Colmena."
 
+    from core.narration import narrate
+    narrate(f"Consultando a {len(models)} núcleos de razonamiento en paralelo, señor…")
     responses = _query_all(question, models)
     valid = [r for r in responses if not r.get("error") and (r.get("answer") or "").strip()]
 
@@ -106,6 +108,7 @@ def consult(question: str, models: list = None, synthesizer: str = None) -> str:
     if len(valid) == 1:
         return valid[0]["answer"].strip()
 
+    narrate("Sintetizando el consenso, señor…")
     synth_model = synthesizer or os.getenv("JARVIS_HIVE_SYNTHESIZER") or \
         os.getenv("JARVIS_MODEL_DEFAULT", "deepseek/deepseek-v4-pro")
     result = _ask_one(synth_model, build_synthesis_prompt(question, valid))

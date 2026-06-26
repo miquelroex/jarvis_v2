@@ -1368,6 +1368,22 @@ const packetMap = (() => {
     return { show, hide };
 })();
 
+// Stream de Pensamiento: lo que Jarvis va haciendo paso a paso en tareas largas
+const thoughtStream = (() => {
+    const box = document.getElementById('thought-stream');
+    const textEl = document.getElementById('thought-stream-text');
+    let hideTimer = null;
+    socket.on('thought_stream', (data) => {
+        const t = (data && data.text) ? String(data.text) : '';
+        if (!box || !textEl || !t) return;
+        textEl.textContent = t;
+        box.classList.add('visible');
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => box.classList.remove('visible'), 6000);
+    });
+    return {};
+})();
+
 // Subtítulos en vivo del HUD (texto holográfico sincronizado con la voz)
 const hudSubtitles = (() => {
     const box = document.getElementById('hud-subtitles');

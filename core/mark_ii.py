@@ -121,7 +121,9 @@ def run_mark_ii(target_file: str, instruction: str) -> str:
     code, orig_branch = _run_git(["rev-parse", "--abbrev-ref", "HEAD"])
     orig_branch = orig_branch.strip() or "main"
 
+    from core.narration import narrate
     original_content = abs_path.read_text(encoding="utf-8")
+    narrate("Analizando el fichero y generando la mejora con el modelo de código, señor…")
     improved = _generate_improved(target_file, original_content, instruction)
     if not improved.strip() or improved.strip() == original_content.strip():
         return "Señor, no he generado una mejora aplicable en esta ocasión."
@@ -131,8 +133,10 @@ def run_mark_ii(target_file: str, instruction: str) -> str:
     if code != 0:
         return f"Señor, no pude crear la rama de trabajo: {out.strip()[:200]}"
 
+    narrate(f"Aislando los cambios en la rama {branch}…")
     try:
         abs_path.write_text(improved, encoding="utf-8")
+        narrate("Ejecutando la suite de pruebas para validar la mejora…")
         ok, summary = _run_tests()
         if ok:
             _run_git(["add", target_file])

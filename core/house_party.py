@@ -91,6 +91,8 @@ def run_house_party(objective: str, roles: list = None, synthesizer: str = None)
         return "¿Cuál es el objetivo para el equipo, señor?"
     roles = roles or list(ROLES.keys())
 
+    from core.narration import narrate
+    narrate(f"Desplegando un equipo de {len(roles)} agentes especializados, señor…")
     results = {}
     with ThreadPoolExecutor(max_workers=max(1, len(roles))) as ex:
         futures = {ex.submit(_ask_role, r, objective): r for r in roles}
@@ -103,6 +105,7 @@ def run_house_party(objective: str, roles: list = None, synthesizer: str = None)
     if len(contributions) == 1:
         return contributions[0][1].strip()
 
+    narrate("Coordinando las aportaciones del equipo, señor…")
     coord_model = synthesizer or os.getenv("JARVIS_HOUSEPARTY_COORDINATOR") or \
         os.getenv("JARVIS_MODEL_DEFAULT", "deepseek/deepseek-v4-pro")
     final = _ask_model(coord_model, build_coordinator_prompt(objective, contributions))
