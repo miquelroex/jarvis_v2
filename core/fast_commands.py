@@ -383,6 +383,40 @@ def handle_fast_command(command: str):
         return f"Medidor de sarcasmo ajustado a {lvl} sobre 10, señor."
 
 
+    # --- Comando rápido: Protocolo "Mark II" (auto-mejora supervisada) ---
+    mk_prefixes = ["protocolo mark dos", "protocolo mark ii", "mark dos", "automejorate",
+                   "auto mejorate", "automejora", "auto mejora"]
+    for pref in mk_prefixes:
+        if text.startswith(normalize_text(pref)):
+            rest = command[len(pref):].lstrip(" ,:.").strip()
+            if not rest:
+                return ("Indique el fichero y la mejora, señor. Por ejemplo: "
+                        "'protocolo mark dos core/blackout.py: añade validación de la hora'.")
+            if ":" in rest:
+                target, instruction = rest.split(":", 1)
+            else:
+                bits = rest.split(None, 1)
+                target, instruction = bits[0], (bits[1] if len(bits) > 1 else "")
+            target, instruction = target.strip(), instruction.strip()
+            if not instruction:
+                return "¿Qué mejora desea para ese fichero, señor?"
+            from core.drones import launch_drone
+            from core.mark_ii import run_mark_ii
+
+            def _markii_mission(t=target, i=instruction):
+                res = run_mark_ii(t, i)
+                try:
+                    from tools.voice import speak
+                    speak(res, disable_vad=True)
+                except Exception:
+                    pass
+                return res
+
+            launch_drone("mark_ii", label=f"Mark II: {target}", fn=_markii_mission)
+            return (f"Protocolo Mark II en marcha sobre {target}, señor. Trabajaré en una rama "
+                    "aislada, validaré con las pruebas y le avisaré con el resultado.")
+
+
     # --- Comando rápido: Iron Legion (drones) ---
     if any(kw in text for kw in ["estado de los drones", "estado del enjambre", "que drones",
                                  "drones activos", "como van los drones"]):
