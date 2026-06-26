@@ -570,6 +570,15 @@ def handle_fast_command(command: str):
         return get_resume_context()
 
 
+    # --- Comando rápido: Explícame este módulo ---
+    if any(kw in text for kw in ["explicame el modulo", "explica el modulo",
+                                 "explicame este modulo", "explica este modulo",
+                                 "explicame el fichero", "como funciona el modulo",
+                                 "que hace el modulo"]):
+        from core.module_explainer import explain_module
+        return explain_module(command)
+
+
     # --- Comando rápido: Packet Map 3D (telemetría de red) ---
     if any(kw in text for kw in ["cierra el mapa de paquetes", "cierra la telemetria de red",
                                  "cierra el packet map", "oculta el mapa de red", "cierra el mapa de red"]):
