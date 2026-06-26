@@ -371,6 +371,14 @@ def handle_fast_command(command: str):
         return f"Medidor de sarcasmo ajustado a {lvl} sobre 10, señor."
 
 
+    # --- Comando rápido: Rastreador de Productividad ---
+    if any(kw in text for kw in ["cuanto he trabajado", "cuanto he currado", "resumen de productividad",
+                                 "en que he trabajado", "tiempo por proyecto", "productividad de hoy",
+                                 "mi productividad"]):
+        from core.productivity import get_today_summary
+        return get_today_summary()
+
+
     # --- Comando rápido: Protocolo "Hijo Pródigo" (ponme al día) ---
     if any(kw in text for kw in ["ponme al dia", "ponme al corriente", "que me he perdido",
                                  "protocolo hijo prodigo", "que ha pasado mientras no estaba",

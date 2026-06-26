@@ -27,6 +27,7 @@ import core.smart_lock as smart_lock
 import core.thermal_telemetry as thermal_telemetry
 import core.packet_map as packet_map
 import core.anticipation as anticipation
+import core.productivity as productivity
 
 def start_all_services():
     """
@@ -186,6 +187,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Anticipación: {e}")
 
+    # 25. Rastreador de Productividad — controlado por JARVIS_PRODUCTIVITY_ENABLED (off por defecto)
+    try:
+        productivity.start_productivity_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Rastreador de Productividad: {e}")
+
     logging.info("[Services] Arranque de servicios completado.")
 
 def stop_all_services():
@@ -194,6 +201,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 25. Rastreador de Productividad
+    try:
+        productivity.stop_productivity_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Rastreador de Productividad: {e}")
 
     # 24. Anticipación
     try:
@@ -533,5 +546,12 @@ def get_services_status() -> dict:
     else:
         ant_alive = anticipation.ANTICIPATE_THREAD is not None and anticipation.ANTICIPATE_THREAD.is_alive()
         status["anticipation"] = "running" if ant_alive else "stopped"
+
+    # 25. Rastreador de Productividad (off por defecto)
+    if os.getenv("JARVIS_PRODUCTIVITY_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["productivity"] = "disabled"
+    else:
+        prod_alive = productivity.PRODUCTIVITY_THREAD is not None and productivity.PRODUCTIVITY_THREAD.is_alive()
+        status["productivity"] = "running" if prod_alive else "stopped"
 
     return status
