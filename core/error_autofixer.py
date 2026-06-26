@@ -67,7 +67,17 @@ def diagnose_and_suggest_fix(command: str, stdout: str, stderr: str) -> str:
     error_summary = extract_error_summary(stderr or stdout)
     if not error_summary:
         return ""
-        
+
+    # Memoria de errores: registrar la ocurrencia y recuperar solución previa.
+    err_text = stderr or stdout or error_summary
+    prior_solution = ""
+    try:
+        from core import error_kb
+        error_kb.record_error(err_text)
+        prior_solution = error_kb.recall(err_text)
+    except Exception as e:
+        logging.warning(f"[Error Auto-Fixer] Memoria de errores no disponible: {e}")
+
     logging.info(f"[Error Auto-Fixer] Iniciando auto-diagnóstico para: {error_summary}")
     
     # Realizar búsqueda web
@@ -111,6 +121,18 @@ def diagnose_and_suggest_fix(command: str, stdout: str, stderr: str) -> str:
             f"{content}\n"
             "=========================================\n"
         )
+
+        # Recordar esta solución para la próxima vez que aparezca el error.
+        try:
+            from core import error_kb
+            error_kb.record_solution(err_text, content)
+        except Exception:
+            pass
+
+        # Si ya se había resuelto antes, anteponer la memoria.
+        if prior_solution:
+            return ("\n\n🧠 [MEMORIA DE ERRORES DE JARVIS]\n" + prior_solution + "\n"
+                    + formatted_report)
         return formatted_report
         
     except Exception as e:

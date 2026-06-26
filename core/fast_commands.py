@@ -371,6 +371,13 @@ def handle_fast_command(command: str):
         return f"Medidor de sarcasmo ajustado a {lvl} sobre 10, señor."
 
 
+    # --- Comando rápido: Base de errores recurrentes ---
+    if any(kw in text for kw in ["errores recurrentes", "base de errores", "cuantos errores he visto",
+                                 "mis errores frecuentes", "errores frecuentes", "memoria de errores"]):
+        from core.error_kb import get_summary
+        return get_summary()
+
+
     # --- Comando rápido: Rastreador de Productividad ---
     if any(kw in text for kw in ["cuanto he trabajado", "cuanto he currado", "resumen de productividad",
                                  "en que he trabajado", "tiempo por proyecto", "productividad de hoy",
