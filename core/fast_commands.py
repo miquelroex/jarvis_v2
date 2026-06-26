@@ -360,6 +360,25 @@ def handle_fast_command(command: str):
         return f"En {result['target_language']}: {tr}"
 
 
+    # --- Comando rápido: Arranque automático con Windows ---
+    if any(kw in text for kw in ["desactiva el arranque automatico", "quita el arranque automatico",
+                                 "no arranques con windows", "desactivar autoarranque",
+                                 "quitar el arranque automatico"]):
+        from core.autostart import disable_autostart
+        return ("Arranque automático desactivado, señor." if disable_autostart()
+                else "No he podido desactivar el arranque automático, señor.")
+    if any(kw in text for kw in ["activa el arranque automatico", "arranca con windows",
+                                 "arranca con el pc", "activar autoarranque", "activar el arranque automatico"]):
+        from core.autostart import enable_autostart
+        return ("Arranque automático activado, señor. Me presentaré al encender el equipo."
+                if enable_autostart() else "No he podido activar el arranque automático, señor.")
+    if any(kw in text for kw in ["arrancas con el pc", "esta activo el arranque automatico",
+                                 "arranque automatico activo", "arrancas con windows"]):
+        from core.autostart import is_autostart_enabled
+        return ("Sí, señor; arrancaré con Windows." if is_autostart_enabled()
+                else "No, señor; no estoy configurado para arrancar con Windows.")
+
+
     # --- Comando rápido: Resumen de GitHub ---
     if any(kw in text for kw in ["resumen de github", "parte de github", "estado de github",
                                  "como esta github", "que hay en github", "pull requests pendientes",
