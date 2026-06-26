@@ -322,6 +322,19 @@ def handle_fast_command(command: str):
         return "Telemetría térmica activa, señor. Proyectando el mapa de calor del hardware."
 
 
+    # --- Comando rápido: Protocolo "Mente Colmena" (consenso multi-modelo) ---
+    hive_prefixes = ["mente colmena", "consulta a varios modelos", "pregunta a todos los modelos",
+                     "consenso de modelos", "pregunta al enjambre", "consulta multiple",
+                     "consulta al enjambre"]
+    for pref in hive_prefixes:
+        if text.startswith(normalize_text(pref)):
+            question = command[len(pref):].lstrip(" ,:.¿?").strip()
+            if not question:
+                return "¿Qué desea que consulte a los núcleos de razonamiento, señor?"
+            from core.hive_mind import consult
+            return consult(question)
+
+
     # --- Comando rápido: Protocolo Babel (traducción) ---
     if text.startswith("traduce") or text.startswith("traducir") or "como se dice" in text:
         from core.babel import parse_translate_command, translate
