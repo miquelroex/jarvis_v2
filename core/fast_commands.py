@@ -546,6 +546,14 @@ def handle_fast_command(command: str):
         return f"A esta hora suele: {opciones}, señor. ¿Desea que me adelante?"
 
 
+    # --- Comando rápido: Insight Proactivo ("Señor, detecto un patrón") ---
+    if any(kw in text for kw in ["detecto un patron", "detecta un patron", "detectas algun patron",
+                                 "algun patron", "que patron has detectado", "analiza mis habitos",
+                                 "analiza mis patrones", "mis patrones", "insight proactivo"]):
+        from core.insights import get_insights_report
+        return get_insights_report()
+
+
     # --- Comando rápido: Packet Map 3D (telemetría de red) ---
     if any(kw in text for kw in ["cierra el mapa de paquetes", "cierra la telemetria de red",
                                  "cierra el packet map", "oculta el mapa de red", "cierra el mapa de red"]):

@@ -28,6 +28,7 @@ import core.thermal_telemetry as thermal_telemetry
 import core.packet_map as packet_map
 import core.anticipation as anticipation
 import core.productivity as productivity
+import core.insights as insights
 
 def start_all_services():
     """
@@ -193,6 +194,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Rastreador de Productividad: {e}")
 
+    # 26. Insight Proactivo ("Señor, detecto un patrón") — controlado por JARVIS_INSIGHTS_ENABLED (off por defecto)
+    try:
+        insights.start_insights_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Insight Proactivo: {e}")
+
     # Iron Legion: registrar las misiones integradas de los drones (sin daemon).
     try:
         import core.drones as drones
@@ -208,6 +215,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 26. Insight Proactivo ("Señor, detecto un patrón")
+    try:
+        insights.stop_insights_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Insight Proactivo: {e}")
 
     # 25. Rastreador de Productividad
     try:
@@ -560,5 +573,12 @@ def get_services_status() -> dict:
     else:
         prod_alive = productivity.PRODUCTIVITY_THREAD is not None and productivity.PRODUCTIVITY_THREAD.is_alive()
         status["productivity"] = "running" if prod_alive else "stopped"
+
+    # 26. Insight Proactivo (off por defecto)
+    if os.getenv("JARVIS_INSIGHTS_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["insights"] = "disabled"
+    else:
+        ins_alive = insights.INSIGHT_THREAD is not None and insights.INSIGHT_THREAD.is_alive()
+        status["insights"] = "running" if ins_alive else "stopped"
 
     return status
