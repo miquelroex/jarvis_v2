@@ -562,6 +562,14 @@ def handle_fast_command(command: str):
         return session_summary()
 
 
+    # --- Comando rápido: Reanudar Contexto ("¿en qué estaba?") ---
+    if any(kw in text for kw in ["en que estaba", "en que andaba", "donde lo deje",
+                                 "donde lo dejamos", "retomamos", "retomar contexto",
+                                 "que estaba haciendo"]):
+        from core.resume_context import get_resume_context
+        return get_resume_context()
+
+
     # --- Comando rápido: Packet Map 3D (telemetría de red) ---
     if any(kw in text for kw in ["cierra el mapa de paquetes", "cierra la telemetria de red",
                                  "cierra el packet map", "oculta el mapa de red", "cierra el mapa de red"]):
