@@ -54,6 +54,7 @@
 * [x] Fix de solape de voz (cola serializada) + latencia media de la IA en el dashboard.
 * [x] Layout de la GUI en dos columnas (estilo Stark) + panel de Inbox interactivo.
 * [x] GitHub CLI (`gh`) instalado y autenticado para consultar el CI directamente.
+* [x] **Coraza Universal de Herramientas** (core/tool_armor.py): envuelve las ~37 tools al cargarse (agent_manager.load_all_tools) añadiendo de golpe resiliencia (reintentos+backoff), telemetría (latencia/fallos/último error por tool) y circuit breaker (abre el circuito tras N fallos y se salta la tool hasta enfriarse; half-open tras el enfriamiento). CircuitBreaker y agregación de telemetría puros; envoltorio del callable aislado y tolerante. Voz "informe de herramientas". Activado por defecto (JARVIS_TOOL_ARMOR). 17 tests, 93% mutation score.
 
 ## Prioridad alta
 

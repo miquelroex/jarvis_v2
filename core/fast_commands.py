@@ -630,6 +630,14 @@ def handle_fast_command(command: str):
         return get_situation_report()
 
 
+    # --- Comando rápido: Telemetría de Herramientas (coraza universal) ---
+    if any(kw in text for kw in ["informe de herramientas", "telemetria de herramientas",
+                                 "estado de las tools", "telemetria de tools",
+                                 "como van las herramientas", "salud de las herramientas"]):
+        from core.tool_armor import get_tool_report
+        return get_tool_report()
+
+
     # --- Comando rápido: Motor de Fusión de Fuentes ("lo sabe todo") ---
     _fusion_prefixes = ["fusiona ", "fusion de fuentes ", "analiza a fondo ",
                         "con todo lo que sabes ", "dame tu analisis sobre ",

@@ -54,6 +54,16 @@ def load_all_tools() -> list:
 
     tools = new_tools
     failed_tools = failures
+
+    # Coraza universal: resiliencia + telemetría + circuit breaker a TODAS las
+    # herramientas de un golpe (core/tool_armor). Activado por defecto.
+    try:
+        if os.getenv("JARVIS_TOOL_ARMOR", "true").lower() in ("true", "1", "yes"):
+            from core.tool_armor import armor_all
+            armor_all(tools)
+    except Exception as e:
+        logging.error(f"❌ Error al aplicar la coraza de herramientas: {e}")
+
     return tools
 
 def get_tools_load_report() -> dict:
