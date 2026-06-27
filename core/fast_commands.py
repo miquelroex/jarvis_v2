@@ -611,6 +611,17 @@ def handle_fast_command(command: str):
         return get_situation_report()
 
 
+    # --- Comando rápido: Motor de Fusión de Fuentes ("lo sabe todo") ---
+    _fusion_prefixes = ["fusiona ", "fusion de fuentes ", "analiza a fondo ",
+                        "con todo lo que sabes ", "dame tu analisis sobre ",
+                        "cruza tus fuentes sobre "]
+    for _pref in _fusion_prefixes:
+        if _pref in text:
+            pregunta = text.split(_pref, 1)[1].strip()
+            from core.fusion import fuse
+            return fuse(pregunta)
+
+
     # --- Comando rápido: Iniciativa Ejecutora (nivel de autonomía) ---
     if any(kw in text for kw in ["toma la iniciativa", "modo autonomo", "modo proactivo",
                                  "actua por tu cuenta", "autonomia total"]):

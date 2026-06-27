@@ -250,7 +250,7 @@ Las capacidades que de verdad separan a un buen asistente del JARVIS de Tony Sta
 
 **🌐 Acceso al mundo en vivo** (hoy consulta puntual; falta tiempo real y fusión)
 * [ ] **APIs de datos en vivo (legal)**: noticias, finanzas (bolsa/cripto), vuelos, tráfico, sismos, clima detallado — con webhooks/streams en lugar de consultas puntuales. *"Señor, la acción que vigilaba acaba de caer un 4%."*
-* [ ] **Motor de Fusión de Fuentes** (lo más "JARVIS"): ante una pregunta, cruza varias APIs + tu contexto y entrega **una respuesta sintetizada con criterio**, no resultados crudos. El equivalente de hive_mind pero con datos del mundo, no con modelos.
+* [x] **Motor de Fusión de Fuentes** (lo más "JARVIS"): ante una pregunta, cruza varias APIs + tu contexto y entrega **una respuesta sintetizada con criterio**, no resultados crudos. El equivalente de hive_mind pero con datos del mundo, no con modelos. ✅ core/fusion.py: consulta en paralelo (ThreadPoolExecutor) varias fuentes reales (web vía Tavily→DuckDuckGo, clima OpenWeatherMap, estado interno del world_model) y un modelo sintetiza una respuesta cruzando lo que dicen; selección/prompt/formateo puros, recolección y síntesis aisladas, cada fuente degrada con gracia, fallback a fuentes en bruto si no hay modelo. Voz "fusiona/analiza a fondo/con todo lo que sabes &lt;pregunta&gt;". 17 tests, 83% mutation score.
 * [ ] **Investigador autónomo profundo**: "investiga X" → navega, lee, contrasta fuentes y entrega un informe. (Base ya disponible: house_party + visual_browser.)
 * [ ] **Vigilancia de temas en internet**: como watchpost pero apuntando al mundo — vigila temas/personas/mercados y avisa de cambios. *"Novedades sobre el tema que seguía, señor."*
 
