@@ -622,6 +622,17 @@ def handle_fast_command(command: str):
             return fuse(pregunta)
 
 
+    # --- Comando rápido: Investigador Autónomo Profundo ---
+    _research_prefixes = ["investiga a fondo ", "investigacion profunda sobre ",
+                         "haz una investigacion sobre ", "haz una investigacion de ",
+                         "investiga sobre ", "investiga "]
+    for _pref in _research_prefixes:
+        if _pref in text:
+            tema = text.split(_pref, 1)[1].strip()
+            from core.researcher import research
+            return research(tema)
+
+
     # --- Comando rápido: Iniciativa Ejecutora (nivel de autonomía) ---
     if any(kw in text for kw in ["toma la iniciativa", "modo autonomo", "modo proactivo",
                                  "actua por tu cuenta", "autonomia total"]):
