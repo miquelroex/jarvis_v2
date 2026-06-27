@@ -250,6 +250,20 @@ def handle_connect():
     except Exception as e:
         print(f"[GUI] Error al enviar última detección de portapapeles inicial: {e}")
 
+    # Secuencia de arranque "Suit Up": se dispara AL CONECTAR el navegador, de modo
+    # que cualquier carga o recarga la reproduzca de forma fiable. (Antes se lanzaba
+    # una sola vez al arrancar el proceso y, si la pestaña no estaba conectada al
+    # socket en ese instante exacto, la animación se quedaba colgada en STANDBY.)
+    try:
+        skip = ("--skip-suitup" in sys.argv or
+                os.getenv("JARVIS_SKIP_SUITUP", "false").lower() in ("true", "1", "yes"))
+        if not skip:
+            from core.suit_up import run_suit_up_sequence, is_suit_up_running
+            if not is_suit_up_running():
+                socketio.start_background_task(run_suit_up_sequence, socketio)
+    except Exception as e:
+        print(f"[GUI] Error al lanzar la secuencia Suit Up al conectar: {e}")
+
 @socketio.on('mute_request')
 def handle_mute_request():
     print("[GUI] Recibida solicitud de silencio (Barge-in).")

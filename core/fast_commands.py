@@ -603,6 +603,14 @@ def handle_fast_command(command: str):
         return scan_screen()
 
 
+    # --- Comando rápido: Informe de Situación (Cerebro de Estado Central) ---
+    if any(kw in text for kw in ["informe de situacion", "cual es la situacion",
+                                 "estado general", "estado global", "situacion general",
+                                 "como esta todo", "dame el parte"]):
+        from core.world_model import get_situation_report
+        return get_situation_report()
+
+
     # --- Comando rápido: Packet Map 3D (telemetría de red) ---
     if any(kw in text for kw in ["cierra el mapa de paquetes", "cierra la telemetria de red",
                                  "cierra el packet map", "oculta el mapa de red", "cierra el mapa de red"]):

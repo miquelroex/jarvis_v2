@@ -17,6 +17,7 @@ import sys
 import time
 import logging
 import platform
+import threading
 import socket as net_socket
 from datetime import datetime
 from pathlib import Path
@@ -34,12 +35,19 @@ PHASE_DELAYS = {
 }
 
 SUIT_UP_CANCELLED = False
+SUIT_UP_RUNNING = False
+_run_lock = threading.Lock()
 
 
 def cancel_suit_up() -> None:
     """Cancela la secuencia de arranque Suit Up en curso."""
     global SUIT_UP_CANCELLED
     SUIT_UP_CANCELLED = True
+
+
+def is_suit_up_running() -> bool:
+    """True si hay una secuencia Suit Up emitiéndose ahora mismo."""
+    return SUIT_UP_RUNNING
 
 
 def interruptible_sleep(seconds: float) -> bool:
@@ -304,57 +312,68 @@ def run_suit_up_sequence(socketio, delay_multiplier: float = 1.0) -> None:
         socketio: Instancia de Flask-SocketIO para emitir eventos.
         delay_multiplier: Factor para acelerar (< 1) o ralentizar (> 1) la secuencia.
     """
-    global SUIT_UP_CANCELLED
-    SUIT_UP_CANCELLED = False
+    global SUIT_UP_CANCELLED, SUIT_UP_RUNNING
 
+    # Guardia anti-reentrada: si ya hay una secuencia en curso (p. ej. dos
+    # conexiones del navegador casi a la vez), no lanzar otra en paralelo.
+    with _run_lock:
+        if SUIT_UP_RUNNING:
+            logger.info("[SuitUp] Ya hay una secuencia en curso; se omite la nueva.")
+            return
+        SUIT_UP_RUNNING = True
+
+    SUIT_UP_CANCELLED = False
     logger.info("[SuitUp] Iniciando secuencia de arranque Suit Up...")
 
     total_phases = len(PHASE_COLLECTORS)
 
-    # Emitir evento de inicio
-    socketio.emit("suitup_start", {"total_phases": total_phases})
-    
-    if interruptible_sleep(0.3 * delay_multiplier):
-        logger.info("[SuitUp] Secuencia cancelada por el usuario al inicio.")
-        return
+    try:
+        # Emitir evento de inicio
+        socketio.emit("suitup_start", {"total_phases": total_phases})
 
-    for phase_num in range(1, total_phases + 1):
-        if SUIT_UP_CANCELLED:
-            logger.info(f"[SuitUp] Secuencia cancelada antes de la fase {phase_num}.")
-            break
+        if interruptible_sleep(0.3 * delay_multiplier):
+            logger.info("[SuitUp] Secuencia cancelada por el usuario al inicio.")
+            return
 
-        try:
-            collector = PHASE_COLLECTORS[phase_num]
-            data = collector()
-            data["progress"] = int((phase_num / total_phases) * 100)
-            data["total_phases"] = total_phases
+        for phase_num in range(1, total_phases + 1):
+            if SUIT_UP_CANCELLED:
+                logger.info(f"[SuitUp] Secuencia cancelada antes de la fase {phase_num}.")
+                break
 
-            socketio.emit("suitup_phase", data)
-            logger.info(f"[SuitUp] Fase {phase_num}/{total_phases}: {data['title']} — "
-                        f"{len(data['items'])} items emitidos")
+            try:
+                collector = PHASE_COLLECTORS[phase_num]
+                data = collector()
+                data["progress"] = int((phase_num / total_phases) * 100)
+                data["total_phases"] = total_phases
 
-        except Exception as e:
-            logger.error(f"[SuitUp] Error en fase {phase_num}: {e}")
-            socketio.emit("suitup_phase", {
-                "phase": phase_num,
-                "title": f"PHASE {phase_num}",
-                "icon": "❌",
-                "items": [{"label": "ERROR", "value": str(e), "status": "error"}],
-                "progress": int((phase_num / total_phases) * 100),
-                "total_phases": total_phases,
-            })
+                socketio.emit("suitup_phase", data)
+                logger.info(f"[SuitUp] Fase {phase_num}/{total_phases}: {data['title']} — "
+                            f"{len(data['items'])} items emitidos")
 
-        # Pausa entre fases para la animación
-        delay = PHASE_DELAYS.get(phase_num, 1.5) * delay_multiplier
-        if interruptible_sleep(delay):
-            logger.info(f"[SuitUp] Secuencia cancelada durante el delay de la fase {phase_num}.")
-            break
+            except Exception as e:
+                logger.error(f"[SuitUp] Error en fase {phase_num}: {e}")
+                socketio.emit("suitup_phase", {
+                    "phase": phase_num,
+                    "title": f"PHASE {phase_num}",
+                    "icon": "❌",
+                    "items": [{"label": "ERROR", "value": str(e), "status": "error"}],
+                    "progress": int((phase_num / total_phases) * 100),
+                    "total_phases": total_phases,
+                })
 
-    # Emitir evento de finalización si no se ha cancelado
-    if not SUIT_UP_CANCELLED:
-        socketio.emit("suitup_complete", {"status": "ready"})
-        logger.info("[SuitUp] Secuencia Suit Up completada con éxito.")
-    else:
-        # Enviar evento de que se ha cancelado para sincronizar frontend si es necesario
-        socketio.emit("suitup_cancelled", {"status": "cancelled"})
-        logger.info("[SuitUp] Secuencia Suit Up cancelada.")
+            # Pausa entre fases para la animación
+            delay = PHASE_DELAYS.get(phase_num, 1.5) * delay_multiplier
+            if interruptible_sleep(delay):
+                logger.info(f"[SuitUp] Secuencia cancelada durante el delay de la fase {phase_num}.")
+                break
+
+        # Emitir evento de finalización si no se ha cancelado
+        if not SUIT_UP_CANCELLED:
+            socketio.emit("suitup_complete", {"status": "ready"})
+            logger.info("[SuitUp] Secuencia Suit Up completada con éxito.")
+        else:
+            # Enviar evento de que se ha cancelado para sincronizar frontend si es necesario
+            socketio.emit("suitup_cancelled", {"status": "cancelled"})
+            logger.info("[SuitUp] Secuencia Suit Up cancelada.")
+    finally:
+        SUIT_UP_RUNNING = False

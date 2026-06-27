@@ -151,5 +151,16 @@ def get_compiled_system_prompt() -> str:
         import logging
         logging.error(f"Error al integrar el contexto del proyecto en el prompt: {e}")
 
+    # Conciencia situacional global (Cerebro de Estado Central): estado vivo de
+    # sistema, servicios, amenaza, red, productividad y vigilancias unificado.
+    try:
+        from core.world_model import get_context_block
+        situation = get_context_block()
+        if situation:
+            base_prompt += f"\n\n{situation}\n"
+    except Exception as e:
+        import logging
+        logging.error(f"Error al integrar el estado global en el prompt: {e}")
+
     return base_prompt
 

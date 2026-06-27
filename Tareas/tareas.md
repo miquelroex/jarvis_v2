@@ -107,6 +107,10 @@
 * [x] **"Señor, detecto un patrón"**: insight proactivo. Jarvis analiza tus logs/hábitos (productividad, errores, anticipación) y, cuando encuentra algo significativo, te lo comenta sin que se lo pidas. *"Señor, observo que sus tests fallan más los lunes por la mañana. ¿Casualidad?"* ✅ core/insights.py: detectores puros sobre los hábitos registrados (anticipación) + base de errores — concentración por día de la semana, pico de actividad horaria, secuencias recurrentes A→B (candidatas a rutina) y errores reincidentes. Daemon #26 (off por defecto), 1 insight/día, HUD flotante 💡 + voz opcional. Voz "¿detectas algún patrón?". 33 tests, 77% mutation score.
 * [ ] **Detección de Bucle de Frustración**: si repites el mismo comando que falla varias veces seguidas (o el mismo error reaparece), Jarvis interviene con tacto. *"Permítame, señor; parece atascado. ¿Le echo una mano?"*
 * [x] **"Jarvis, vigila esto"**: pones un fichero, proceso, puerto o valor bajo vigilancia y Jarvis te avisa en cuanto cambie. *"Señor, el fichero que vigilaba acaba de modificarse."* ✅ core/watchpost.py (Puesto de Vigilancia, servicio #27): vigila fichero (mtime/size/existencia), proceso (psutil) o puerto (socket); parseo de petición, comparación de estados y frases puros; daemon de sondeo bajo demanda que avisa por voz + banner HUD 👁. Voz "vigila el fichero/proceso/puerto X", "deja de vigilar X", "¿qué estás vigilando?". 32 tests, 81% mutation score.
+* [ ] **"Segunda Opinión"**: antes de un commit/push importante, un modelo distinto revisa el diff y da pegas (bugs potenciales, fugas, malas prácticas) antes de confirmar. *"Permítame una observación antes de confirmar, señor: esa función no maneja el caso nulo."*
+* [ ] **Explicador de Diffs**: le pides "¿qué cambié?" y Jarvis te narra en lenguaje natural qué hace el diff actual (intención y efecto), no sólo el git diff crudo. *"Ha refactorizado la lógica de reintentos y añadido caché, señor. Sin cambios de comportamiento aparentes."*
+* [ ] **"Te Conozco" (Perfil de Hábitos Persistente)**: aprende tus comandos/apps favoritos y crea atajos personalizados sin que se lo pidas, agrupando rutinas frecuentes. *"He notado que siempre abre estos tres. Los he agrupado en 'arranque de trabajo', señor."*
+* [ ] **Saludo Contextual al Arrancar**: en vez de un saludo fijo, Jarvis abre según la hora, el clima, tu agenda y cómo acabó la última sesión. *"Buenos días, señor. 7:42, lloviznando. Tiene una reunión a las 9 y dejó el build en rojo anoche."*
 
 ### 🧠 Memoria y Contexto Persistente
 * [x] Memoria persistente simple con SQLite.
@@ -195,8 +199,6 @@
 * [x] Daily Digest programado de forma automática por scheduler.
 * [x] Briefing matutino de voz (tiempo, commits pendientes, tareas de hoy).
 * [x] Resumen nocturno y de operaciones ("¿Qué he hecho hoy?").
-* [ ] Weekly Reflection: recopilación semanal estructurada del progreso de desarrollo.
-* [ ] Developer Journal: diario de hitos motivacionales interactivo en la GUI.
 * [x] Base de conocimiento de errores recurrentes. ✅ core/error_kb.py: firma normalizada del error (ignora rutas/números/direcciones), cuenta ocurrencias y guarda la solución; enganchado al auto-fixer (registra el error y antepone la solución previa si ya se vio); voz "errores recurrentes".
 * [x] Rastreador de Productividad por Proyecto: daemon que registra ventana activa y repo git asociado para medir tiempo real dedicado a cada proyecto. ✅ core/productivity.py: muestrea la ventana activa (clasifica proyecto/navegador/terminal/comunicación) e imputa tiempo por día ignorando AFK; voz "¿cuánto he trabajado hoy?". Servicio #25, off por defecto (privacidad).
 * [x] Canal de Notificaciones Externas (Telegram/Discord): bot para enviar alertas configurables al móvil (test fallido, dispositivo en red, build completado). ✅ Lado Telegram operativo: el bot envía alertas (intrusos en red, MFA, briefings/digests). (Pendiente opcional: Discord y panel de configuración de alertas).
@@ -229,3 +231,34 @@
   - Evitar abrir el navegador por defecto.
   - Icono en bandeja de sistema y arranque opcional con Windows.
   - Evaluar Electron/Tauri a futuro si pywebview se queda corto.
+
+### 🎬 El Gran Salto: nivel JARVIS de las películas
+Las capacidades que de verdad separan a un buen asistente del JARVIS de Tony Stark. Son grandes y transversales; cada una daría un salto enorme de "sensación JARVIS".
+
+**🏠 Control del mundo físico** (el mayor salto — hoy Jarvis vive dentro del PC)
+* [ ] **Integración domótica real**: control de luces, enchufes, climatización y sensores vía Home Assistant / MQTT / Zigbee. *"Atenúo las luces y subo la temperatura, señor."* Es lo que más "magia" daría.
+* [ ] **Control de dispositivos**: móvil, TV, audio multi-habitación (Chromecast/Spotify Connect/ADB). *"Pongo música en el salón, señor."*
+
+**👁️ Visión continua y comprensión espacial** (hoy sólo hay capturas puntuales)
+* [ ] **Webcam en tiempo real**: seguimiento, reconocimiento facial (saber quién entra), detección de presencia. *"Bienvenido, señor."* / *"Hay alguien más en la sala."*
+* [ ] **Memoria visual**: recuerda objetos/escenas vistas. *"¿Dónde dejé las llaves?" → "Sobre la mesa, señor, hace veinte minutos."*
+
+**🎙️ Voz verdaderamente full-duplex** (hoy es turno-a-turno)
+* [ ] **Streaming bidireccional con barge-in real**: Jarvis escucha mientras habla, le interrumpes con naturalidad, latencia mínima, sin botones ni esperas. Conversación de verdad.
+
+**🤖 Proactividad con iniciativa ejecutora** (hoy sugiere; el de las pelis decide y hace)
+* [ ] **Agencia ejecutora bajo políticas de confianza**: Jarvis no sólo sugiere, sino que *ejecuta* acciones de bajo riesgo por su cuenta y te informa. *"Me he tomado la libertad de hacerlo, señor."* Con niveles de autonomía configurables y barandillas.
+
+**🧠 Modelo de mundo persistente** (hoy hay piezas sueltas)
+* [x] **Cerebro de estado central**: un único modelo de mundo vivo que unifique el estado de los 27 servicios (sistema, red, proyecto, amenazas, hábitos, vigilancias) y sobre el que Jarvis razone de forma global, en vez de consultar cada pieza por separado. ✅ core/world_model.py: snapshot() unifica sistema/servicios/amenaza/proyecto/productividad/red/vigilancias/uso de IA (recolección aislada + caché TTL); build_facts/build_context_block/build_situation_report/overall_status puros. El bloque de estado se inyecta en el prompt del agente (conciencia situacional cada turno, prompts.py) y alimenta el comando de voz "informe de situación". 22 tests, 88% mutation score. Base para la proactividad ejecutora y el motor de fusión.
+
+**🌐 Acceso al mundo en vivo** (hoy consulta puntual; falta tiempo real y fusión)
+* [ ] **APIs de datos en vivo (legal)**: noticias, finanzas (bolsa/cripto), vuelos, tráfico, sismos, clima detallado — con webhooks/streams en lugar de consultas puntuales. *"Señor, la acción que vigilaba acaba de caer un 4%."*
+* [ ] **Motor de Fusión de Fuentes** (lo más "JARVIS"): ante una pregunta, cruza varias APIs + tu contexto y entrega **una respuesta sintetizada con criterio**, no resultados crudos. El equivalente de hive_mind pero con datos del mundo, no con modelos.
+* [ ] **Investigador autónomo profundo**: "investiga X" → navega, lee, contrasta fuentes y entrega un informe. (Base ya disponible: house_party + visual_browser.)
+* [ ] **Vigilancia de temas en internet**: como watchpost pero apuntando al mundo — vigila temas/personas/mercados y avisa de cambios. *"Novedades sobre el tema que seguía, señor."*
+
+**🎨 Manipulación 3D conversacional** (hoy hay visualizaciones, no manipulación generativa)
+* [ ] **Diseño holográfico por voz**: "renderiza esto, gíralo, quítale esta parte" — crear y manipular objetos/diagramas 3D hablando, como cuando Tony diseña el traje. (Tienes la base visual con world_map y architecture_graph.)
+
+> ⚠️ Fuera de alcance a propósito (ficción/ilegal): vigilancia de personas, hackeo de sistemas ajenos, acceso a CCTV/satélites de terceros. El JARVIS real lo hace; el nuestro respeta el límite legal y ético.

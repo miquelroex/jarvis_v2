@@ -204,16 +204,10 @@ def _handle_awake_startup() -> bool:
     time.sleep(2)  # Dar tiempo a que Flask arranque
     webbrowser.open("http://localhost:5000")
 
-    # Secuencia de arranque "Suit Up" con telemetría animada
-    skip_suitup = "--skip-suitup" in sys.argv or os.getenv("JARVIS_SKIP_SUITUP", "false").lower() in ("true", "1", "yes")
-    if not skip_suitup:
-        try:
-            from gui.app import socketio as gui_socketio
-            from core.suit_up import run_suit_up_sequence
-            time.sleep(1.5)  # Dar tiempo extra al navegador para conectar al socket
-            run_suit_up_sequence(gui_socketio, delay_multiplier=1.0)
-        except Exception as e:
-            logging.warning(f"[Main] Error en secuencia Suit Up, continuando: {e}")
+    # La secuencia de arranque "Suit Up" ya NO se lanza aquí: se dispara cuando el
+    # navegador se conecta al socket (gui.app handle_connect). Así se reproduce de
+    # forma fiable en cada carga/recarga y se evita la carrera del arranque que
+    # dejaba la animación colgada en STANDBY si la pestaña no estaba lista a tiempo.
 
     update_state("idle")
     # Saludo de arranque dinámico con telemetría
