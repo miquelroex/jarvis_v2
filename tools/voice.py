@@ -76,47 +76,43 @@ def _vad_monitor_thread():
         p.terminate()
         return
 
-    # 1. FASE DE CALIBRACIÓN (0.3 segundos)
-    # Medimos la energía máxima mientras suena el audio de Jarvis (para rechazo de eco)
-    baseline_energies = []
+    # Detector de barge-in (lógica pura y testeable en core/barge_in.py).
+    from core.barge_in import BargeInDetector
+    detector = BargeInDetector(
+        multiplier=float(os.getenv("JARVIS_VAD_MULTIPLIER", "3.0")),
+        min_threshold=float(os.getenv("JARVIS_VAD_MIN_THRESHOLD", "700.0")),
+        required_frames=int(os.getenv("JARVIS_VAD_CONSECUTIVE_FRAMES", "4")),
+    )
+
+    # 1. FASE DE CALIBRACIÓN (~0.3 s)
+    # Medimos la energía mientras suena el audio de Jarvis (para rechazo de eco).
     for _ in range(6):
-        # Si la reproducción ya terminó, salimos del VAD
         if not pygame.mixer.get_init() or not pygame.mixer.music.get_busy():
             break
         try:
             data = stream.read(1024, exception_on_overflow=False)
             audio_data = np.frombuffer(data, dtype=np.int16)
-            rms = np.sqrt(np.mean(audio_data.astype(np.float32)**2))
-            baseline_energies.append(rms)
+            rms = float(np.sqrt(np.mean(audio_data.astype(np.float32)**2)))
+            detector.calibrate(rms)
         except Exception:
             pass
         time.sleep(0.05)
 
-    max_baseline = max(baseline_energies) if baseline_energies else 150.0
-    # Umbral dinámico parametrizable: 3.0x el valor máximo calibrado con un límite mínimo de 700.0 por defecto
-    multiplier = float(os.getenv("JARVIS_VAD_MULTIPLIER", "3.0"))
-    min_threshold = float(os.getenv("JARVIS_VAD_MIN_THRESHOLD", "700.0"))
-    threshold = max(max_baseline * multiplier, min_threshold)
-    logging.info(f"[VAD] Calibrado. Umbral dinámico establecido en: {threshold:.2f} (multiplicador={multiplier}, min={min_threshold})")
-
-    consecutive_frames = 0
-    req_frames = int(os.getenv("JARVIS_VAD_CONSECUTIVE_FRAMES", "4"))
+    threshold = detector.finalize_calibration()
+    logging.info(f"[VAD] Calibrado. Umbral dinámico: {threshold:.2f} "
+                 f"(multiplicador={detector.multiplier}, min={detector.min_threshold})")
 
     # 2. BUCLE DE MONITOREO ACTIVO
     while pygame.mixer.get_init() and pygame.mixer.music.get_busy():
         try:
             data = stream.read(1024, exception_on_overflow=False)
             audio_data = np.frombuffer(data, dtype=np.int16)
-            rms = np.sqrt(np.mean(audio_data.astype(np.float32)**2))
-            
-            if rms > threshold:
-                consecutive_frames += 1
-                if consecutive_frames >= req_frames:
-                    logging.info(f"[VAD] Interrupción de voz detectada (RMS: {rms:.2f} > {threshold:.2f} por {consecutive_frames} frames). Deteniendo voz...")
-                    stop_speak()
-                    break
-            else:
-                consecutive_frames = 0
+            rms = float(np.sqrt(np.mean(audio_data.astype(np.float32)**2)))
+            if detector.feed(rms):
+                logging.info(f"[VAD] Interrupción de voz detectada (RMS: {rms:.2f} > "
+                             f"{threshold:.2f}). Deteniendo voz...")
+                stop_speak()
+                break
         except Exception as e:
             logging.warning(f"[VAD] Error durante el monitoreo: {e}")
             break
