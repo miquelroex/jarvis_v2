@@ -114,4 +114,4 @@ def test_source_state_safe(monkeypatch):
 
 
 def test_default_sources_registered():
-    assert set(fusion.DEFAULT_SOURCES.keys()) == {"web", "clima", "estado del sistema"}
+    assert set(fusion.DEFAULT_SOURCES.keys()) == {"web", "clima", "estado del sistema", "datos en vivo"}

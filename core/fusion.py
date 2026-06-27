@@ -61,11 +61,22 @@ def _source_state(query: str = None):
         return None
 
 
+def _source_live(query: str):
+    """Datos del mundo en vivo (cripto/sismos/tech-news), con relevancia por tema."""
+    try:
+        from core.live_data import live_source
+        return live_source(query)
+    except Exception as e:
+        logger.debug(f"[Fusion] Datos en vivo no disponibles: {e}")
+        return None
+
+
 # Registro por defecto: {nombre legible: función fuente}
 DEFAULT_SOURCES = {
     "web": _source_web,
     "clima": _source_weather,
     "estado del sistema": _source_state,
+    "datos en vivo": _source_live,
 }
 
 

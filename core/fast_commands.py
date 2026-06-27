@@ -622,6 +622,25 @@ def handle_fast_command(command: str):
             return fuse(pregunta)
 
 
+    # --- Comando rápido: Datos del Mundo en Vivo ---
+    if any(kw in text for kw in ["precio del bitcoin", "precio de bitcoin", "cotizacion de",
+                                 "precio de ethereum", "como va el bitcoin", "como va el cripto",
+                                 "precio de la cripto", "cotizacion cripto"]):
+        from core.live_data import get_crypto, coins_in_query
+        out = get_crypto(coins_in_query(command))
+        return f"Cotizaciones, señor: {out}." if out else "No he podido consultar las cotizaciones, señor."
+    if any(kw in text for kw in ["ultimos terremotos", "ultimos sismos", "terremotos recientes",
+                                 "sismos recientes", "ha habido terremotos", "actividad sismica"]):
+        from core.live_data import get_earthquakes
+        out = get_earthquakes()
+        return f"{out}, señor." if out else "No hay datos de sismos significativos ahora mismo, señor."
+    if any(kw in text for kw in ["noticias de tecnologia", "hacker news", "noticias tech",
+                                 "que se cuece en tecnologia", "portada de hacker news"]):
+        from core.live_data import get_tech_news
+        out = get_tech_news()
+        return f"{out}, señor." if out else "No he podido consultar las noticias, señor."
+
+
     # --- Comando rápido: Investigador Autónomo Profundo ---
     _research_prefixes = ["investiga a fondo ", "investigacion profunda sobre ",
                          "haz una investigacion sobre ", "haz una investigacion de ",
