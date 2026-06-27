@@ -128,19 +128,27 @@ def _http_json(url: str, timeout: float = 8):
         return None
 
 
-def get_crypto(coins=None) -> str:
+def fetch_crypto_raw(coins=None) -> dict:
+    """Payload crudo de CoinGecko (dict por moneda), {} si falla."""
     coins = coins or ["bitcoin", "ethereum"]
     ids = ",".join(coins)
     url = (f"https://api.coingecko.com/api/v3/simple/price?ids={ids}"
            "&vs_currencies=usd&include_24hr_change=true")
-    data = _http_json(url)
-    return parse_crypto(data) if data else ""
+    return _http_json(url) or {}
+
+
+def fetch_earthquakes_raw() -> dict:
+    """GeoJSON crudo de USGS (sismos M≥4.5 último día), {} si falla."""
+    url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson"
+    return _http_json(url) or {}
+
+
+def get_crypto(coins=None) -> str:
+    return parse_crypto(fetch_crypto_raw(coins))
 
 
 def get_earthquakes() -> str:
-    url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson"
-    data = _http_json(url)
-    return parse_earthquakes(data) if data else ""
+    return parse_earthquakes(fetch_earthquakes_raw())
 
 
 def get_tech_news() -> str:

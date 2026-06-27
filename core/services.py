@@ -31,6 +31,7 @@ import core.productivity as productivity
 import core.insights as insights
 import core.watchpost as watchpost
 import core.initiative as initiative
+import core.world_watch as world_watch
 
 def start_all_services():
     """
@@ -214,6 +215,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Iniciativa Ejecutora: {e}")
 
+    # 29. Vigilancia Proactiva del Mundo — controlado por JARVIS_WORLDWATCH_ENABLED (off; se activa bajo demanda por voz)
+    try:
+        world_watch.start_world_watch_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Vigilancia del Mundo: {e}")
+
     # Iron Legion: registrar las misiones integradas de los drones (sin daemon).
     try:
         import core.drones as drones
@@ -229,6 +236,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 29. Vigilancia Proactiva del Mundo
+    try:
+        world_watch.stop_world_watch_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Vigilancia del Mundo: {e}")
 
     # 28. Iniciativa Ejecutora (proactividad con criterio)
     try:
@@ -620,5 +633,9 @@ def get_services_status() -> dict:
     else:
         ini_alive = initiative.INITIATIVE_THREAD is not None and initiative.INITIATIVE_THREAD.is_alive()
         status["initiative"] = "running" if ini_alive else "stopped"
+
+    # 29. Vigilancia Proactiva del Mundo (bajo demanda; corre si hay vigilancias activas)
+    ww_alive = world_watch.WATCH_THREAD is not None and world_watch.WATCH_THREAD.is_alive()
+    status["world_watch"] = "running" if ww_alive else "stopped"
 
     return status

@@ -579,6 +579,25 @@ def handle_fast_command(command: str):
         return explain_module(command)
 
 
+    # --- Comando rápido: Vigilancia Proactiva del Mundo (cripto/sismos) ---
+    # Se evalúa ANTES que el Puesto de Vigilancia para que "vigila el bitcoin" /
+    # "avísame de terremotos" no los capture la vigilancia de ficheros/procesos.
+    if any(kw in text for kw in ["deja de vigilar el mundo", "deja de vigilar el bitcoin",
+                                 "deja de vigilar la cripto", "deja de vigilar los terremotos"]):
+        from core.world_watch import remove_world_watches
+        n = remove_world_watches()
+        return (f"He retirado {n} vigilancia(s) del mundo, señor." if n
+                else "No vigilaba nada del mundo, señor.")
+    if any(kw in text for kw in ["que vigilas del mundo", "que estas vigilando del mundo"]):
+        from core.world_watch import format_watch_list, list_watches
+        return format_watch_list(list_watches())
+    if "vigila" in text or "avisame" in text or "vigilame" in text:
+        from core.world_watch import start_watch_command
+        _world_res = start_watch_command(command)
+        if _world_res:  # None si no es un tema del mundo -> sigue con el Puesto de Vigilancia
+            return _world_res
+
+
     # --- Comando rápido: Puesto de Vigilancia ("Jarvis, vigila esto") ---
     if any(kw in text for kw in ["deja de vigilar", "para de vigilar", "deja de observar"]):
         from core.watchpost import remove_watch
