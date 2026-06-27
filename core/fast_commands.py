@@ -611,6 +611,26 @@ def handle_fast_command(command: str):
         return get_situation_report()
 
 
+    # --- Comando rápido: Iniciativa Ejecutora (nivel de autonomía) ---
+    if any(kw in text for kw in ["toma la iniciativa", "modo autonomo", "modo proactivo",
+                                 "actua por tu cuenta", "autonomia total"]):
+        os.environ["JARVIS_INITIATIVE_LEVEL"] = "act"
+        from core.initiative import start_initiative_daemon
+        start_initiative_daemon()
+        return "Iniciativa ejecutora activada, señor. Actuaré por mi cuenta en lo de bajo riesgo y le avisaré del resto."
+    if any(kw in text for kw in ["solo avisame", "modo aviso", "solo notifica", "no actues solo"]):
+        os.environ["JARVIS_INITIATIVE_LEVEL"] = "notify"
+        from core.initiative import start_initiative_daemon
+        start_initiative_daemon()
+        return "De acuerdo, señor. Le avisaré de los cambios, pero no actuaré sin su visto bueno."
+    if any(kw in text for kw in ["desactiva la iniciativa", "deja de actuar por tu cuenta",
+                                 "no tomes la iniciativa"]):
+        os.environ["JARVIS_INITIATIVE_LEVEL"] = "off"
+        from core.initiative import stop_initiative_daemon
+        stop_initiative_daemon()
+        return "Iniciativa desactivada, señor. Esperaré sus órdenes."
+
+
     # --- Comando rápido: Packet Map 3D (telemetría de red) ---
     if any(kw in text for kw in ["cierra el mapa de paquetes", "cierra la telemetria de red",
                                  "cierra el packet map", "oculta el mapa de red", "cierra el mapa de red"]):

@@ -30,6 +30,7 @@ import core.anticipation as anticipation
 import core.productivity as productivity
 import core.insights as insights
 import core.watchpost as watchpost
+import core.initiative as initiative
 
 def start_all_services():
     """
@@ -207,6 +208,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Puesto de Vigilancia: {e}")
 
+    # 28. Iniciativa Ejecutora (proactividad con criterio) — controlado por JARVIS_INITIATIVE_LEVEL (off por defecto)
+    try:
+        initiative.start_initiative_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Iniciativa Ejecutora: {e}")
+
     # Iron Legion: registrar las misiones integradas de los drones (sin daemon).
     try:
         import core.drones as drones
@@ -222,6 +229,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 28. Iniciativa Ejecutora (proactividad con criterio)
+    try:
+        initiative.stop_initiative_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Iniciativa Ejecutora: {e}")
 
     # 27. Puesto de Vigilancia ("Jarvis, vigila esto")
     try:
@@ -600,5 +613,12 @@ def get_services_status() -> dict:
     else:
         wp_alive = watchpost.WATCH_THREAD is not None and watchpost.WATCH_THREAD.is_alive()
         status["watchpost"] = "running" if wp_alive else "stopped"
+
+    # 28. Iniciativa Ejecutora (off por defecto)
+    if os.getenv("JARVIS_INITIATIVE_LEVEL", "off").lower() not in ("notify", "act"):
+        status["initiative"] = "disabled"
+    else:
+        ini_alive = initiative.INITIATIVE_THREAD is not None and initiative.INITIATIVE_THREAD.is_alive()
+        status["initiative"] = "running" if ini_alive else "stopped"
 
     return status

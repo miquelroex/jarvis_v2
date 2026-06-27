@@ -139,9 +139,7 @@
 * [x] Barge-in automático mediante VAD (Voice Activity Detection local).
 * [x] Esfera Holográfica 3D (WebGL/Three.js) reactiva a la voz en la GUI.
 * [x] Intérprete de código interactivo en la web (HTML, CSS, JSON, gráficos).
-* [ ] Detección de Estrés y Ánimo por Voz al hablar para adaptar las respuestas en caliente.
 * [x] Voice Tone Shifting: adaptar tono, velocidad y estilo de voz de la síntesis según contexto (éxito, error, alerta). ✅ core/voice_tone.py (perfiles neutral/alert/calm/success/humor; rate/pitch en Edge-TTS y voice_settings en ElevenLabs; detección automática del tono por texto).
-* [ ] Crear voz original estilo asistente británico futurista configurable (diseño en ElevenLabs Voice Library/Voice Design).
 * [x] **"Medidor de Sarcasmo" configurable**: un dial (0-10) que ajusta cuánta ironía británica gasta Jarvis, inyectado dinámicamente en el system prompt — de mayordomo impecablemente formal a compañero socarrón. Cambiable por voz ("sube el sarcasmo") y desde la GUI. *"Como guste, señor. Aunque dudo que el incremento de mi ironía mejore la compilación."* ✅ core/personality.py (nivel persistido + directiva por tramo inyectada en el prompt), voz "sube/baja el sarcasmo"/"nivel de sarcasmo N"/"modo formal/socarrón" + slider en el panel de ajustes (sincronizado por socket).
 * [x] **Reacciones con Alma (micro-emociones)**: Jarvis intercala micro-respuestas con carga emocional contenida según el evento — alivio cuando un test pasa tras una racha de fallos, urgencia medida en una alerta crítica, orgullo seco cuando algo sale impecable, fastidio elegante ante un error tonto. Da la sensación de que "le importa". ✅ core/reactions.py (biblioteca por evento + tono de voz adaptativo; alivio mayor según racha de fallos), enganchado al test watcher (pass↔fail con racha) + directiva de emoción inyectada en el prompt.
 
@@ -156,7 +154,6 @@
 * [x] Modo Estudio / Focus (Protocolo "Verónica" y "Capa de Sigilo" para silenciar distractores de Windows). ✅ Cubierto por el Protocolo "Verónica" (core/focus_mode.py): silencia notificaciones de Windows + tinte ámbar + temporizador. (Pendiente opcional: "Capa de Sigilo" extra).
 * [ ] Modo Clean Slate: cerrar de forma ordenada apps no esenciales, vaciar temporales y liberar RAM.
 * [x] Smart Lock: Bloqueo/desbloqueo automático del sistema por intensidad de señal Bluetooth de móvil/watch. ✅ Daemon BLE (bleak) que vigila MAC/nombre + RSSI; bloquea Windows al alejarte (debounce de N escaneos) y te da la bienvenida al volver. (Desbloqueo limitado a saludo: Windows no permite desbloquear por software).
-* [ ] Protocolo de Contingencia: Comando crítico de guardado rápido de buffers y apagado/suspensión en 2 segundos.
 
 ### 🛜 Red y Presencia
 * [x] Network Sentinel: detectar dispositivos desconocidos en la red local.
@@ -190,7 +187,6 @@
 * [ ] Security Auditor avanzado (OWASP, secretos en código, permisos y hardening local).
 * [x] Panel de vulnerabilidades en la GUI con historial de auditorías y parches. ✅ Panel #vulnerability-findings-list en la GUI con dependencias vulnerables y aplicación de parches (socket apply_patch), más el panel de salud de dependencias. (Pendiente opcional: historial persistente de auditorías).
 * [ ] Autenticación segura por Huella de Voz.
-* [ ] Modo "Simulador de Vuelo" / Protocolo "Cuarentena": ejecución de scripts desconocidos en un sandbox aislado (Docker o proceso restringido) que monitoriza y reporta qué hace el script — accesos a red, ficheros tocados y procesos lanzados — antes de confiar en él. *"Script en cuarentena, señor. Intento de conexión saliente detectado; recomiendo precaución."*
 * [ ] Radar de Ciberdefensa Activa: vigilar puertos locales e intentos de escaneo externos (con mapa 3D).
 * [x] Auditoría Proactiva de Dependencias (Dependency Health Check): análisis periódico de dependencias mediante pip list/PyPI metadata para advertir proactivamente sobre librerías desactualizadas o abandonadas antes de que supongan un problema.
 
@@ -247,7 +243,7 @@ Las capacidades que de verdad separan a un buen asistente del JARVIS de Tony Sta
 * [ ] **Streaming bidireccional con barge-in real**: Jarvis escucha mientras habla, le interrumpes con naturalidad, latencia mínima, sin botones ni esperas. Conversación de verdad.
 
 **🤖 Proactividad con iniciativa ejecutora** (hoy sugiere; el de las pelis decide y hace)
-* [ ] **Agencia ejecutora bajo políticas de confianza**: Jarvis no sólo sugiere, sino que *ejecuta* acciones de bajo riesgo por su cuenta y te informa. *"Me he tomado la libertad de hacerlo, señor."* Con niveles de autonomía configurables y barandillas.
+* [x] **Agencia ejecutora bajo políticas de confianza**: Jarvis no sólo sugiere, sino que *ejecuta* acciones de bajo riesgo por su cuenta y te informa. *"Me he tomado la libertad de hacerlo, señor."* Con niveles de autonomía configurables y barandillas. ✅ core/initiative.py (Iniciativa Ejecutora, servicio #28): sobre world_model, compara snapshots y detecta iniciativas puras (RAM crítica, escalada de amenaza, intruso en red, servicio caído, demasiados cambios sin confirmar); política de confianza pura (off/notify/act) que decide announce/execute/ask/skip; sólo autoejecuta acciones SAFE registradas (liberar memoria + drone de limpieza), nada destructivo; cooldown anti-repetición. Voz "toma la iniciativa"/"sólo avísame"/"desactiva la iniciativa". 23 tests, 85% mutation score.
 
 **🧠 Modelo de mundo persistente** (hoy hay piezas sueltas)
 * [x] **Cerebro de estado central**: un único modelo de mundo vivo que unifique el estado de los 27 servicios (sistema, red, proyecto, amenazas, hábitos, vigilancias) y sobre el que Jarvis razone de forma global, en vez de consultar cada pieza por separado. ✅ core/world_model.py: snapshot() unifica sistema/servicios/amenaza/proyecto/productividad/red/vigilancias/uso de IA (recolección aislada + caché TTL); build_facts/build_context_block/build_situation_report/overall_status puros. El bloque de estado se inyecta en el prompt del agente (conciencia situacional cada turno, prompts.py) y alimenta el comando de voz "informe de situación". 22 tests, 88% mutation score. Base para la proactividad ejecutora y el motor de fusión.
