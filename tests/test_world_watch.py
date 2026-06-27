@@ -27,6 +27,37 @@ def test_parse_earthquake():
     assert ww.parse_watch_request("vigila los sismos") == {"kind": "earthquake"}
 
 
+def test_parse_stock():
+    assert ww.parse_watch_request("vigila la acción de apple") == {"kind": "stock", "symbol": "aapl.us"}
+    assert ww.parse_watch_request("avísame si tesla se mueve") == {"kind": "stock", "symbol": "tsla.us"}
+
+
+def test_add_stock_watch(monkeypatch):
+    monkeypatch.setattr(ww, "_stock_price", lambda s: 204.0)
+    w = ww.add_stock_watch("aapl.us", threshold=3)
+    assert w["kind"] == "stock"
+    assert w["name"] == "Apple"
+    assert w["last_price"] == 204.0
+
+
+def test_poll_stock_alerts(monkeypatch):
+    monkeypatch.setattr(ww, "_stock_price", lambda s: 220.0)
+    notified = []
+    monkeypatch.setattr(ww, "_notify", lambda m: notified.append(m))
+    watch = {"kind": "stock", "symbol": "aapl.us", "name": "Apple",
+             "threshold": 3, "last_price": 200.0}
+    ww._poll_stock(watch)
+    assert len(notified) == 1
+    assert "subido un 10.0%" in notified[0]
+
+
+def test_start_watch_command_stock(monkeypatch):
+    monkeypatch.setattr(ww, "_stock_price", lambda s: 204.0)
+    monkeypatch.setattr(ww, "_ensure_daemon", lambda: None)
+    out = ww.start_watch_command("vigila la acción de apple")
+    assert "Vigilaré la acción de Apple" in out
+
+
 def test_parse_no_false_positive_on_substrings():
     # 'sol' en 'consola', 'ada' en 'nada' NO deben activar cripto.
     assert ww.parse_watch_request("vigila la consola") is None

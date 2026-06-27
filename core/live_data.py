@@ -17,6 +17,7 @@ se aíslan y degradan con gracia (devuelven None si fallan o no hay red).
 import json
 import logging
 import unicodedata
+import re
 import urllib.request
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,21 @@ _CRYPTO_IDS = {
     "solana": "solana", "sol": "solana",
     "dogecoin": "dogecoin", "doge": "dogecoin",
 }
+
+# Nombres de empresa -> símbolo de Stooq (bolsa, API gratuita sin clave).
+_STOCK_TICKERS = {
+    "apple": "aapl.us", "aapl": "aapl.us",
+    "microsoft": "msft.us", "msft": "msft.us",
+    "google": "googl.us", "alphabet": "googl.us", "googl": "googl.us",
+    "amazon": "amzn.us", "amzn": "amzn.us",
+    "tesla": "tsla.us", "tsla": "tsla.us",
+    "nvidia": "nvda.us", "nvda": "nvda.us",
+    "meta": "meta.us", "facebook": "meta.us",
+    "netflix": "nflx.us", "nflx": "nflx.us",
+}
+_STOCK_NAMES = {"aapl.us": "Apple", "msft.us": "Microsoft", "googl.us": "Alphabet",
+                "amzn.us": "Amazon", "tsla.us": "Tesla", "nvda.us": "NVIDIA",
+                "meta.us": "Meta", "nflx.us": "Netflix"}
 
 
 def _normalize(text: str) -> str:
@@ -91,17 +107,65 @@ def parse_hn(data: dict, limit: int = 5) -> str:
     return "Portada de Hacker News: " + "; ".join(titles) if titles else ""
 
 
+def parse_stock_csv(csv_text: str):
+    """Cotización a partir del CSV de Stooq. {symbol, price, change_pct} o None (puro).
+
+    Cabecera: Symbol,Date,Time,Open,High,Low,Close,Volume. La variación es
+    intradía (cierre vs apertura)."""
+    if not csv_text or not csv_text.strip():
+        return None
+    lines = [l for l in csv_text.strip().splitlines() if l.strip()]
+    if len(lines) < 2:
+        return None
+    fields = lines[1].split(",")
+    if len(fields) < 7:
+        return None
+    try:
+        open_p = float(fields[3])
+        close_p = float(fields[6])
+    except (ValueError, IndexError):
+        return None
+    change = ((close_p - open_p) / open_p * 100) if open_p else 0.0
+    return {"symbol": fields[0], "price": close_p, "change_pct": change}
+
+
+def format_stock(info: dict) -> str:
+    """Frase de cotización de una acción (puro)."""
+    if not info:
+        return ""
+    name = _STOCK_NAMES.get(info["symbol"].lower(),
+                            info["symbol"].replace(".US", "").replace(".us", "").upper())
+    chg = info["change_pct"]
+    signo = "+" if chg >= 0 else ""
+    return f"{name}: {info['price']:.2f} USD ({signo}{chg:.1f}% en la sesión)"
+
+
+def ticker_in_query(query: str):
+    """Símbolo de Stooq para la empresa mencionada en la pregunta, o None (puro)."""
+    tokens = set(re.findall(r"[a-z]+", _normalize(query)))
+    for name, sym in _STOCK_TICKERS.items():
+        if name in tokens:
+            return sym
+    return None
+
+
 def detect_topic(query: str):
     """Tema de datos en vivo relevante para una pregunta, o None (puro)."""
     q = _normalize(query)
+    # Bolsa primero (una empresa concreta o mención al mercado), porque "precio
+    # de"/"cotización" son genéricos y si no los robaría el caso cripto.
+    if ticker_in_query(query) or any(k in q for k in ["bolsa", "accion", "acciones", "nasdaq"]):
+        return "stock"
     if any(k in q for k in ["bitcoin", "btc", "ethereum", "eth", "cripto", "crypto",
-                            "cotizacion", "precio de", "solana", "dogecoin", "cardano"]):
+                            "solana", "dogecoin", "cardano"]):
         return "crypto"
     if any(k in q for k in ["terremoto", "sismo", "seismo", "earthquake", "temblor"]):
         return "earthquakes"
     if any(k in q for k in ["hacker news", "noticias de tecnologia", "tech news",
                             "noticias tech", "portada de hacker"]):
         return "news"
+    if "precio de" in q or "cotizacion" in q:  # genérico sin más -> cripto por defecto
+        return "crypto"
     return None
 
 
@@ -126,6 +190,26 @@ def _http_json(url: str, timeout: float = 8):
     except Exception as e:
         logger.debug(f"[LiveData] Fallo al consultar {url[:60]}…: {e}")
         return None
+
+
+def _http_text(url: str, timeout: float = 8):
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Jarvis/2.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.read().decode("utf-8", "replace")
+    except Exception as e:
+        logger.debug(f"[LiveData] Fallo al consultar {url[:60]}…: {e}")
+        return None
+
+
+def fetch_stock_raw(symbol: str):
+    """Cotización cruda de Stooq (bolsa, sin clave). {symbol,price,change_pct} o None."""
+    url = f"https://stooq.com/q/l/?s={symbol}&f=sd2t2ohlcv&h&e=csv"
+    return parse_stock_csv(_http_text(url))
+
+
+def get_stock(symbol: str) -> str:
+    return format_stock(fetch_stock_raw(symbol))
 
 
 def fetch_crypto_raw(coins=None) -> dict:
@@ -163,6 +247,8 @@ def get_tech_news() -> str:
 def live_source(query: str):
     """Fuente de datos en vivo con relevancia por tema (para el motor de fusión)."""
     topic = detect_topic(query)
+    if topic == "stock":
+        return get_stock(ticker_in_query(query) or "^spx") or None
     if topic == "crypto":
         return get_crypto(coins_in_query(query)) or None
     if topic == "earthquakes":

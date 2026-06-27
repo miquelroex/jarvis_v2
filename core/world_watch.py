@@ -42,10 +42,14 @@ def _normalize(text: str) -> str:
 # ----------------------------------------------------------------------------
 def parse_watch_request(text: str):
     """Interpreta "vigila el bitcoin" / "avísame de terremotos". {kind,...} o None. Puro."""
-    from core.live_data import _CRYPTO_IDS
+    from core.live_data import _CRYPTO_IDS, ticker_in_query
     q = _normalize(text)
     if any(k in q for k in ["terremoto", "sismo", "seismo", "temblor", "earthquake"]):
         return {"kind": "earthquake"}
+    # Bolsa: una empresa concreta (casado por palabra dentro de ticker_in_query).
+    symbol = ticker_in_query(text)
+    if symbol:
+        return {"kind": "stock", "symbol": symbol}
     # Casar alias cripto por PALABRA COMPLETA (evita 'sol' en 'consola', 'ada' en 'nada').
     tokens = set(re.findall(r"[a-z]+", q))
     for alias, cid in _CRYPTO_IDS.items():
@@ -108,6 +112,8 @@ def format_watch_list(watches) -> str:
     for w in watches:
         if w["kind"] == "crypto":
             etiquetas.append(w.get("name", w.get("coin", "cripto")))
+        elif w["kind"] == "stock":
+            etiquetas.append(f"{w.get('name', w.get('symbol', 'acción'))} (bolsa)")
         else:
             etiquetas.append(f"terremotos (M≥{w.get('min_mag', 5)})")
     return "Vigilo del mundo, señor: " + "; ".join(etiquetas) + "."
@@ -130,11 +136,30 @@ def _coin_price(coin: str):
     return None
 
 
+def _stock_price(symbol: str):
+    from core.live_data import fetch_stock_raw
+    info = fetch_stock_raw(symbol)
+    return info.get("price") if info else None
+
+
 def add_crypto_watch(coin: str, threshold: float = None) -> dict:
     if threshold is None:
         threshold = float(os.getenv("JARVIS_WORLDWATCH_CRYPTO_THRESHOLD", "5"))
     price = _coin_price(coin)
     watch = {"kind": "crypto", "coin": coin, "name": _COIN_NAMES.get(coin, coin.capitalize()),
+             "threshold": threshold, "last_price": price}
+    with _lock:
+        WATCHES.append(watch)
+    return watch
+
+
+def add_stock_watch(symbol: str, threshold: float = None) -> dict:
+    from core.live_data import _STOCK_NAMES
+    if threshold is None:
+        threshold = float(os.getenv("JARVIS_WORLDWATCH_STOCK_THRESHOLD", "3"))
+    price = _stock_price(symbol)
+    name = _STOCK_NAMES.get(symbol.lower(), symbol.replace(".US", "").replace(".us", "").upper())
+    watch = {"kind": "stock", "symbol": symbol, "name": name,
              "threshold": threshold, "last_price": price}
     with _lock:
         WATCHES.append(watch)
@@ -175,6 +200,11 @@ def start_watch_command(text: str) -> str:
         precio = (f" (ahora {w['last_price']:,.0f} USD)".replace(",", ".")
                   if w["last_price"] else "")
         return f"Vigilaré {w['name']}, señor{precio}. Le avisaré ante un cambio relevante."
+    if req["kind"] == "stock":
+        w = add_stock_watch(req["symbol"])
+        _ensure_daemon()
+        precio = f" (ahora {w['last_price']:.2f} USD)" if w["last_price"] else ""
+        return f"Vigilaré la acción de {w['name']}, señor{precio}. Le avisaré si se mueve con fuerza."
     w = add_quake_watch()
     _ensure_daemon()
     return (f"Vigilaré la actividad sísmica, señor. Le avisaré de cualquier sismo "
@@ -198,8 +228,8 @@ def _notify(message: str):
         pass
 
 
-def _poll_crypto(watch):
-    price = _coin_price(watch["coin"])
+def _poll_price(watch, price):
+    """Lógica común de alerta por variación de precio (cripto o bolsa)."""
     if price is None:
         return
     baseline = watch.get("last_price")
@@ -208,6 +238,14 @@ def _poll_crypto(watch):
         watch["last_price"] = price  # nueva referencia tras avisar
     elif baseline is None:
         watch["last_price"] = price  # primera lectura: fijar referencia
+
+
+def _poll_crypto(watch):
+    _poll_price(watch, _coin_price(watch["coin"]))
+
+
+def _poll_stock(watch):
+    _poll_price(watch, _stock_price(watch["symbol"]))
 
 
 def _poll_quake(watch):
@@ -224,6 +262,8 @@ def _poll_once():
         try:
             if watch["kind"] == "crypto":
                 _poll_crypto(watch)
+            elif watch["kind"] == "stock":
+                _poll_stock(watch)
             else:
                 _poll_quake(watch)
         except Exception as e:

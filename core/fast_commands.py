@@ -650,7 +650,18 @@ def handle_fast_command(command: str):
 
 
     # --- Comando rápido: Datos del Mundo en Vivo ---
-    if any(kw in text for kw in ["precio del bitcoin", "precio de bitcoin", "cotizacion de",
+    # Bolsa primero: una acción concreta o mención al mercado (antes que cripto,
+    # porque "cotización de" es genérico).
+    from core.live_data import ticker_in_query as _ticker_in_query
+    _stock_symbol = _ticker_in_query(command)
+    if _stock_symbol or any(kw in text for kw in ["como va la bolsa", "como va el mercado",
+                                                  "precio de la accion", "cotizacion de la bolsa"]):
+        from core.live_data import get_stock
+        out = get_stock(_stock_symbol or "^spx")
+        if out:
+            return f"Cotización, señor: {out}."
+        return "No he podido consultar la cotización, señor."
+    if any(kw in text for kw in ["precio del bitcoin", "precio de bitcoin",
                                  "precio de ethereum", "como va el bitcoin", "como va el cripto",
                                  "precio de la cripto", "cotizacion cripto"]):
         from core.live_data import get_crypto, coins_in_query

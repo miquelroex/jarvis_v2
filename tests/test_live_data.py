@@ -1,4 +1,6 @@
 """Tests de core/live_data.py — APIs de datos del mundo en vivo."""
+import math
+
 import core.live_data as ld
 
 
@@ -93,6 +95,53 @@ def test_parse_hn_empty():
     assert ld.parse_hn({"hits": []}) == ""
 
 
+# ---------------------------------------------------------------- bolsa (Stooq)
+_STOCK_CSV = ("Symbol,Date,Time,Open,High,Low,Close,Volume\n"
+              "AAPL.US,2026-06-27,22:00:01,200.0,205.0,199.0,204.0,12345678")
+
+
+def test_parse_stock_csv():
+    info = ld.parse_stock_csv(_STOCK_CSV)
+    assert info["symbol"] == "AAPL.US"
+    assert info["price"] == 204.0
+    assert math.isclose(info["change_pct"], (204.0 - 200.0) / 200.0 * 100)
+
+
+def test_parse_stock_csv_invalid():
+    assert ld.parse_stock_csv("") is None
+    assert ld.parse_stock_csv("solo cabecera") is None
+    assert ld.parse_stock_csv("Symbol,Date\nAAPL.US,N/D") is None  # campos insuficientes
+    bad = "Symbol,Date,Time,Open,High,Low,Close,Volume\nX,d,t,N/D,N/D,N/D,N/D,N/D"
+    assert ld.parse_stock_csv(bad) is None  # precios no numéricos
+
+
+def test_format_stock():
+    out = ld.format_stock({"symbol": "AAPL.US", "price": 204.0, "change_pct": 2.0})
+    assert "Apple: 204.00 USD (+2.0% en la sesión)" == out
+
+
+def test_format_stock_negative():
+    out = ld.format_stock({"symbol": "TSLA.US", "price": 180.5, "change_pct": -3.2})
+    assert "Tesla: 180.50 USD (-3.2% en la sesión)" == out
+
+
+def test_ticker_in_query():
+    assert ld.ticker_in_query("precio de apple") == "aapl.us"
+    assert ld.ticker_in_query("cómo va tesla hoy") == "tsla.us"
+    assert ld.ticker_in_query("¿qué tiempo hace?") is None
+
+
+def test_detect_topic_stock_beats_generic_price():
+    # 'precio de apple' debe ser bolsa, no cripto (pese a contener "precio de").
+    assert ld.detect_topic("precio de apple") == "stock"
+    assert ld.detect_topic("cómo va la bolsa") == "stock"
+
+
+def test_live_source_stock(monkeypatch):
+    monkeypatch.setattr(ld, "get_stock", lambda s: "Apple: 204.00 USD")
+    assert ld.live_source("precio de apple") == "Apple: 204.00 USD"
+
+
 # ---------------------------------------------------------------- detect_topic
 def test_detect_topic_crypto():
     assert ld.detect_topic("¿cuál es el precio del bitcoin?") == "crypto"
@@ -107,6 +156,11 @@ def test_detect_topic_earthquakes():
 def test_detect_topic_news():
     assert ld.detect_topic("dame las noticias de tecnología") == "news"
     assert ld.detect_topic("qué hay en hacker news") == "news"
+
+
+def test_detect_topic_generic_price_defaults_crypto():
+    # "cotización" a secas (sin ticker ni moneda) -> cripto por defecto.
+    assert ld.detect_topic("dame una cotizacion") == "crypto"
 
 
 def test_detect_topic_none():
