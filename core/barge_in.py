@@ -11,7 +11,47 @@ Aquí se extrae a una máquina de estados PURA y testeable: el hilo sólo lee el
 micrófono (RMS por frame) y delega la decisión. Así el comportamiento full-duplex
 es afinable y verificable sin tocar el audio real.
 """
+import os
 import math
+import time
+
+# Señal de barge-in: el hilo de audio la marca al cortar la voz; la siguiente
+# escucha la consume para capturar de inmediato (el usuario YA está hablando),
+# sin recalibrar y con una pausa corta — así no se pierde su turno.
+_last_barge_in = 0.0
+
+
+def signal_barge_in(now: float = None):
+    """Marca que acaba de ocurrir una interrupción por voz (llamada desde el VAD)."""
+    global _last_barge_in
+    _last_barge_in = now if now is not None else time.time()
+
+
+def is_recent(ts: float, now: float, window: float) -> bool:
+    """¿El timestamp `ts` cae dentro de `window` segundos antes de `now`? (puro)."""
+    return ts > 0 and (now - ts) <= window
+
+
+def consume_barge_in(now: float = None, window: float = 4.0) -> bool:
+    """Consume la señal de barge-in si es reciente (de un solo uso). Devuelve bool."""
+    global _last_barge_in
+    now = now if now is not None else time.time()
+    if is_recent(_last_barge_in, now, window):
+        _last_barge_in = 0.0
+        return True
+    return False
+
+
+def capture_mode(barge_in_pending: bool) -> dict:
+    """Parámetros de captura según haya o no un barge-in pendiente (puro).
+
+    Con barge-in: no recalibrar (settle=False) y pausa corta, para enganchar al
+    usuario que ya habla. Sin él: comportamiento normal."""
+    if barge_in_pending:
+        return {"settle": False,
+                "pause_threshold": float(os.getenv("JARVIS_BARGE_CAPTURE_PAUSE", "0.5"))}
+    return {"settle": True,
+            "pause_threshold": float(os.getenv("JARVIS_ASR_PAUSE_THRESHOLD", "0.8"))}
 
 
 def rms_int16(samples) -> float:

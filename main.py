@@ -81,8 +81,17 @@ def listen_for_wake_word(source):
 def listen_for_next_command(source):
     logging.info("🎤 Listening for next command...")
     from tools.voice import wait_while_speaking
+    from core.barge_in import consume_barge_in, capture_mode
     wait_while_speaking()
-    audio = recognizer.listen(source, timeout=10, phrase_time_limit=30)
+    # Si acabas de interrumpir a Jarvis (barge-in), captura ya, con pausa corta y
+    # sin recalibrar, para no perder el inicio de tu frase.
+    mode = capture_mode(consume_barge_in())
+    _old_pause = recognizer.pause_threshold
+    try:
+        recognizer.pause_threshold = mode["pause_threshold"]
+        audio = recognizer.listen(source, timeout=10, phrase_time_limit=30)
+    finally:
+        recognizer.pause_threshold = _old_pause
 
     stt_engine = os.getenv("JARVIS_STT_ENGINE", "whisper").lower()
     if stt_engine == "whisper":

@@ -112,6 +112,13 @@ def _vad_monitor_thread():
                 logging.info(f"[VAD] Interrupción de voz detectada (RMS: {rms:.2f} > "
                              f"{threshold:.2f}). Deteniendo voz...")
                 stop_speak()
+                # Señalar el barge-in: la próxima escucha capturará de inmediato
+                # (el usuario ya está hablando), sin recalibrar y con pausa corta.
+                try:
+                    from core.barge_in import signal_barge_in
+                    signal_barge_in()
+                except Exception:
+                    pass
                 break
         except Exception as e:
             logging.warning(f"[VAD] Error durante el monitoreo: {e}")

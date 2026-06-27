@@ -103,3 +103,35 @@ def test_detector_exact_threshold_does_not_fire():
     d.finalize_calibration()
     assert d.feed(100) is False
     assert d.feed(101) is True
+
+
+# ---------------------------------------------------------------- señal de barge-in
+def test_is_recent():
+    assert bi.is_recent(ts=100, now=102, window=4) is True
+    assert bi.is_recent(ts=100, now=105, window=4) is False  # fuera de ventana
+    assert bi.is_recent(ts=0, now=1, window=4) is False      # sin señal
+
+
+def test_signal_and_consume_barge_in():
+    bi.signal_barge_in(now=1000)
+    assert bi.consume_barge_in(now=1001, window=4) is True   # reciente -> True
+    assert bi.consume_barge_in(now=1001, window=4) is False  # de un solo uso
+
+
+def test_consume_barge_in_stale():
+    bi.signal_barge_in(now=1000)
+    assert bi.consume_barge_in(now=1010, window=4) is False  # demasiado viejo
+
+
+def test_capture_mode_barge_in(monkeypatch):
+    monkeypatch.setenv("JARVIS_BARGE_CAPTURE_PAUSE", "0.5")
+    m = bi.capture_mode(True)
+    assert m["settle"] is False
+    assert m["pause_threshold"] == 0.5
+
+
+def test_capture_mode_normal(monkeypatch):
+    monkeypatch.setenv("JARVIS_ASR_PAUSE_THRESHOLD", "0.8")
+    m = bi.capture_mode(False)
+    assert m["settle"] is True
+    assert m["pause_threshold"] == 0.8
