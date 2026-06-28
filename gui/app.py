@@ -250,19 +250,26 @@ def handle_connect():
     except Exception as e:
         print(f"[GUI] Error al enviar última detección de portapapeles inicial: {e}")
 
-    # Secuencia de arranque "Suit Up": se dispara AL CONECTAR el navegador, de modo
-    # que cualquier carga o recarga la reproduzca de forma fiable. (Antes se lanzaba
-    # una sola vez al arrancar el proceso y, si la pestaña no estaba conectada al
-    # socket en ese instante exacto, la animación se quedaba colgada en STANDBY.)
+    # La secuencia de arranque "Suit Up" NO se dispara aquí (al conectar) porque
+    # carrera con la preparación del cliente y se perdía el evento. Ahora la PIDE
+    # el propio navegador cuando está listo (evento 'request_suitup'), lo que la
+    # hace fiable. Ver handle_request_suitup().
+
+
+@socketio.on('request_suitup')
+def handle_request_suitup():
+    """El navegador, ya listo, pide la secuencia Suit Up. Patrón cliente-pide:
+    elimina la carrera de emitir el evento antes de que el cliente escuche."""
     try:
         skip = ("--skip-suitup" in sys.argv or
                 os.getenv("JARVIS_SKIP_SUITUP", "false").lower() in ("true", "1", "yes"))
-        if not skip:
-            from core.suit_up import run_suit_up_sequence, is_suit_up_running
-            if not is_suit_up_running():
-                socketio.start_background_task(run_suit_up_sequence, socketio)
+        if skip:
+            return
+        from core.suit_up import run_suit_up_sequence, is_suit_up_running
+        if not is_suit_up_running():
+            socketio.start_background_task(run_suit_up_sequence, socketio)
     except Exception as e:
-        print(f"[GUI] Error al lanzar la secuencia Suit Up al conectar: {e}")
+        print(f"[GUI] Error al lanzar la secuencia Suit Up: {e}")
 
 @socketio.on('mute_request')
 def handle_mute_request():

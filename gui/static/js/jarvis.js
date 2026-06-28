@@ -1545,8 +1545,15 @@ socket.on('active_window_update', (data) => {
     }
 });
 
+let suitupRequested = false;
 socket.on('connect', () => {
     console.log('[JARVIS GUI] Conectado al servidor');
+    // Pedimos la secuencia de arranque UNA vez, ya conectados y con los
+    // handlers listos (patrón cliente-pide: sin carrera, no se pierde el evento).
+    if (!suitupRequested) {
+        suitupRequested = true;
+        socket.emit('request_suitup');
+    }
 });
 
 // Cuando el servidor backend se apaga repentinamente
