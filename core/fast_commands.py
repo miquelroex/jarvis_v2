@@ -663,6 +663,19 @@ def handle_fast_command(command: str):
         from core.face_id import who_is_there
         return who_is_there()
 
+    # --- Comando rápido: Memoria Visual ("¿dónde dejé las llaves?") ---
+    if any(kw in text for kw in ["observa la escena", "mira a tu alrededor", "observa el entorno",
+                                 "echa un vistazo", "memoriza lo que ves"]):
+        from core.visual_memory import observe_now
+        return observe_now()
+    if any(kw in text for kw in ["que has visto", "que recuerdas haber visto", "que objetos has visto"]):
+        from core.visual_memory import recent_scene
+        return recent_scene()
+    if any(kw in text for kw in ["donde deje", "donde esta mi", "donde estan mis", "donde puse",
+                                 "has visto mi", "has visto mis", "donde deje mi", "donde deje mis"]):
+        from core.visual_memory import where_is
+        return where_is(command)
+
 
     # --- Comando rápido: Telemetría de Herramientas (coraza universal) ---
     if any(kw in text for kw in ["informe de herramientas", "telemetria de herramientas",

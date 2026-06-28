@@ -33,6 +33,7 @@ import core.watchpost as watchpost
 import core.initiative as initiative
 import core.world_watch as world_watch
 import core.presence as presence
+import core.visual_memory as visual_memory
 
 def start_all_services():
     """
@@ -228,6 +229,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Detección de Presencia: {e}")
 
+    # 31. Memoria Visual (observación periódica) — controlado por JARVIS_VISUAL_MEMORY_ENABLED (off por defecto)
+    try:
+        visual_memory.start_visual_memory_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Memoria Visual: {e}")
+
     # Iron Legion: registrar las misiones integradas de los drones (sin daemon).
     try:
         import core.drones as drones
@@ -243,6 +250,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 31. Memoria Visual
+    try:
+        visual_memory.stop_visual_memory_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Memoria Visual: {e}")
 
     # 30. Detección de Presencia por Webcam
     try:
@@ -657,5 +670,12 @@ def get_services_status() -> dict:
     else:
         pres_alive = presence.PRESENCE_THREAD is not None and presence.PRESENCE_THREAD.is_alive()
         status["presence"] = "running" if pres_alive else "stopped"
+
+    # 31. Memoria Visual (off por defecto)
+    if os.getenv("JARVIS_VISUAL_MEMORY_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["visual_memory"] = "disabled"
+    else:
+        vm_alive = visual_memory.VISUAL_THREAD is not None and visual_memory.VISUAL_THREAD.is_alive()
+        status["visual_memory"] = "running" if vm_alive else "stopped"
 
     return status
