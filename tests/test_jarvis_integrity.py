@@ -78,13 +78,15 @@ class TestJarvisIntegrity(unittest.TestCase):
 
     @patch("core.jarvis_integrity.subprocess.run")
     def test_run_unit_tests_success(self, mock_run):
+        # El runner ahora usa pytest; parsea su resumen del stdout.
         mock_res = MagicMock()
         mock_res.returncode = 0
-        mock_res.stderr = "Ran 86 tests in 12.000s\n\nOK"
+        mock_res.stdout = "===== 86 passed in 1.20s ====="
+        mock_res.stderr = ""
         mock_run.return_value = mock_res
-        
+
         stats = integrity.run_unit_tests()
-        
+
         self.assertTrue(stats["passed"])
         self.assertEqual(stats["ran"], 86)
         self.assertEqual(stats["failures"], 0)
@@ -94,11 +96,12 @@ class TestJarvisIntegrity(unittest.TestCase):
     def test_run_unit_tests_failure(self, mock_run):
         mock_res = MagicMock()
         mock_res.returncode = 1
-        mock_res.stderr = "Ran 86 tests in 12.000s\n\nFAILED (failures=2, errors=1)"
+        mock_res.stdout = "===== 2 failed, 1 error, 83 passed in 1.20s ====="
+        mock_res.stderr = ""
         mock_run.return_value = mock_res
-        
+
         stats = integrity.run_unit_tests()
-        
+
         self.assertFalse(stats["passed"])
         self.assertEqual(stats["ran"], 86)
         self.assertEqual(stats["failures"], 2)
