@@ -704,6 +704,14 @@ def handle_fast_command(command: str):
         return get_report()
 
 
+    # --- Comando rápido: Diagnóstico con Guía de Reparación ---
+    if any(kw in text for kw in ["diagnostico y guia", "diagnosticame", "que reparo",
+                                 "guia de reparacion", "como lo arreglo", "como reparo esto",
+                                 "diagnostico del sistema"]):
+        from core.repair_guide import get_diagnosis
+        return get_diagnosis()
+
+
     # --- Comando rápido: Contra-intrusión (defensa del equipo) ---
     if any(kw in text for kw in ["comprueba la seguridad", "estamos seguros", "busca intrusos",
                                  "hay intrusos", "comprueba intrusiones", "protocolo casa segura",
