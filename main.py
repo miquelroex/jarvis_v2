@@ -209,9 +209,13 @@ def _calibrate_microphone():
 def _handle_awake_startup() -> bool:
     """Arranque en modo AWAKE: abre el navegador, ejecuta la secuencia Suit Up y
     da el saludo de arranque dinámico. Devuelve True (navegador abierto)."""
-    print("Abriendo http://localhost:5000 en tu navegador...")
     time.sleep(2)  # Dar tiempo a que Flask arranque
-    webbrowser.open("http://localhost:5000")
+    # En modo escritorio NO se abre el navegador: la ventana nativa (pywebview)
+    # la abre write() en el hilo principal. En modo navegador, abrimos como siempre.
+    from core.desktop import use_desktop
+    if not use_desktop():
+        print("Abriendo http://localhost:5000 en tu navegador...")
+        webbrowser.open("http://localhost:5000")
 
     # La secuencia de arranque "Suit Up" ya NO se lanza aquí: se dispara cuando el
     # navegador se conecta al socket (gui.app handle_connect). Así se reproduce de
@@ -303,6 +307,65 @@ def _handle_conversation_timeout(state: "_LoopState", reason: str) -> None:
         clear_conversation_memory()
         update_state("idle")
 
+def _voice_loop(state):
+    """Bucle de escucha de voz. Extraído de write() para poder ejecutarlo en un
+    hilo de fondo en modo escritorio (donde pywebview ocupa el hilo principal)."""
+    while True:
+        try:
+            with mic as source:
+                while True:
+                    try:
+                        command_to_execute = None
+                        transcript_for_ui = None
+
+                        if state.system_status == "SLEEPING":
+                            _handle_sleep_mode(state, source)
+                            continue
+
+                        if not state.conversation_mode:
+                            cmd, trans, needs_conversation = listen_for_wake_word(source)
+                            if needs_conversation:
+                                speak("Sí señor?")
+                                state.conversation_mode = True
+                                state.last_interaction_time = time.time()
+                                update_state("listening", model="")
+                            elif cmd:
+                                command_to_execute = cmd
+                                transcript_for_ui = trans
+                        else:
+                            update_state("listening", model="")
+                            command_to_execute, transcript_for_ui = listen_for_next_command(source)
+
+                        if command_to_execute:
+                            if _handle_exit_phrases(state, command_to_execute):
+                                continue
+                            process_command(command_to_execute, transcript_for_ui)
+                            state.last_interaction_time = time.time()
+                            # Modo Conversación Continua: seguir escuchando sin
+                            # repetir la palabra clave tras cualquier comando.
+                            if should_stay_conversational(True):
+                                state.conversation_mode = True
+                                update_state("listening", model="")
+
+                    except sr.WaitTimeoutError:
+                        logging.warning("⚠️ Timeout waiting for audio.")
+                        _handle_conversation_timeout(state, "No input")
+
+                    except sr.UnknownValueError:
+                        logging.warning("⚠️ Could not understand audio.")
+                        _handle_conversation_timeout(state, "Noise but no valid words")
+
+                    except Exception as e:
+                        logging.error(f"❌ Error: {e}")
+                        time.sleep(1)
+                        # Rompemos el bucle interno para reinicializar el micrófono
+                        break
+
+        except Exception as e:
+            logging.error(f"❌ Fallo al inicializar el micrófono: {e}")
+            time.sleep(2)
+
+
 # Main interaction loop
 def write():
     state = _LoopState()
@@ -326,60 +389,16 @@ def write():
         # Calibrar ruido ambiental una sola vez al inicio si es posible
         _calibrate_microphone()
 
-        while True:
-            try:
-                with mic as source:
-                    while True:
-                        try:
-                            command_to_execute = None
-                            transcript_for_ui = None
-
-                            if state.system_status == "SLEEPING":
-                                _handle_sleep_mode(state, source)
-                                continue
-
-                            if not state.conversation_mode:
-                                cmd, trans, needs_conversation = listen_for_wake_word(source)
-                                if needs_conversation:
-                                    speak("Sí señor?")
-                                    state.conversation_mode = True
-                                    state.last_interaction_time = time.time()
-                                    update_state("listening", model="")
-                                elif cmd:
-                                    command_to_execute = cmd
-                                    transcript_for_ui = trans
-                            else:
-                                update_state("listening", model="")
-                                command_to_execute, transcript_for_ui = listen_for_next_command(source)
-
-                            if command_to_execute:
-                                if _handle_exit_phrases(state, command_to_execute):
-                                    continue
-                                process_command(command_to_execute, transcript_for_ui)
-                                state.last_interaction_time = time.time()
-                                # Modo Conversación Continua: seguir escuchando sin
-                                # repetir la palabra clave tras cualquier comando.
-                                if should_stay_conversational(True):
-                                    state.conversation_mode = True
-                                    update_state("listening", model="")
-
-                        except sr.WaitTimeoutError:
-                            logging.warning("⚠️ Timeout waiting for audio.")
-                            _handle_conversation_timeout(state, "No input")
-
-                        except sr.UnknownValueError:
-                            logging.warning("⚠️ Could not understand audio.")
-                            _handle_conversation_timeout(state, "Noise but no valid words")
-
-                        except Exception as e:
-                            logging.error(f"❌ Error: {e}")
-                            time.sleep(1)
-                            # Rompemos el bucle interno para que vuelva a inicializar el microfono
-                            break
-
-            except Exception as e:
-                logging.error(f"❌ Fallo al inicializar el micrófono: {e}")
-                time.sleep(2)
+        # Bucle de escucha de voz. En modo ESCRITORIO va en un hilo de fondo y la
+        # ventana nativa (pywebview) se queda con el hilo principal (lo requiere);
+        # en modo navegador corre directamente en el hilo principal, como siempre.
+        from core.desktop import use_desktop, run_window_blocking
+        if state.system_status == "AWAKE" and use_desktop():
+            threading.Thread(target=_voice_loop, args=(state,),
+                             name="VoiceLoop", daemon=True).start()
+            run_window_blocking("http://localhost:5000")  # bloquea hasta cerrar -> apaga
+        else:
+            _voice_loop(state)
 
     except Exception as e:
         logging.critical(f"❌ Critical error: {e}")

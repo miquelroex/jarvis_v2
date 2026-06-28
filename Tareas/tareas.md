@@ -223,11 +223,11 @@
 * [ ] **Avatar Holográfico con Cara (JARVIS Face)**: rostro/máscara holográfica 3D estilo interfaz de JARVIS en la GUI que mueve la boca/rasgos sincronizados con la amplitud del audio TTS (ya emitida por socket). Versión "con cara" del lip-sync por energía que ya existe en la esfera.
 
 ### 🖥️ App de Escritorio Nativa
-* [ ] App de escritorio local ligera utilizando `pywebview`:
-  - Mantener Flask y SocketIO por debajo.
-  - Evitar abrir el navegador por defecto.
-  - Icono en bandeja de sistema y arranque opcional con Windows.
-  - Evaluar Electron/Tauri a futuro si pywebview se queda corto.
+* [x] App de escritorio local ligera utilizando `pywebview`: ✅ core/desktop.py (modo OPCIONAL `--desktop` / JARVIS_DESKTOP). Ventana nativa WebView2/Chromium con el MISMO Flask+SocketIO por debajo; pywebview/pystray son dependencias OPCIONALES de import perezoso (si no están, cae al navegador → CI a salvo). En modo escritorio el bucle de voz va a un hilo de fondo y la ventana ocupa el hilo principal (lo requiere pywebview); al cerrar la ventana, apaga Jarvis limpiamente (stop_all_services + release_instance_lock). Icono en bandeja con pystray + "Salir". desktop_enabled/window_config/use_desktop puros y testeados. 10 tests, 57% mutation (resto ventana/bandeja aislada).
+  - [x] Mantener Flask y SocketIO por debajo.
+  - [x] Evitar abrir el navegador por defecto (en modo escritorio).
+  - [x] Icono en bandeja de sistema (pystray). Arranque automático con Windows: ya cubierto por core/autostart.py.
+  - [ ] Evaluar Electron/Tauri a futuro si pywebview se queda corto. (Conclusión: pywebview es el encaje correcto; Electron/Tauri serían sobreingeniería —segundo toolchain— para este proyecto Python.)
 
 ### 🎬 El Gran Salto: nivel JARVIS de las películas
 Las capacidades que de verdad separan a un buen asistente del JARVIS de Tony Stark. Son grandes y transversales; cada una daría un salto enorme de "sensación JARVIS".
