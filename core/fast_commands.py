@@ -712,6 +712,19 @@ def handle_fast_command(command: str):
         return get_diagnosis()
 
 
+    # --- Comando rápido: Simulaciones y Cálculos al Vuelo ---
+    _sim_prefixes = ["simula el ", "simula la ", "simula ", "probabilidad de exito de ",
+                     "calcula las probabilidades de ", "que probabilidad hay de "]
+    if any(p in text for p in _sim_prefixes) or "ejecuta una simulacion" in text:
+        accion = ""
+        for _p in _sim_prefixes:
+            if _p in text:
+                accion = text.split(_p, 1)[1].strip()
+                break
+        from core.simulation import simulate
+        return simulate(accion)
+
+
     # --- Comando rápido: Contra-intrusión (defensa del equipo) ---
     if any(kw in text for kw in ["comprueba la seguridad", "estamos seguros", "busca intrusos",
                                  "hay intrusos", "comprueba intrusiones", "protocolo casa segura",
