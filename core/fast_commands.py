@@ -33,6 +33,25 @@ def handle_fast_command(command: str):
     """
     text = normalize_text(command)
 
+    # --- Control de Acceso: candado facial para acciones sensibles ---
+    # Gestión del propio candado (activar/desactivar) — exenta de verificación.
+    if any(kw in text for kw in ["activa el control de acceso", "activa el candado",
+                                 "protege las acciones sensibles"]):
+        os.environ["JARVIS_ACCESS_CONTROL_ENABLED"] = "true"
+        return "Control de acceso activado, señor. Verificaré su identidad antes de acciones sensibles."
+    if any(kw in text for kw in ["desactiva el control de acceso", "desactiva el candado",
+                                 "quita la proteccion de acciones"]):
+        os.environ["JARVIS_ACCESS_CONTROL_ENABLED"] = "false"
+        return "Control de acceso desactivado, señor."
+    # Guardia: si el comando es sensible y no se autoriza, se bloquea aquí.
+    try:
+        from core.access_control import maybe_block
+        _denial = maybe_block(command)
+        if _denial:
+            return _denial
+    except Exception:
+        pass
+
     # --- Comando rápido: Protocolo "Mayordomo" (prepara entorno + parte del día) ---
     if any(kw in text for kw in ["protocolo mayordomo", "modo mayordomo", "activa el protocolo mayordomo",
                                  "prepara mi estacion", "prepara mi entorno", "prepara el entorno",
