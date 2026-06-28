@@ -116,12 +116,14 @@ def run_unit_tests() -> dict:
         if not os.path.exists(venv_python):
             venv_python = "python"
             
+        # La suite ha crecido mucho; el timeout debe ser holgado y configurable.
+        test_timeout = int(os.getenv("JARVIS_INTEGRITY_TEST_TIMEOUT", "180"))
         result = subprocess.run(
             [venv_python, "-m", "unittest", "discover", "-s", "tests"],
             cwd=WORKSPACE_ROOT,
             capture_output=True,
             text=True,
-            timeout=25
+            timeout=test_timeout
         )
         
         # Parsea el output para buscar el resumen final

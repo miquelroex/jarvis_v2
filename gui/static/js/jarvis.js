@@ -2688,6 +2688,20 @@ let suitupAutoHideTimer = setTimeout(() => {
     }
 }, 8000);
 
+// Failsafe DURO: pase lo que pase (secuencia perdida, atascada o CPU saturada al
+// arrancar), el overlay NO puede quedarse clavado. A los 18s lo retiramos sí o sí
+// sin depender de ningún flag de estado. Una secuencia normal dura ~9s.
+setTimeout(() => {
+    if (suitupOverlayEl && getComputedStyle(suitupOverlayEl).display !== 'none') {
+        try { socket.emit('skip_suitup'); } catch (e) {}
+        suitupCompleted = true;
+        suitupActive = false;
+        suitupOverlayEl.classList.add('hidden');
+        suitupOverlayEl.style.display = 'none';
+        console.warn('[JARVIS GUI] Suit Up retirado por failsafe (18s).');
+    }
+}, 18000);
+
 function dismissSuitup() {
     if (suitupCompleted) return;
     suitupCompleted = true;

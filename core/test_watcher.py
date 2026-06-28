@@ -126,13 +126,14 @@ def run_test(test_module: str = None) -> bool:
     
     with _test_lock:
         try:
-            # Ejecutar con timeout de 30 segundos
+            # Timeout holgado y configurable (la suite completa ha crecido).
+            test_timeout = int(os.getenv("JARVIS_TEST_WATCHER_TIMEOUT", "180"))
             res = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 shell=False,
-                timeout=30
+                timeout=test_timeout
             )
             success = (res.returncode == 0)
             output = res.stderr if res.stderr else res.stdout
