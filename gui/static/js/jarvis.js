@@ -119,7 +119,7 @@ const stateParams = {
     idle:      { driftAmp: 1.0, gravityContraction: 1.0, voiceRippleAmp: 0.0, connectionDistance: 1.1, lineOpacityMultiplier: 0.35, dustSpeed: 0.2, nodeSize: 0.12 },
     listening: { driftAmp: 1.5, gravityContraction: 1.0, voiceRippleAmp: 0.1, connectionDistance: 1.3, lineOpacityMultiplier: 0.50, dustSpeed: 0.4, nodeSize: 0.15 },
     thinking:  { driftAmp: 0.5, gravityContraction: 0.32, voiceRippleAmp: 0.0, connectionDistance: 0.6, lineOpacityMultiplier: 0.70, dustSpeed: 2.0, nodeSize: 0.08 },
-    speaking:  { driftAmp: 1.2, gravityContraction: 1.0, voiceRippleAmp: 0.45, connectionDistance: 1.2, lineOpacityMultiplier: 0.45, dustSpeed: 0.3, nodeSize: 0.16 }
+    speaking:  { driftAmp: 1.2, gravityContraction: 1.0, voiceRippleAmp: 0.22, connectionDistance: 1.2, lineOpacityMultiplier: 0.45, dustSpeed: 0.3, nodeSize: 0.15 }
 };
 
 let currentState = 'idle';
@@ -453,15 +453,14 @@ function animate(now) {
         voiceLevelTarget = Math.min(1, synth);
     }
     voiceLevelSmooth += (voiceLevelTarget - voiceLevelSmooth) * 0.35;
-    extraRipple = voiceLevelSmooth * 0.30;  // onda de voz contenida (antes 0.55 -> dispersaba demasiado)
+    extraRipple = voiceLevelSmooth * 0.14;  // onda de voz muy contenida
 
     const threeColor = new THREE.Color(currentColor.r, currentColor.g, currentColor.b);
 
     // 1. Sincronizar colores y tamaños de materiales
     nodeMaterial.color.copy(threeColor);
-    // Pulso de tamaño al hablar, CONTENIDO. Antes era *1.4 -> el nodo pasaba de
-    // 0.16 a ~1.56 (≈10x) y llenaba la pantalla de blobs gigantes. Ahora ~2x máx.
-    nodeMaterial.size = currentParams.nodeSize + voiceLevelSmooth * 0.18;
+    // Pulso de tamaño al hablar, MUY contenido (los nodos apenas engordan).
+    nodeMaterial.size = currentParams.nodeSize + voiceLevelSmooth * 0.08;
     dustMaterial.color.copy(threeColor);
     
     // 1b. Sincronizar colores del badge del modelo en la GUI
@@ -522,8 +521,8 @@ function animate(now) {
     hologramGroup.rotation.y = mouseX * 0.35 + (runTime * 0.02);
     hologramGroup.rotation.x = -mouseY * 0.35;
 
-    // 5. Latido del núcleo al ritmo de la voz
-    hologramGroup.scale.setScalar(1 + voiceLevelSmooth * 0.08);
+    // 5. Latido del núcleo al ritmo de la voz (sutil)
+    hologramGroup.scale.setScalar(1 + voiceLevelSmooth * 0.04);
 
     renderer.render(scene, camera);
 }
