@@ -696,6 +696,14 @@ def handle_fast_command(command: str):
         return where_is(command)
 
 
+    # --- Comando rápido: Mantenimiento Predictivo ---
+    if any(kw in text for kw in ["mantenimiento predictivo", "cuando se llena el disco",
+                                 "prediccion de fallos", "predice fallos", "tendencias del sistema",
+                                 "cuanto dura el disco"]):
+        from core.predictive import get_report
+        return get_report()
+
+
     # --- Comando rápido: Contra-intrusión (defensa del equipo) ---
     if any(kw in text for kw in ["comprueba la seguridad", "estamos seguros", "busca intrusos",
                                  "hay intrusos", "comprueba intrusiones", "protocolo casa segura",

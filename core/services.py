@@ -37,6 +37,7 @@ import core.visual_memory as visual_memory
 import core.wellbeing as wellbeing
 import core.intrusion as intrusion
 import core.evolution as evolution
+import core.predictive as predictive
 
 def start_all_services():
     """
@@ -256,6 +257,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Motor de Evolución: {e}")
 
+    # 35. Mantenimiento Predictivo — controlado por JARVIS_PREDICTIVE_ENABLED (off por defecto)
+    try:
+        predictive.start_predictive_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Mantenimiento Predictivo: {e}")
+
     # Iron Legion: registrar las misiones integradas de los drones (sin daemon).
     try:
         import core.drones as drones
@@ -271,6 +278,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 35. Mantenimiento Predictivo
+    try:
+        predictive.stop_predictive_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Mantenimiento Predictivo: {e}")
 
     # 34. Motor de Evolución
     try:
@@ -737,5 +750,12 @@ def get_services_status() -> dict:
     else:
         evo_alive = evolution.EVOLUTION_THREAD is not None and evolution.EVOLUTION_THREAD.is_alive()
         status["evolution"] = "running" if evo_alive else "stopped"
+
+    # 35. Mantenimiento Predictivo (off por defecto)
+    if os.getenv("JARVIS_PREDICTIVE_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["predictive"] = "disabled"
+    else:
+        pred_alive = predictive.PREDICTIVE_THREAD is not None and predictive.PREDICTIVE_THREAD.is_alive()
+        status["predictive"] = "running" if pred_alive else "stopped"
 
     return status

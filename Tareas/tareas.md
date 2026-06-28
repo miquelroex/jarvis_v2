@@ -273,7 +273,7 @@ Otra tanda de cosas que JARVIS hace en la saga y que aún no estaban en la lista
 
 **🔧 Ingeniero de combate (diagnóstico y guía)**
 * [ ] **Diagnóstico con guía de reparación** (S): además del informe de daños, te guía paso a paso a resolver lo que falla. *"Propulsor izquierdo al 40%. Le guío: primero…"*
-* [ ] **Mantenimiento predictivo** (S): predice fallos antes de que ocurran (disco, dependencias, memoria). *"A este ritmo, el disco se llena en 3 días, señor."*
+* [x] **Mantenimiento predictivo** (S): predice fallos antes de que ocurran (disco, dependencias, memoria). *"A este ritmo, el disco se llena en 3 días, señor."* ✅ core/predictive.py (servicio #35): muestrea uso de disco/RAM y EXTRAPOLA la tendencia por regresión lineal — linear_slope/slope_per_day/days_to_threshold/humanize_days/build_report/critical_disk_warning puros; daemon que muestrea (logs/predictive_samples.jsonl) y avisa si el disco se llenará en pocos días (cooldown); cuenta dependencias envejeciendo de dep_health. Voz "mantenimiento predictivo" / "¿cuándo se llena el disco?". 23 tests, 79% mutation score.
 * [ ] **Simulaciones y cálculos al vuelo** (S): ejecuta dry-runs/benchmarks y da probabilidades. *"Ejecutando simulación… probabilidad de éxito del despliegue: 91%."*
 
 **🎙️ Presencia y comunicaciones**
