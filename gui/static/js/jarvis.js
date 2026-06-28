@@ -453,13 +453,15 @@ function animate(now) {
         voiceLevelTarget = Math.min(1, synth);
     }
     voiceLevelSmooth += (voiceLevelTarget - voiceLevelSmooth) * 0.35;
-    extraRipple = voiceLevelSmooth * 0.55;
+    extraRipple = voiceLevelSmooth * 0.30;  // onda de voz contenida (antes 0.55 -> dispersaba demasiado)
 
     const threeColor = new THREE.Color(currentColor.r, currentColor.g, currentColor.b);
 
     // 1. Sincronizar colores y tamaños de materiales
     nodeMaterial.color.copy(threeColor);
-    nodeMaterial.size = currentParams.nodeSize + voiceLevelSmooth * 1.4;
+    // Pulso de tamaño al hablar, CONTENIDO. Antes era *1.4 -> el nodo pasaba de
+    // 0.16 a ~1.56 (≈10x) y llenaba la pantalla de blobs gigantes. Ahora ~2x máx.
+    nodeMaterial.size = currentParams.nodeSize + voiceLevelSmooth * 0.18;
     dustMaterial.color.copy(threeColor);
     
     // 1b. Sincronizar colores del badge del modelo en la GUI
