@@ -35,6 +35,7 @@ import core.world_watch as world_watch
 import core.presence as presence
 import core.visual_memory as visual_memory
 import core.wellbeing as wellbeing
+import core.intrusion as intrusion
 
 def start_all_services():
     """
@@ -242,6 +243,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Lectura de Estado: {e}")
 
+    # 33. Contra-intrusión — controlado por JARVIS_INTRUSION_ENABLED (off por defecto)
+    try:
+        intrusion.start_intrusion_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Contra-intrusión: {e}")
+
     # Iron Legion: registrar las misiones integradas de los drones (sin daemon).
     try:
         import core.drones as drones
@@ -257,6 +264,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 33. Contra-intrusión
+    try:
+        intrusion.stop_intrusion_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Contra-intrusión: {e}")
 
     # 32. Lectura de Estado/Ánimo del Usuario
     try:
@@ -697,5 +710,12 @@ def get_services_status() -> dict:
     else:
         wb_alive = wellbeing.WELLBEING_THREAD is not None and wellbeing.WELLBEING_THREAD.is_alive()
         status["wellbeing"] = "running" if wb_alive else "stopped"
+
+    # 33. Contra-intrusión (off por defecto)
+    if os.getenv("JARVIS_INTRUSION_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["intrusion"] = "disabled"
+    else:
+        intr_alive = intrusion.INTRUSION_THREAD is not None and intrusion.INTRUSION_THREAD.is_alive()
+        status["intrusion"] = "running" if intr_alive else "stopped"
 
     return status

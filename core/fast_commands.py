@@ -696,6 +696,19 @@ def handle_fast_command(command: str):
         return where_is(command)
 
 
+    # --- Comando rápido: Contra-intrusión (defensa del equipo) ---
+    if any(kw in text for kw in ["comprueba la seguridad", "estamos seguros", "busca intrusos",
+                                 "hay intrusos", "comprueba intrusiones", "protocolo casa segura",
+                                 "revisa el perimetro", "estamos a salvo"]):
+        if any(kw in text for kw in ["activa", "vigila el sistema", "modo centinela"]):
+            os.environ["JARVIS_INTRUSION_ENABLED"] = "true"
+            from core.intrusion import start_intrusion_daemon
+            start_intrusion_daemon()
+            return "Contra-intrusión activada, señor. Vigilaré el perímetro del sistema."
+        from core.intrusion import scan_now
+        return scan_now()
+
+
     # --- Comando rápido: Lectura de Estado/Ánimo del Usuario ---
     if any(kw in text for kw in ["como estoy", "como me ves", "como me notas",
                                  "que tal me ves", "como me encuentro"]):
