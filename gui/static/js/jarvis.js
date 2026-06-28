@@ -43,6 +43,13 @@ const settingsBtnClose = document.getElementById('settings-btn-close');
 const whisperModelSelect = document.getElementById('whisper-model-select');
 const whisperStatusValue = document.getElementById('whisper-status-value');
 
+// --- SOCKET.IO: conexión ---
+// Se declara AQUÍ ARRIBA (antes que ningún handler) porque varios paneles
+// (drones, sarcasmo…) registran socket.on/emit antes de la sección principal.
+// Con `const`, usarlo antes de esta línea lanzaba "Cannot access 'socket'
+// before initialization" y abortaba todo el script (UI en blanco).
+const socket = io();
+
 // Iron Legion: panel de drones en vivo
 socket.on('drones_update', (drones) => {
     const list = document.getElementById('drones-list');
@@ -523,7 +530,7 @@ function animate(now) {
 animate();
 
 // --- SOCKET.IO: recibir estados de Jarvis ---
-const socket = io();
+// (socket ya está declarado arriba, antes de los primeros handlers de paneles.)
 let clearTextTimer = null; // Guardará el ID del temporizador
 
 const chatHistoryEl = document.getElementById('chat-history');
