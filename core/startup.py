@@ -84,13 +84,8 @@ def _get_network_devices() -> tuple[int, int]:
         return 0, 0
 
 
-def generate_startup_greeting(include_telemetry: bool = True) -> str:
-    """
-    Genera el texto del saludo de arranque de JARVIS.
-    
-    Returns:
-        str: Texto completo listo para ser sintetizado por voz.
-    """
+def _generate_verbose_greeting(include_telemetry: bool = True) -> str:
+    """Saludo TÉCNICO largo (telemetría completa). Usado si JARVIS_STARTUP_VERBOSE=true."""
     greeting = _get_greeting_by_time()
     parts = [f"{greeting}, señor. Los sistemas de Jarvis se encuentran en línea y operativos."]
 
@@ -139,6 +134,68 @@ def generate_startup_greeting(include_telemetry: bool = True) -> str:
 
     parts.append("¿En qué puedo servirle?")
     return " ".join(parts)
+
+
+# ----------------------------------------------------------------------------
+# Saludo Contextual (conciso): hora + clima + tareas. Por defecto.
+# ----------------------------------------------------------------------------
+def build_contextual_greeting(greeting: str, weather=None, reminders: int = 0, alerts=None) -> str:
+    """Monta el saludo contextual conciso a partir de las piezas (puro)."""
+    parts = [f"{greeting}, señor."]
+    if weather:
+        parts.append(weather)
+    if reminders == 1:
+        parts.append("Tiene un recordatorio pendiente para hoy.")
+    elif reminders > 1:
+        parts.append(f"Tiene {reminders} recordatorios pendientes para hoy.")
+    for a in (alerts or []):
+        if a:
+            parts.append(a)
+    parts.append("¿En qué puedo servirle?")
+    return " ".join(parts)
+
+
+def _get_weather():
+    """Línea de clima (reutiliza el briefing matutino). None si no está configurado."""
+    try:
+        from core.morning_briefing import _get_weather as _w
+        return _w()
+    except Exception as e:
+        logging.debug(f"[Startup] Sin clima: {e}")
+        return None
+
+
+def _startup_alerts():
+    """Coletillas SÓLO para lo realmente relevante al arrancar (seguridad/recursos)."""
+    alerts = []
+    try:
+        _known, unknown = _get_network_devices()
+        if unknown > 0:
+            s = "s" if unknown > 1 else ""
+            alerts.append(f"Por cierto, detecto {unknown} dispositivo{s} desconocido{s} en la red.")
+    except Exception:
+        pass
+    try:
+        ram = _get_system_ram_percent()
+        if ram >= 90:
+            alerts.append(f"Atención, señor: la memoria del sistema está al {ram:.0f} por ciento.")
+    except Exception:
+        pass
+    return alerts
+
+
+def generate_startup_greeting(include_telemetry: bool = True) -> str:
+    """Saludo de arranque. Por defecto, CONTEXTUAL y conciso (hora + clima +
+    tareas + alertas críticas). Con JARVIS_STARTUP_VERBOSE=true, el parte técnico
+    completo de antes."""
+    if os.getenv("JARVIS_STARTUP_VERBOSE", "false").lower() in ("true", "1", "yes"):
+        return _generate_verbose_greeting(include_telemetry)
+    reminders = 0
+    try:
+        reminders = _get_pending_reminders()
+    except Exception:
+        pass
+    return build_contextual_greeting(_get_greeting_by_time(), _get_weather(), reminders, _startup_alerts())
 
 
 def generate_wake_greeting() -> str:
