@@ -2203,30 +2203,6 @@ body.focus-veronica::before {
 }
 
 /* ═══════════════════════════════════════════
-   Reactor ARC (anillo de energía reactivo)
-   ═══════════════════════════════════════════ */
-#arc-reactor-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-}
-#arc-reactor {
-    width: 200px;
-    height: 200px;
-    filter: drop-shadow(0 0 12px rgba(0, 200, 255, 0.25));
-}
-#arc-reactor-readout {
-    display: flex;
-    gap: 14px;
-    font-family: 'Courier New', monospace;
-    font-size: 0.68rem;
-    letter-spacing: 0.08rem;
-    color: #7fbcd6;
-}
-#arc-reactor-readout b { color: #cdeeff; text-shadow: 0 0 6px rgba(0, 200, 255, 0.5); }
-
-/* ═══════════════════════════════════════════
    Subtítulos en vivo del HUD (lo que dice Jarvis)
    ═══════════════════════════════════════════ */
 #hud-subtitles {
