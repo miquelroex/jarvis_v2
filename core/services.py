@@ -32,6 +32,7 @@ import core.insights as insights
 import core.watchpost as watchpost
 import core.initiative as initiative
 import core.world_watch as world_watch
+import core.presence as presence
 
 def start_all_services():
     """
@@ -221,6 +222,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Vigilancia del Mundo: {e}")
 
+    # 30. Detección de Presencia por Webcam — controlado por JARVIS_PRESENCE_ENABLED (off por defecto)
+    try:
+        presence.start_presence_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Detección de Presencia: {e}")
+
     # Iron Legion: registrar las misiones integradas de los drones (sin daemon).
     try:
         import core.drones as drones
@@ -236,6 +243,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 30. Detección de Presencia por Webcam
+    try:
+        presence.stop_presence_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Detección de Presencia: {e}")
 
     # 29. Vigilancia Proactiva del Mundo
     try:
@@ -637,5 +650,12 @@ def get_services_status() -> dict:
     # 29. Vigilancia Proactiva del Mundo (bajo demanda; corre si hay vigilancias activas)
     ww_alive = world_watch.WATCH_THREAD is not None and world_watch.WATCH_THREAD.is_alive()
     status["world_watch"] = "running" if ww_alive else "stopped"
+
+    # 30. Detección de Presencia por Webcam (off por defecto)
+    if os.getenv("JARVIS_PRESENCE_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["presence"] = "disabled"
+    else:
+        pres_alive = presence.PRESENCE_THREAD is not None and presence.PRESENCE_THREAD.is_alive()
+        status["presence"] = "running" if pres_alive else "stopped"
 
     return status

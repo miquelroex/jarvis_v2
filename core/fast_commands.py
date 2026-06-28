@@ -630,6 +630,23 @@ def handle_fast_command(command: str):
         return get_situation_report()
 
 
+    # --- Comando rápido: Detección de Presencia por Webcam ---
+    if any(kw in text for kw in ["hay alguien", "quien hay", "ves a alguien",
+                                 "hay alguien en la sala", "deteccion de presencia"]):
+        if any(kw in text for kw in ["activa", "enciende", "inicia"]):
+            os.environ["JARVIS_PRESENCE_ENABLED"] = "true"
+            from core.presence import start_presence_daemon
+            start_presence_daemon()
+            return "Detección de presencia activada, señor. Vigilaré quién aparece."
+        if any(kw in text for kw in ["desactiva", "apaga", "deten"]):
+            os.environ["JARVIS_PRESENCE_ENABLED"] = "false"
+            from core.presence import stop_presence_daemon
+            stop_presence_daemon()
+            return "Detección de presencia desactivada, señor."
+        from core.presence import get_presence_status
+        return get_presence_status()
+
+
     # --- Comando rápido: Telemetría de Herramientas (coraza universal) ---
     if any(kw in text for kw in ["informe de herramientas", "telemetria de herramientas",
                                  "estado de las tools", "telemetria de tools",

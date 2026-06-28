@@ -237,7 +237,7 @@ Las capacidades que de verdad separan a un buen asistente del JARVIS de Tony Sta
 * [ ] **Control de dispositivos**: móvil, TV, audio multi-habitación (Chromecast/Spotify Connect/ADB). *"Pongo música en el salón, señor."*
 
 **👁️ Visión continua y comprensión espacial** (hoy sólo hay capturas puntuales)
-* [ ] **Webcam en tiempo real**: seguimiento, reconocimiento facial (saber quién entra), detección de presencia. *"Bienvenido, señor."* / *"Hay alguien más en la sala."*
+* [~] **Webcam en tiempo real**: seguimiento, reconocimiento facial (saber quién entra), detección de presencia. *"Bienvenido, señor."* / *"Hay alguien más en la sala."* ✅ Detección de presencia: core/presence.py (servicio #30, off por defecto): cuenta personas con Gemini Vision sobre un frame de webcam y una máquina de estados PURA con anti-parpadeo (PresenceMonitor) emite eventos arrival/departure/companion/alone con frases Stark; captura (pygame.camera) y visión aisladas, degradan con gracia. Voz "¿hay alguien?", "activa la detección de presencia". 21 tests, 68% mutation (resto I/O aislado). (Pendiente: reconocimiento de IDENTIDAD —quién es— vía opencv-contrib LBPH local o comparación con Gemini; viable, no hecho aún.)
 * [ ] **Memoria visual**: recuerda objetos/escenas vistas. *"¿Dónde dejé las llaves?" → "Sobre la mesa, señor, hace veinte minutos."*
 
 **🎙️ Voz verdaderamente full-duplex** (hoy es turno-a-turno)
