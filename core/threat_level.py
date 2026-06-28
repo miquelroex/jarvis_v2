@@ -51,7 +51,6 @@ def _default_signals() -> dict:
         "safe_mode": False,
         "system_ram_percent": 0.0,
         "integrity_status": "secure",   # secure | warning | critical
-        "vulnerabilities": 0,
         "unknown_devices": 0,
         "stopped_services": 0,
         "dependency_status": "healthy",  # healthy | advisory | unknown
@@ -79,12 +78,6 @@ def _gather_signals() -> dict:
     try:
         from core.jarvis_integrity import LATEST_HEALTH_REPORT
         signals["integrity_status"] = LATEST_HEALTH_REPORT.get("status", "secure")
-    except Exception:
-        pass
-
-    try:
-        from core.vulnerability_patcher import LATEST_REPORT
-        signals["vulnerabilities"] = len(LATEST_REPORT.get("findings", []))
     except Exception:
         pass
 
@@ -127,9 +120,6 @@ def _aggregate_threat_level(signals: dict) -> dict:
         red.append(f"RAM del sistema crítica ({ram:.0f}%)")
     if signals.get("integrity_status") == "critical":
         red.append("Fallo de integridad del sistema")
-    vulns = signals.get("vulnerabilities", 0)
-    if vulns > 0:
-        red.append(f"{vulns} vulnerabilidad(es) de dependencias")
     unknown = signals.get("unknown_devices", 0)
     if unknown > 0:
         red.append(f"{unknown} dispositivo(s) desconocido(s) en la red")

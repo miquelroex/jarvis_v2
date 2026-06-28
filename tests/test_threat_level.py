@@ -43,9 +43,6 @@ class TestAggregate(unittest.TestCase):
     def test_red_integrity_critical(self):
         self.assertEqual(tl._aggregate_threat_level(_signals(integrity_status="critical"))["level"], "red")
 
-    def test_red_vulnerabilities(self):
-        self.assertEqual(tl._aggregate_threat_level(_signals(vulnerabilities=2))["level"], "red")
-
     def test_red_unknown_devices(self):
         self.assertEqual(tl._aggregate_threat_level(_signals(unknown_devices=1))["level"], "red")
 
@@ -54,7 +51,7 @@ class TestAggregate(unittest.TestCase):
 
     def test_priority_violet_over_red(self):
         # Aunque haya condiciones rojas, ultra-seguro manda (violet).
-        result = tl._aggregate_threat_level(_signals(ultra_secure=True, safe_mode=True, vulnerabilities=3))
+        result = tl._aggregate_threat_level(_signals(ultra_secure=True, safe_mode=True, system_ram_percent=95))
         self.assertEqual(result["level"], "violet")
 
     def test_priority_red_over_amber(self):
@@ -88,7 +85,7 @@ class TestUltraSecureMode(unittest.TestCase):
 class TestComputeAndEmit(unittest.TestCase):
 
     def test_compute_uses_gathered_signals(self):
-        with patch.object(tl, "_gather_signals", return_value=_signals(vulnerabilities=1)):
+        with patch.object(tl, "_gather_signals", return_value=_signals(unknown_devices=1)):
             self.assertEqual(tl.compute_threat_level()["level"], "red")
 
     def test_emit_sends_socket_event(self):
