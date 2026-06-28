@@ -337,7 +337,12 @@ def _speech_worker():
             logging.error(f"⚠️ Error en el worker de voz: {e}")
         finally:
             _speaking_active = False
-            _speech_queue.task_done()
+            # Defensivo: si stop_speak() (barge-in) ya marcó esta tarea, no debe
+            # tumbar el hilo de voz con "task_done() called too many times".
+            try:
+                _speech_queue.task_done()
+            except ValueError:
+                pass
 
 def stop_speak() -> None:
     """Detiene la voz actual y descarta las locuciones pendientes en la cola.
@@ -351,6 +356,9 @@ def stop_speak() -> None:
             _speech_queue.get_nowait()
             _speech_queue.task_done()
         except queue.Empty:
+            break
+        except ValueError:
+            # El contador de tareas ya está a cero (lo cerró el worker): paramos.
             break
 
     # 2. Cortar la reproducción en curso
