@@ -646,6 +646,23 @@ def handle_fast_command(command: str):
         from core.presence import get_presence_status
         return get_presence_status()
 
+    # --- Comando rápido: Reconocimiento Facial (enrolar / identificar) ---
+    if any(kw in text for kw in ["recuerdame mi cara", "recuerda mi cara", "memoriza mi cara",
+                                 "registra mi cara", "enrolame", "aprende mi cara",
+                                 "recuerdame soy el senor"]):
+        from core.face_id import enroll
+        # Permite "registra mi cara como Ana"; por defecto, "señor".
+        nombre = "señor"
+        for sep in ["como ", "soy "]:
+            if sep in text:
+                nombre = command[text.find(sep) + len(sep):].strip() or "señor"
+                break
+        return enroll(nombre)
+    if any(kw in text for kw in ["quien soy", "me reconoces", "sabes quien soy",
+                                 "a quien ves", "reconoces mi cara"]):
+        from core.face_id import who_is_there
+        return who_is_there()
+
 
     # --- Comando rápido: Telemetría de Herramientas (coraza universal) ---
     if any(kw in text for kw in ["informe de herramientas", "telemetria de herramientas",

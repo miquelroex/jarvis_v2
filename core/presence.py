@@ -208,6 +208,15 @@ def _presence_loop():
         try:
             for event in _monitor.observe(_observe_once()):
                 phrase = event_phrase(event)
+                # Si hay reconocimiento facial disponible, personaliza la llegada.
+                if event == "arrival":
+                    try:
+                        from core.face_id import identify_greeting
+                        personal = identify_greeting()
+                        if personal:
+                            phrase = personal
+                    except Exception:
+                        pass
                 if phrase:
                     _notify(phrase)
         except Exception as e:
