@@ -159,7 +159,7 @@ def _thermal_loop():
             emit_thermal_snapshot()
         except Exception as e:
             logger.error(f"[Thermal] Error en el bucle del daemon: {e}")
-        interval = int(os.getenv("JARVIS_THERMAL_INTERVAL", "3"))
+        interval = int(os.getenv("JARVIS_THERMAL_INTERVAL", "15"))
         if stop_event.wait(timeout=interval):
             break
 

@@ -170,7 +170,7 @@ def _packet_loop():
             emit_packet_map()
         except Exception as e:
             logger.error(f"[PacketMap] Error en el bucle del daemon: {e}")
-        interval = int(os.getenv("JARVIS_PACKET_MAP_INTERVAL", "6"))
+        interval = int(os.getenv("JARVIS_PACKET_MAP_INTERVAL", "20"))
         if stop_event.wait(timeout=interval):
             break
 

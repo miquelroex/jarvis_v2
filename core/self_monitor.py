@@ -109,7 +109,7 @@ def _monitor_loop():
             emit_health_dashboard()
         except Exception as e:
             logger.error(f"[SelfMonitor] Error en el bucle del daemon: {e}")
-        interval = int(os.getenv("JARVIS_SELF_MONITOR_INTERVAL", "5"))
+        interval = int(os.getenv("JARVIS_SELF_MONITOR_INTERVAL", "15"))
         if stop_event.wait(timeout=interval):
             break
 

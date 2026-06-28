@@ -202,7 +202,7 @@ def _threat_loop():
                 logger.info(f"[Threat] Nivel DEFCON: {report['level']} — {', '.join(report['reasons'])}")
         except Exception as e:
             logger.error(f"[Threat] Error en el bucle del daemon: {e}")
-        interval = int(os.getenv("JARVIS_THREAT_LEVEL_INTERVAL", "12"))
+        interval = int(os.getenv("JARVIS_THREAT_LEVEL_INTERVAL", "30"))
         if stop_event.wait(timeout=interval):
             break
 

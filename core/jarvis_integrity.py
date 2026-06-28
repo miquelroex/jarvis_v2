@@ -108,66 +108,67 @@ def check_env_variables() -> list:
         })
     return results
 
+# Subconjunto "smoke": tests de núcleo PURO, rápidos y sin dependencias pesadas
+# (estilo pytest, por eso se corren con pytest, no con unittest). Suficiente para
+# verificar la integridad básica en ~1s sin correr los ~1.339 tests.
+SMOKE_TEST_FILES = [
+    "tests/test_error_kb.py", "tests/test_world_model.py", "tests/test_resilience.py",
+    "tests/test_barge_in_logic.py", "tests/test_tool_armor.py", "tests/test_intrusion.py",
+    "tests/test_evolution.py",
+]
+
+
 def run_unit_tests() -> dict:
-    """Ejecuta silenciosamente la suite de pruebas unitarias y parsea los resultados."""
-    logging.info("[Integrity] Ejecutando suite de pruebas unitarias...")
+    """Ejecuta las pruebas de integridad (con pytest) y parsea los resultados.
+
+    Por defecto corre un subconjunto 'smoke' rápido (JARVIS_INTEGRITY_TEST_SCOPE);
+    'full' corre la suite completa."""
+    scope = os.getenv("JARVIS_INTEGRITY_TEST_SCOPE", "smoke").lower()
+    logging.info(f"[Integrity] Ejecutando pruebas de integridad (scope={scope})...")
     try:
         venv_python = str(Path(WORKSPACE_ROOT) / ".venv" / "Scripts" / "python.exe")
         if not os.path.exists(venv_python):
             venv_python = "python"
-            
-        # La suite ha crecido mucho; el timeout debe ser holgado y configurable.
+
+        if scope == "full":
+            test_cmd = [venv_python, "-m", "pytest", "tests", "-q"]
+        else:
+            test_cmd = [venv_python, "-m", "pytest", *SMOKE_TEST_FILES, "-q"]
+
+        # Timeout holgado y configurable.
         test_timeout = int(os.getenv("JARVIS_INTEGRITY_TEST_TIMEOUT", "180"))
         result = subprocess.run(
-            [venv_python, "-m", "unittest", "discover", "-s", "tests"],
+            test_cmd,
             cwd=WORKSPACE_ROOT,
             capture_output=True,
             text=True,
             timeout=test_timeout
         )
-        
-        # Parsea el output para buscar el resumen final
-        # Ejemplo: "Ran 86 tests in 12.265s\n\nOK" o "FAILED (failures=1, errors=2)"
-        ran_count = 0
-        failures_count = 0
-        errors_count = 0
+
+        # Parsear el resumen de pytest: "5 passed", "1 failed, 4 passed", "2 errors".
         passed = result.returncode == 0
-        
-        output = result.stderr or ""
-        # Buscar la línea "Ran X tests in Ys"
-        for line in output.splitlines():
-            if line.startswith("Ran ") and " tests in " in line:
-                parts = line.split()
-                try:
-                    ran_count = int(parts[1])
-                except ValueError:
-                    pass
-            elif "FAILED" in line and "(" in line:
-                # Ejemplo: FAILED (failures=1, errors=2)
-                details = line.split("(", 1)[1].replace(")", "")
-                for part in details.split(","):
-                    part = part.strip()
-                    if part.startswith("failures="):
-                        try:
-                            failures_count = int(part.split("=")[1])
-                        except ValueError:
-                            pass
-                    elif part.startswith("errors="):
-                        try:
-                            errors_count = int(part.split("=")[1])
-                        except ValueError:
-                            pass
-                            
-        # Si falló pero no pudimos parsear números específicos
+        output = (result.stdout or "") + (result.stderr or "")
+        import re
+
+        def _n(pattern):
+            m = re.search(pattern, output)
+            return int(m.group(1)) if m else 0
+
+        passed_count = _n(r"(\d+) passed")
+        failures_count = _n(r"(\d+) failed")
+        errors_count = _n(r"(\d+) error")
+        ran_count = passed_count + failures_count + errors_count
+
+        # Si falló pero no pudimos parsear números específicos, forzar uno.
         if not passed and failures_count == 0 and errors_count == 0:
-            failures_count = 1  # Forzar al menos uno para reportar
-            
+            failures_count = 1
+
         return {
             "ran": ran_count,
             "failures": failures_count,
             "errors": errors_count,
             "passed": passed,
-            "raw_output": output[-500:] # Guardar los últimos 500 caracteres del error
+            "raw_output": output[-500:]
         }
     except Exception as e:
         logging.error(f"[Integrity] Error al correr suite de tests: {e}")
@@ -176,7 +177,7 @@ def run_unit_tests() -> dict:
             "failures": 1,
             "errors": 0,
             "passed": False,
-            "raw_output": f"Fallo al ejecutar subproceso de unittest: {str(e)}"
+            "raw_output": f"Fallo al ejecutar las pruebas: {str(e)}"
         }
 
 def run_integrity_check() -> dict:

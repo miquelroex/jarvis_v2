@@ -203,15 +203,28 @@ def watcher_loop(workspace_root: str):
             if pending_changes and (time.time() - last_change_time >= debounce_delay):
                 # Determinar módulos de prueba correspondientes
                 test_modules = set()
+                unmapped = False
                 for changed_file in pending_changes:
                     module = determine_test_module(changed_file, workspace_root)
-                    test_modules.add(module) # Si es None, representará la suite completa
-                    
+                    if module is None:
+                        unmapped = True  # cambio sin test asociado (p.ej. main.py, config)
+                    else:
+                        test_modules.add(module)
+
                 pending_changes.clear()
-                
-                # Ejecutar las pruebas unitarias afectadas
+
+                # Ejecutar sólo los tests de los módulos afectados.
                 for module in test_modules:
                     run_test(module)
+
+                # Sólo correr la suite COMPLETA por cambios sin test asociado si se
+                # pide explícitamente (evita machacar la CPU con ~1.339 tests por
+                # cualquier edición de un fichero sin test propio).
+                if unmapped and not test_modules:
+                    if os.getenv("JARVIS_TEST_WATCHER_FULL_ON_UNMAPPED", "false").lower() in ("true", "1", "yes"):
+                        run_test(None)
+                    else:
+                        logging.info("[TestWatcher] Cambio sin test asociado; se omite la suite completa.")
                     
             if stop_event.wait(timeout=1.0):
                 break

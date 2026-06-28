@@ -11,8 +11,11 @@
     <script>window.MAPBOX_TOKEN = "{{ mapbox_token }}";</script>
 </head>
 <body>
-    <!-- Suit Up Overlay (Secuencia de Arranque) -->
-    <div id="suitup-overlay">
+    <!-- Suit Up Overlay (Secuencia de Arranque).
+         Arranca OCULTO: sólo se muestra si la secuencia de arranque emite
+         'suitup_start'. Así, si el evento no llega (o lo saltas), vas directo a
+         la interfaz y la pantalla NUNCA se queda clavada en STANDBY. -->
+    <div id="suitup-overlay" style="display: none;">
         <div id="suitup-scanlines"></div>
         <div id="suitup-content">
             <div id="suitup-header">
@@ -396,6 +399,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
     <!-- Nuestro JavaScript con las animaciones -->
-    <script src="/static/js/jarvis.js?v=14"></script>
+    <script src="/static/js/jarvis.js?v=15"></script>
 </body>
 </html>
