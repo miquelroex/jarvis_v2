@@ -36,6 +36,7 @@ import core.presence as presence
 import core.visual_memory as visual_memory
 import core.wellbeing as wellbeing
 import core.intrusion as intrusion
+import core.evolution as evolution
 
 def start_all_services():
     """
@@ -249,6 +250,12 @@ def start_all_services():
     except Exception as e:
         logging.error(f"❌ [Services] Error al iniciar Contra-intrusión: {e}")
 
+    # 34. Motor de Evolución (aprendizaje continuo) — controlado por JARVIS_EVOLUTION_ENABLED (off por defecto)
+    try:
+        evolution.start_evolution_daemon()
+    except Exception as e:
+        logging.error(f"❌ [Services] Error al iniciar Motor de Evolución: {e}")
+
     # Iron Legion: registrar las misiones integradas de los drones (sin daemon).
     try:
         import core.drones as drones
@@ -264,6 +271,12 @@ def stop_all_services():
     Usa bloques try/except individuales para que un fallo no bloquee la parada de los demás.
     """
     logging.info("[Services] Deteniendo todos los servicios en orden inverso...")
+
+    # 34. Motor de Evolución
+    try:
+        evolution.stop_evolution_daemon()
+    except Exception as e:
+        logging.error(f"Error al detener Motor de Evolución: {e}")
 
     # 33. Contra-intrusión
     try:
@@ -717,5 +730,12 @@ def get_services_status() -> dict:
     else:
         intr_alive = intrusion.INTRUSION_THREAD is not None and intrusion.INTRUSION_THREAD.is_alive()
         status["intrusion"] = "running" if intr_alive else "stopped"
+
+    # 34. Motor de Evolución (off por defecto)
+    if os.getenv("JARVIS_EVOLUTION_ENABLED", "false").lower() not in ("true", "1", "yes"):
+        status["evolution"] = "disabled"
+    else:
+        evo_alive = evolution.EVOLUTION_THREAD is not None and evolution.EVOLUTION_THREAD.is_alive()
+        status["evolution"] = "running" if evo_alive else "stopped"
 
     return status

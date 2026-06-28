@@ -716,6 +716,17 @@ def handle_fast_command(command: str):
         return get_status_report()
 
 
+    # --- Comando rápido: Motor de Evolución (aprendizaje continuo) ---
+    if any(kw in text for kw in ["que has aprendido", "informe de evolucion", "que aprendiste",
+                                 "como has evolucionado", "tus aprendizajes"]):
+        from core.evolution import get_learnings
+        return get_learnings()
+    if any(kw in text for kw in ["evoluciona", "aprende de tu uso", "extrae lecciones",
+                                 "analiza tu operacion"]):
+        from core.evolution import learn_now
+        return learn_now()
+
+
     # --- Comando rápido: Telemetría de Herramientas (coraza universal) ---
     if any(kw in text for kw in ["informe de herramientas", "telemetria de herramientas",
                                  "estado de las tools", "telemetria de tools",
