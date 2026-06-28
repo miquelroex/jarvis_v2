@@ -11,6 +11,12 @@ import sys
 # Crear la aplicación Flask
 app = Flask(__name__)
 
+# Recargar las plantillas en cada petición: así los cambios en index.html se ven
+# con sólo refrescar el navegador, SIN reiniciar Jarvis (antes Flask cacheaba el
+# HTML y había que reiniciar para cada cambio de plantilla).
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.jinja_env.auto_reload = True
+
 # Clave secreta de sesión: nunca usar un valor fijo en el repositorio.
 # Si no está definida en .env, se genera una aleatoria por sesión (las
 # sesiones del navegador no sobrevivirán a un reinicio, lo cual es aceptable).
