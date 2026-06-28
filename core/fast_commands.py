@@ -677,6 +677,13 @@ def handle_fast_command(command: str):
         return where_is(command)
 
 
+    # --- Comando rápido: Lectura de Estado/Ánimo del Usuario ---
+    if any(kw in text for kw in ["como estoy", "como me ves", "como me notas",
+                                 "que tal me ves", "como me encuentro"]):
+        from core.wellbeing import get_status_report
+        return get_status_report()
+
+
     # --- Comando rápido: Telemetría de Herramientas (coraza universal) ---
     if any(kw in text for kw in ["informe de herramientas", "telemetria de herramientas",
                                  "estado de las tools", "telemetria de tools",

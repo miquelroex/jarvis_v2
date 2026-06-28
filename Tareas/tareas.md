@@ -259,3 +259,29 @@ Las capacidades que de verdad separan a un buen asistente del JARVIS de Tony Sta
 * [ ] **Diseño holográfico por voz**: "renderiza esto, gíralo, quítale esta parte" — crear y manipular objetos/diagramas 3D hablando, como cuando Tony diseña el traje. (Tienes la base visual con world_map y architecture_graph.)
 
 > ⚠️ Fuera de alcance a propósito (ficción/ilegal): vigilancia de personas, hackeo de sistemas ajenos, acceso a CCTV/satélites de terceros. El JARVIS real lo hace; el nuestro respeta el límite legal y ético.
+
+### 🎞️ Más capacidades del JARVIS de las películas
+Otra tanda de cosas que JARVIS hace en la saga y que aún no estaban en la lista. (S)=software factible, (HW)=requiere hardware, (INT)=requiere integración externa.
+
+**🧠 Sobre el usuario (lee a su "Tony")**
+* [x] **Lectura de estado/ánimo del usuario** (S): detecta estrés por cadencia de tecleo, racha de errores y horas sin pausa, y ajusta su trato (más sobrio/atento). *"Señor, lleva tres horas con el mismo bug y son las 2 de la mañana. Sugiero una pausa."* ✅ core/wellbeing.py (servicio #32): compute_stress puro cruza hora + errores recientes (error_kb) + minutos trabajando sin pausa (idle-aware) + tests en rojo → nivel sereno/concentrado/tenso/agotado; build_status_report lista los factores que pesan; daemon proactivo con enfriamiento (off por defecto) sugiere parar al detectar agotamiento; consulta "¿cómo estoy?" / "¿cómo me ves?" siempre activa. Complementa el Protocolo Blackout (solo hora) con lectura multi-señal. 19 tests, 69% mutation (resto gatherers aislados).
+* [ ] **Autenticación por voz/cara** (S): usar el reconocimiento facial (core/face_id) como candado para acciones sensibles. *"Identidad confirmada, señor. Acceso concedido."* / *"No le reconozco. Acceso denegado."*
+
+**🛡️ Stark paranoico (defensa del propio sistema)**
+* [ ] **Contra-intrusión del equipo** (S): vigila logins fallidos, procesos nuevos sospechosos, cambios en ficheros críticos y conexiones salientes extrañas, y avisa. *"Señor, alguien intenta acceder. He sellado el sistema."*
+* [ ] **Protocolo "Borrón y Cuenta Nueva" (Clean Slate)** (S): orden de pánico (como el final de Iron Man 3) que cierra apps sensibles, bloquea, borra temporales y silencia notificaciones al instante. *"Iniciando protocolo de limpieza, señor."*
+
+**🔧 Ingeniero de combate (diagnóstico y guía)**
+* [ ] **Diagnóstico con guía de reparación** (S): además del informe de daños, te guía paso a paso a resolver lo que falla. *"Propulsor izquierdo al 40%. Le guío: primero…"*
+* [ ] **Mantenimiento predictivo** (S): predice fallos antes de que ocurran (disco, dependencias, memoria). *"A este ritmo, el disco se llena en 3 días, señor."*
+* [ ] **Simulaciones y cálculos al vuelo** (S): ejecuta dry-runs/benchmarks y da probabilidades. *"Ejecutando simulación… probabilidad de éxito del despliegue: 91%."*
+
+**🎙️ Presencia y comunicaciones**
+* [ ] **Gestión/filtrado de llamadas** (INT): anuncia y filtra comunicaciones entrantes. *"Llamada de Pepper, señor. ¿La paso?"*
+* [ ] **Música y ambiente contextual** (INT): pone música según el momento (foco, celebración). *"Algo de AC/DC para la ocasión, señor."*
+* [ ] **Traducción en tiempo real** (S): traduce sobre la marcha (revisar si ya lo cubre core/babel.py y, si no, completarlo).
+
+**🎬 Lo icónico que aún no está**
+* [ ] **"Compílame un informe sobre X"** (S): dossier temático ingiriendo mucha info (variante temática del investigador autónomo).
+* [ ] **Narración táctica de misiones largas** (S): relato en vivo del progreso de tareas en background (ampliar thought-stream/drones).
+* [ ] **Aprendizaje y evolución continua** (S): que Jarvis mejore con el uso (germen ya en core/mark_ii.py — auto-mejora).
