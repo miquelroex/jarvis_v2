@@ -116,7 +116,7 @@ const stateLabels = {
 };
 
 const stateParams = {
-    idle:      { driftAmp: 1.0, gravityContraction: 1.0, voiceRippleAmp: 0.0, connectionDistance: 1.1, lineOpacityMultiplier: 0.35, dustSpeed: 0.2, nodeSize: 0.12 },
+    idle:      { driftAmp: 0.5, gravityContraction: 1.0, voiceRippleAmp: 0.0, connectionDistance: 1.1, lineOpacityMultiplier: 0.35, dustSpeed: 0.2, nodeSize: 0.12 },
     listening: { driftAmp: 1.5, gravityContraction: 1.0, voiceRippleAmp: 0.1, connectionDistance: 1.3, lineOpacityMultiplier: 0.50, dustSpeed: 0.4, nodeSize: 0.15 },
     thinking:  { driftAmp: 0.5, gravityContraction: 0.32, voiceRippleAmp: 0.0, connectionDistance: 0.6, lineOpacityMultiplier: 0.70, dustSpeed: 2.0, nodeSize: 0.08 },
     speaking:  { driftAmp: 1.2, gravityContraction: 1.0, voiceRippleAmp: 0.22, connectionDistance: 1.2, lineOpacityMultiplier: 0.45, dustSpeed: 0.3, nodeSize: 0.15 }
@@ -173,10 +173,11 @@ nodesGeom.setAttribute('position', new THREE.BufferAttribute(nodesPositions, 3))
 
 const nodeData = [];
 for (let i = 0; i < nodeCount; i++) {
-    // Distribución esférica aleatoria tridimensional
+    // Distribución esférica: los puntos se concentran cerca de la SUPERFICIE
+    // (cáscara) para que se lea como un orbe nítido, no como una nube difusa.
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2.0 * Math.random() - 1.0);
-    const r = Math.pow(Math.random(), 0.8) * 2.2;
+    const r = (0.7 + 0.3 * Math.random()) * 2.2;
     
     const x = r * Math.sin(phi) * Math.cos(theta);
     const y = r * Math.sin(phi) * Math.sin(theta);
@@ -193,10 +194,10 @@ for (let i = 0; i < nodeCount; i++) {
         phaseX: Math.random() * Math.PI * 2,
         phaseY: Math.random() * Math.PI * 2,
         phaseZ: Math.random() * Math.PI * 2,
-        freqX: 0.8 + Math.random() * 1.5,
-        freqY: 0.8 + Math.random() * 1.5,
-        freqZ: 0.8 + Math.random() * 1.5,
-        amp: 0.2 + Math.random() * 0.4
+        freqX: 0.25 + Math.random() * 0.45,
+        freqY: 0.25 + Math.random() * 0.45,
+        freqZ: 0.25 + Math.random() * 0.45,
+        amp: 0.08 + Math.random() * 0.16
     });
 }
 
@@ -518,7 +519,7 @@ function animate(now) {
     // 4. Parallax del ratón
     mouseX = lerp(mouseX, targetMouseX, 0.05);
     mouseY = lerp(mouseY, targetMouseY, 0.05);
-    hologramGroup.rotation.y = mouseX * 0.35 + (runTime * 0.02);
+    hologramGroup.rotation.y = mouseX * 0.35 + (runTime * 0.013);
     hologramGroup.rotation.x = -mouseY * 0.35;
 
     // 5. Latido del núcleo al ritmo de la voz (sutil)
@@ -1490,6 +1491,7 @@ socket.on('disconnect', () => {
     currentState = 'idle';
     statusEl.textContent = "SISTEMA CAÍDO";
     statusEl.style.color = "red";
+    statusEl.style.display = "block";  // el aviso de caída SÍ se muestra aunque el estado esté oculto
     
     // Intentar cerrar la pestaña después de 1.5 segundos
     setTimeout(() => {
